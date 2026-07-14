@@ -568,6 +568,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/fixture-runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 FixtureRun 详情 */
+        get: operations["get_fixture_run_v1_fixture_runs__runId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/fixture-runs/{runId}/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 FixtureManifest */
+        get: operations["get_fixture_manifest_v1_fixture_runs__runId__manifest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/fixture-runs/{runId}/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 Fixture Resource Ledger */
+        get: operations["list_fixture_resources_v1_fixture_runs__runId__resources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/fixture-runs/{runId}:release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 请求释放 FixtureRun */
+        post: operations["release_fixture_run_v1_fixture_runs__runId__release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health/live": {
         parameters: {
             query?: never;
@@ -710,6 +778,23 @@ export interface paths {
          * @description 幂等创建 Project 下的 Environment。
          */
         post: operations["create_environment_v1_projects__projectId__environments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/fixture-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 启动 FixtureRun */
+        post: operations["start_fixture_run_v1_projects__projectId__fixture_runs_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2294,6 +2379,109 @@ export interface components {
          */
         DataClassification: "PUBLIC" | "INTERNAL" | "CONFIDENTIAL" | "SENSITIVE";
         /**
+         * DataNodeAttempt
+         * @description Append-oriented safe summary of one provider call.
+         */
+        DataNodeAttempt: {
+            /** Attemptnumber */
+            attemptNumber: number;
+            /**
+             * Datanoderunid
+             * Format: uuid
+             */
+            dataNodeRunId: string;
+            failureCategory?: components["schemas"]["FixtureFailureCategory"] | null;
+            /** Failurecode */
+            failureCode?: string | null;
+            /** Failuredetail */
+            failureDetail?: string | null;
+            /** Finishedat */
+            finishedAt?: string | null;
+            /**
+             * Fixturerunid
+             * Format: uuid
+             */
+            fixtureRunId: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Providerrequestid */
+            providerRequestId?: string | null;
+            /**
+             * Startedat
+             * Format: date-time
+             */
+            startedAt: string;
+            status: components["schemas"]["DataNodeAttemptStatus"];
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * DataNodeAttemptStatus
+         * @description One real connector invocation attempt.
+         * @enum {string}
+         */
+        DataNodeAttemptStatus: "RUNNING" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNCERTAIN";
+        /**
+         * DataNodeRun
+         * @description Public state for one logical node in a fixture run.
+         */
+        DataNodeRun: {
+            /** Actorslot */
+            actorSlot: string;
+            /**
+             * Atomversionid
+             * Format: uuid
+             */
+            atomVersionId: string;
+            /** Attemptcount */
+            attemptCount: number;
+            /** Executionlevel */
+            executionLevel: number;
+            failureCategory?: components["schemas"]["FixtureFailureCategory"] | null;
+            /** Failurecode */
+            failureCode?: string | null;
+            /** Failuredetail */
+            failureDetail?: string | null;
+            /** Finishedat */
+            finishedAt?: string | null;
+            /**
+             * Fixturerunid
+             * Format: uuid
+             */
+            fixtureRunId: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Nodeid */
+            nodeId: string;
+            /** Outputdigest */
+            outputDigest?: string | null;
+            /** Revision */
+            revision: number;
+            /** Startedat */
+            startedAt?: string | null;
+            status: components["schemas"]["DataNodeRunStatus"];
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * DataNodeRunStatus
+         * @description Logical node state independent of individual provider attempts.
+         * @enum {string}
+         */
+        DataNodeRunStatus: "PENDING" | "READY" | "RUNNING" | "VERIFYING" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNCERTAIN";
+        /**
          * DependencyCheck
          * @description 单个依赖的 readiness 结果。
          */
@@ -2419,6 +2607,211 @@ export interface components {
             /** Message */
             message: string;
         };
+        /**
+         * FixtureActorBinding
+         * @description Frozen, safe actor slot binding visible in run diagnostics.
+         */
+        FixtureActorBinding: {
+            /**
+             * Accountleaseid
+             * Format: uuid
+             */
+            accountLeaseId: string;
+            /** Actorslot */
+            actorSlot: string;
+            /**
+             * Boundat
+             * Format: date-time
+             */
+            boundAt: string;
+            /**
+             * Connectorinstallationid
+             * Format: uuid
+             */
+            connectorInstallationId: string;
+            /** Fencingtoken */
+            fencingToken: number;
+            /**
+             * Fixturerunid
+             * Format: uuid
+             */
+            fixtureRunId: string;
+        };
+        /**
+         * FixtureActorLeaseBinding
+         * @description Caller-provided actor slot bound to an existing fenced account lease.
+         */
+        FixtureActorLeaseBinding: {
+            /**
+             * Accountleaseid
+             * Format: uuid
+             */
+            accountLeaseId: string;
+            /** Actorslot */
+            actorSlot: string;
+            /** Fencingtoken */
+            fencingToken: number;
+        };
+        /**
+         * FixtureCleanupState
+         * @description Cleanup projection kept separate from the preparation result.
+         * @enum {string}
+         */
+        FixtureCleanupState: "NOT_REQUIRED" | "PENDING" | "RUNNING" | "CLEANED" | "LEAKED";
+        /**
+         * FixtureFailureCategory
+         * @description Low-cardinality failure category safe for APIs and events.
+         * @enum {string}
+         */
+        FixtureFailureCategory: "VALIDATION" | "POLICY" | "AUTH" | "RATE_LIMIT" | "TRANSIENT" | "UNCERTAIN" | "CLEANUP" | "INFRASTRUCTURE";
+        /**
+         * FixtureManifest
+         * @description Only explicitly exported fixture values cross into test execution.
+         */
+        FixtureManifest: {
+            /**
+             * Blueprintversionid
+             * Format: uuid
+             */
+            blueprintVersionId: string;
+            /** Exports */
+            exports: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Fixturerunid
+             * Format: uuid
+             */
+            fixtureRunId: string;
+            /** Plandigest */
+            planDigest: string;
+            /**
+             * Schemaversion
+             * @default atlas.fixture-manifest/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.fixture-manifest/0.1";
+        };
+        /**
+         * FixtureManifestRecord
+         * @description Immutable manifest fact created only after every node succeeds.
+         */
+        FixtureManifestRecord: {
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Fixturerunid
+             * Format: uuid
+             */
+            fixtureRunId: string;
+            manifest: components["schemas"]["FixtureManifest"];
+            /** Manifestdigest */
+            manifestDigest: string;
+        };
+        /** FixtureResourcePage */
+        FixtureResourcePage: {
+            /** Items */
+            items: components["schemas"]["ResourceRecord"][];
+        };
+        /**
+         * FixtureRun
+         * @description Public safe projection of one durable fixture run.
+         */
+        FixtureRun: {
+            /**
+             * Blueprintversionid
+             * Format: uuid
+             */
+            blueprintVersionId: string;
+            cleanupState: components["schemas"]["FixtureCleanupState"];
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /**
+             * Executiondeadline
+             * Format: date-time
+             */
+            executionDeadline: string;
+            /** Executionid */
+            executionId: string;
+            failureCategory?: components["schemas"]["FixtureFailureCategory"] | null;
+            /** Failurecode */
+            failureCode?: string | null;
+            /** Failuredetail */
+            failureDetail?: string | null;
+            /** Finishedat */
+            finishedAt?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Inputdigest */
+            inputDigest: string;
+            /** Plandigest */
+            planDigest: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Readyat */
+            readyAt?: string | null;
+            /** Releasedat */
+            releasedAt?: string | null;
+            /**
+             * Requestedat
+             * Format: date-time
+             */
+            requestedAt: string;
+            /** Requestedby */
+            requestedBy: string | null;
+            /** Revision */
+            revision: number;
+            runKind: components["schemas"]["FixtureRunKind"];
+            /** Startedat */
+            startedAt?: string | null;
+            status: components["schemas"]["FixtureRunStatus"];
+            /** Temporalworkflowid */
+            temporalWorkflowId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /** FixtureRunDetail */
+        FixtureRunDetail: {
+            /** Actorbindings */
+            actorBindings: components["schemas"]["FixtureActorBinding"][];
+            /** Attempts */
+            attempts: components["schemas"]["DataNodeAttempt"][];
+            /** Nodes */
+            nodes: components["schemas"]["DataNodeRun"][];
+            run: components["schemas"]["FixtureRun"];
+        };
+        /**
+         * FixtureRunKind
+         * @description Why a fixture plan is being executed.
+         * @enum {string}
+         */
+        FixtureRunKind: "VALIDATION" | "EXECUTION";
+        /**
+         * FixtureRunStatus
+         * @description Durable lifecycle of one fixture execution.
+         * @enum {string}
+         */
+        FixtureRunStatus: "REQUESTED" | "RUNNING" | "READY" | "FAILED" | "CANCELED" | "CLEANING" | "RELEASED" | "CLEANUP_FAILED";
         /**
          * HealthResponse
          * @description 稳定的健康检查协议。
@@ -2864,6 +3257,65 @@ export interface components {
             ttlSeconds: number;
         };
         /**
+         * ResourceRecord
+         * @description Public ledger projection that never reveals the provider locator.
+         */
+        ResourceRecord: {
+            /** Cleanedat */
+            cleanedAt?: string | null;
+            /** Cleanupgeneration */
+            cleanupGeneration: number;
+            /**
+             * Connectorinstallationid
+             * Format: uuid
+             */
+            connectorInstallationId: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Datanoderunid
+             * Format: uuid
+             */
+            dataNodeRunId: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Fixturerunid
+             * Format: uuid
+             */
+            fixtureRunId: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            ownership: components["schemas"]["ResourceOwnership"];
+            /** Resourcehandle */
+            resourceHandle: string;
+            /** Resourcetype */
+            resourceType: string;
+            /** Revision */
+            revision: number;
+            status: components["schemas"]["ResourceRecordStatus"];
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * ResourceRecordStatus
+         * @description Resource ledger lifecycle used by cleanup and leak detection.
+         * @enum {string}
+         */
+        ResourceRecordStatus: "ACTIVE" | "CLEANUP_PENDING" | "CLEANING" | "CLEANED" | "LEAKED" | "BLOCKED_BY_CHILD" | "ORPHAN_SUSPECTED";
+        /**
          * RetryPolicy
          * @description Bounded retry budget for transient connector outcomes.
          */
@@ -2922,6 +3374,37 @@ export interface components {
              * @constant
              */
             maxRedemptions: 1;
+        };
+        /**
+         * StartFixtureRun
+         * @description Create one exact, input-frozen fixture execution.
+         */
+        StartFixtureRun: {
+            /** Actorbindings */
+            actorBindings: components["schemas"]["FixtureActorLeaseBinding"][];
+            /**
+             * Blueprintversionid
+             * Format: uuid
+             */
+            blueprintVersionId: string;
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /**
+             * Executiondeadline
+             * Format: date-time
+             */
+            executionDeadline: string;
+            /** Executionid */
+            executionId: string;
+            /** Inputs */
+            inputs?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** @default VALIDATION */
+            runKind: components["schemas"]["FixtureRunKind"];
         };
         /**
          * Tenant
@@ -7176,6 +7659,394 @@ export interface operations {
             };
         };
     };
+    get_fixture_run_v1_fixture_runs__runId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureRunDetail"];
+                };
+            };
+            /** @description FixtureRun 输入或绑定无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description FixtureRun 或关联资产不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产、租约、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Fixture Worker 或 Connector 不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_fixture_manifest_v1_fixture_runs__runId__manifest_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureManifestRecord"];
+                };
+            };
+            /** @description FixtureRun 输入或绑定无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description FixtureRun 或关联资产不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产、租约、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Fixture Worker 或 Connector 不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_fixture_resources_v1_fixture_runs__runId__resources_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureResourcePage"];
+                };
+            };
+            /** @description FixtureRun 输入或绑定无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description FixtureRun 或关联资产不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产、租约、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Fixture Worker 或 Connector 不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    release_fixture_run_v1_fixture_runs__runId__release_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureRun"];
+                };
+            };
+            /** @description FixtureRun 输入或绑定无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description FixtureRun 或关联资产不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产、租约、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Fixture Worker 或 Connector 不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     liveness_v1_health_live_get: {
         parameters: {
             query?: never;
@@ -8246,6 +9117,108 @@ export interface operations {
             };
             /** @description 服务内部错误 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    start_fixture_run_v1_projects__projectId__fixture_runs_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartFixtureRun"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureRun"];
+                };
+            };
+            /** @description FixtureRun 输入或绑定无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description FixtureRun 或关联资产不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产、租约、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Fixture Worker 或 Connector 不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

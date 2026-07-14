@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
+from atlas_testops.api.dependencies import get_database, get_fixture_run_dispatcher
 from atlas_testops.api.security import require_trusted_origin
 from atlas_testops.core.config import Settings
 from atlas_testops.core.errors import ApplicationError, ErrorCode
@@ -73,3 +74,14 @@ def test_cookie_writes_require_an_allowed_origin() -> None:
             settings,
         )
     assert untrusted_origin.value.error_code is ErrorCode.FORBIDDEN
+
+
+def test_runtime_dependencies_fail_closed_when_not_configured() -> None:
+    app = create_app(Settings(environment="test", cors_origins=[]))
+    request = Request({"type": "http", "app": app})
+
+    with pytest.raises(RuntimeError, match="database is not configured"):
+        get_database(request)
+    with pytest.raises(ApplicationError) as unavailable:
+        get_fixture_run_dispatcher(request)
+    assert unavailable.value.error_code is ErrorCode.DEPENDENCY_UNAVAILABLE

@@ -56,6 +56,11 @@ class Settings(BaseSettings):
     auth_session_manual_ticket_ttl_seconds: int = Field(default=600, ge=60, le=3_600)
     auth_session_worker_max_concurrency: int = Field(default=4, ge=1, le=32)
     session_janitor_claim_ttl_seconds: int = Field(default=120, ge=30, le=600)
+    fixture_dispatch_enabled: bool = False
+    fixture_task_queue: str = "atlas-fixture"
+    fixture_activity_timeout_seconds: int = Field(default=330, ge=30, le=900)
+    fixture_cleanup_grace_seconds: int = Field(default=900, ge=60, le=3_600)
+    fixture_worker_max_concurrency: int = Field(default=8, ge=1, le=64)
 
     @field_validator("api_v1_prefix")
     @classmethod
@@ -91,6 +96,10 @@ class Settings(BaseSettings):
         if self.auth_session_workflow_timeout_seconds <= self.auth_session_creation_timeout_seconds:
             raise ValueError(
                 "auth_session_workflow_timeout_seconds must exceed auth session creation timeout"
+            )
+        if self.fixture_cleanup_grace_seconds < self.fixture_activity_timeout_seconds:
+            raise ValueError(
+                "fixture_cleanup_grace_seconds must cover one fixture activity timeout"
             )
         return self
 

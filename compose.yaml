@@ -75,6 +75,24 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  fixture-worker:
+    build:
+      context: ./backend
+      target: fixture-worker
+    environment:
+      ATLAS_ENVIRONMENT: local
+      ATLAS_DATABASE_URL: postgresql://atlas_app:atlas_app@postgres:5432/atlas
+      ATLAS_TEMPORAL_ADDRESS: temporal:7233
+      ATLAS_TEMPORAL_NAMESPACE: default
+      ATLAS_FIXTURE_TASK_QUEUE: atlas-fixture
+      ATLAS_FIXTURE_WORKER_MAX_CONCURRENCY: 8
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   atlas-postgres:
   atlas-minio:

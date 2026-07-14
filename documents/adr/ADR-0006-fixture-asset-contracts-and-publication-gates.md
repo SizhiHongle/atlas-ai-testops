@@ -17,12 +17,12 @@ Fixture 需要组合多个数据准备能力，并在失败、取消或重试后
 4. DataBlueprint 只引用同一 Project 的 exact DataAtom Version。Compiler 只做静态验证，不执行 Connector 或外部 I/O；它验证 Port、JSON Schema Literal、必填输入、SourceRef、Semantic Type、Classification、DAG 与 Export。
 5. CompiledFixturePlan 使用稳定 Node ID 形成确定性并行层级，Cleanup 按逆拓扑顺序执行；Digest 覆盖 Blueprint、Atom Version 与完整计划。运行时必须冻结该计划和 Digest，不能重新解析目录当前版本。
 6. 发布要求 `STATIC`、`RUNTIME`、`CLEANUP` 三类独立 `PASSED` Evidence 并绑定当前 Version Revision。DataBlueprint 还必须保存当前 Revision 编译出的计划。任一证据缺失、失败或过期时发布 fail-closed。
-7. PostgreSQL 是资产、Validation Evidence、Compiled Plan、未来 FixtureRun / ResourceRecord / FixtureManifest 的业务权威；Temporal 只负责 P3-02/P3-03 的耐久执行与补偿。
+7. PostgreSQL 是资产、Validation Evidence、Compiled Plan、FixtureRun / ResourceRecord / FixtureManifest 的业务权威；Temporal 只负责 P3-02/P3-03 的耐久执行与补偿。
 8. 前端保持现有原型为视觉和交互权威，只把真实 Catalog 映射到已经存在的 DataAtom 与 Blueprint 数据槽位，不新增页面、卡片或样式。
 
 ## 后果
 
 - 资产可在执行前发现端口、类型、数据分级、循环依赖和缺失输入问题，Compiled Plan 可由相同输入稳定重建。
-- CREATE 能力不能脱离资源账本和清理协议发布；P3-02/P3-03 未提供 Runtime / Cleanup Evidence 前，发布会明确拒绝而不是模拟成功。
+- CREATE 能力不能脱离资源账本和清理协议发布；P3-02 已提供 Runtime Evidence，P3-03 未提供 Cleanup Evidence 前，发布会明确拒绝而不是模拟成功。
 - Connector Operation 必须先在受信部署中登记，新增 Provider 能力需要代码和部署变更，换取可审计、可授权且无任意代码执行面的协议。
-- P3-02 仍需实现 FixtureRun、DataNodeRun / Attempt、ResourceRecord、FixtureManifest 与 Runtime Evidence；P3-03 仍需实现取消后 Cleanup、Reconcile、孤儿扫描和故障注入。
+- P3-02 已实现 FixtureRun、DataNodeRun / Attempt、ResourceRecord、FixtureManifest 与 Runtime Evidence；P3-03 仍需实现取消后必清理、Reconcile、Cleanup Retry / Sweeper、孤儿扫描、故障注入和 Cleanup Evidence。

@@ -28,6 +28,10 @@ FROM runtime AS temporal-worker
 
 CMD ["atlas-temporal-worker"]
 
+FROM runtime AS fixture-worker
+
+CMD ["atlas-fixture-worker"]
+
 FROM runtime AS auth-session-worker
 
 USER root

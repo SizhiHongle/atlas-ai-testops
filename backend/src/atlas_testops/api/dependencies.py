@@ -10,6 +10,8 @@ from atlas_testops.application.auth import AuthService
 from atlas_testops.application.connectors import ConnectorService
 from atlas_testops.application.credentials import CredentialBrokerService
 from atlas_testops.application.fixture_assets import FixtureAssetService
+from atlas_testops.application.fixture_dispatcher import FixtureRunDispatcher
+from atlas_testops.application.fixture_runs import FixtureRunService
 from atlas_testops.application.identity import IdentityService
 from atlas_testops.application.leases import LeaseService
 from atlas_testops.application.platform import PlatformService
@@ -17,6 +19,7 @@ from atlas_testops.application.ports.secrets import SecretProvider
 from atlas_testops.application.session_dispatcher import AuthSessionDispatcher
 from atlas_testops.core.config import Settings
 from atlas_testops.core.errors import ApplicationError, ErrorCode
+from atlas_testops.infrastructure.adapters.fixture_registry import FixtureOperationRegistry
 from atlas_testops.infrastructure.adapters.registry import AdapterRegistry
 from atlas_testops.infrastructure.database import Database
 from atlas_testops.infrastructure.passwords import PasswordService
@@ -77,6 +80,29 @@ def get_auth_session_dispatcher(request: Request) -> AuthSessionDispatcher:
     return dispatcher
 
 
+def get_fixture_operation_registry(request: Request) -> FixtureOperationRegistry:
+    """Return the deployment-owned exact fixture operation registry."""
+
+    return cast(FixtureOperationRegistry, request.app.state.fixture_operation_registry)
+
+
+def get_fixture_run_dispatcher(request: Request) -> FixtureRunDispatcher:
+    """Return the isolated Fixture Worker dispatcher or fail closed."""
+
+    dispatcher = cast(
+        FixtureRunDispatcher | None,
+        request.app.state.fixture_run_dispatcher,
+    )
+    if dispatcher is None:
+        raise ApplicationError(
+            error_code=ErrorCode.DEPENDENCY_UNAVAILABLE,
+            title="Fixture Worker 未配置",
+            detail="当前 API 实例未连接独立 Fixture Worker。",
+            status_code=503,
+        )
+    return dispatcher
+
+
 SettingsDependency = Annotated[Settings, Depends(get_app_settings)]
 DatabaseDependency = Annotated[Database, Depends(get_database)]
 OptionalDatabaseDependency = Annotated[Database | None, Depends(get_optional_database)]
@@ -89,6 +115,14 @@ SecretProviderDependency = Annotated[
 AuthSessionDispatcherDependency = Annotated[
     AuthSessionDispatcher,
     Depends(get_auth_session_dispatcher),
+]
+FixtureOperationRegistryDependency = Annotated[
+    FixtureOperationRegistry,
+    Depends(get_fixture_operation_registry),
+]
+FixtureRunDispatcherDependency = Annotated[
+    FixtureRunDispatcher,
+    Depends(get_fixture_run_dispatcher),
 ]
 
 
@@ -110,6 +144,28 @@ def get_fixture_asset_service(database: DatabaseDependency) -> FixtureAssetServi
 FixtureAssetServiceDependency = Annotated[
     FixtureAssetService,
     Depends(get_fixture_asset_service),
+]
+
+
+def get_fixture_run_service(
+    database: DatabaseDependency,
+    dispatcher: FixtureRunDispatcherDependency,
+    registry: FixtureOperationRegistryDependency,
+    settings: SettingsDependency,
+) -> FixtureRunService:
+    """Create a stateless durable FixtureRun control-plane service."""
+
+    return FixtureRunService(
+        database,
+        dispatcher,
+        registry,
+        cleanup_grace=timedelta(seconds=settings.fixture_cleanup_grace_seconds),
+    )
+
+
+FixtureRunServiceDependency = Annotated[
+    FixtureRunService,
+    Depends(get_fixture_run_service),
 ]
 
 

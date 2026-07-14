@@ -9,9 +9,9 @@
 - `frontend/atlas-ai-testops-prototype/`
   - 当前 Atlas AI 测试平台前端原型源码，包含主工作台与登录页。
 - `backend/`
-  - Python 3.14 模块化后端，包含 Platform RBAC、Identity Catalog、Connector/Capability、Account Health Verification、Account Lease/Fencing、Secret Grant/Adapter、独立 Auth Session Worker、加密 SessionArtifact、Workflow 契约与基础设施。
+  - Python 3.14 模块化后端，包含 Platform RBAC、Identity Catalog、Connector/Capability、Account Health Verification、Account Lease/Fencing、Secret Grant/Adapter、独立 Auth Session Worker、加密 SessionArtifact、DataAtom / DataBlueprint 资产控制面、耐久 FixtureRun 与资源账本。
 - `compose.yaml`
-  - 本地 PostgreSQL、Temporal Dev Server、MinIO 与独立 Auth Session Worker。
+  - 本地 PostgreSQL、Temporal Dev Server、MinIO、独立 Auth Session Worker 与 Fixture Worker。
 - `documents/IMPLEMENTATION_PROGRESS.md`
   - 持续更新的阶段进度、验证证据和下一步。
 
@@ -85,4 +85,4 @@ make verify
 - 交付包未包含 `node_modules`、`dist`、`.wrangler`、Git 历史和本地缓存。
 - 当前前端属于可交互产品原型，界面结构、布局、样式和既有交互是实现的视觉权威；业务数据按阶段替换为真实 API，尚未实施的执行过程仍使用演示数据。
 - 打包前已通过 TypeScript 检查与生产构建。
-- 后端已接入 PostgreSQL/Psycopg 连接池、Alembic、RLS、Transactional Outbox、幂等、Platform RBAC、Argon2id 与 Opaque Session、测试账号目录、ConnectorInstallation / Capability Snapshot、账号登录身份与角色健康检查、Lease/Fencing、一次性 Secret Grant、Generic Password Adapter、独立 Auth Session Temporal Worker、Playwright 隔离 BrowserContext、AES-GCM SessionArtifact Vault 与 Janitor。首个真实 SaaS Flow、生产 Secret Provider 与 KMS 配置仍需部署侧提供。
+- 后端已接入 PostgreSQL/Psycopg 连接池、Alembic、RLS、Transactional Outbox、幂等、Platform RBAC、Argon2id 与 Opaque Session、测试账号目录、ConnectorInstallation / Capability Snapshot、账号登录身份与角色健康检查、Lease/Fencing、一次性 Secret Grant、独立 Auth Session Worker、AES-GCM SessionArtifact Vault，以及由独立 Temporal Worker 驱动的 FixtureRun、Node Attempt、Resource Ledger、Manifest 和 Runtime Evidence。首个真实 SaaS Flow、生产 Secret Provider、KMS 配置，以及 Fixture 取消后补偿、Reconcile 和孤儿资源扫描仍需后续落地。

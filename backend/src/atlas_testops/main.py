@@ -13,12 +13,15 @@ from atlas_testops.api.internal.router import internal_api_router
 from atlas_testops.api.middleware import request_context_middleware
 from atlas_testops.api.problem_details import register_exception_handlers
 from atlas_testops.api.router import api_router
+from atlas_testops.application.fixture_dispatcher import FixtureRunDispatcher
 from atlas_testops.application.ports.secrets import SecretProvider
 from atlas_testops.application.session_dispatcher import AuthSessionDispatcher
 from atlas_testops.core.config import Settings, get_settings
+from atlas_testops.infrastructure.adapters.fixture_registry import FixtureOperationRegistry
 from atlas_testops.infrastructure.adapters.registry import AdapterRegistry
 from atlas_testops.infrastructure.database import Database
 from atlas_testops.infrastructure.passwords import PasswordService
+from atlas_testops.orchestration.fixtures import TemporalFixtureRunDispatcher
 from atlas_testops.orchestration.sessions import TemporalAuthSessionDispatcher
 
 
@@ -43,9 +46,18 @@ async def application_lifespan(application: FastAPI) -> AsyncIterator[None]:
             application.state.auth_session_dispatcher = TemporalAuthSessionDispatcher(
                 temporal_client,
                 task_queue=settings.auth_session_task_queue,
-                workflow_timeout=timedelta(
-                    seconds=settings.auth_session_workflow_timeout_seconds
-                ),
+                workflow_timeout=timedelta(seconds=settings.auth_session_workflow_timeout_seconds),
+            )
+        if settings.fixture_dispatch_enabled and application.state.fixture_run_dispatcher is None:
+            temporal_client = await Client.connect(
+                settings.temporal_address,
+                namespace=settings.temporal_namespace,
+            )
+            application.state.fixture_run_dispatcher = TemporalFixtureRunDispatcher(
+                temporal_client,
+                task_queue=settings.fixture_task_queue,
+                activity_timeout=timedelta(seconds=settings.fixture_activity_timeout_seconds),
+                cleanup_grace=timedelta(seconds=settings.fixture_cleanup_grace_seconds),
             )
         yield
     finally:
@@ -59,6 +71,8 @@ def create_app(
     adapter_registry: AdapterRegistry | None = None,
     secret_provider: SecretProvider | None = None,
     auth_session_dispatcher: AuthSessionDispatcher | None = None,
+    fixture_operation_registry: FixtureOperationRegistry | None = None,
+    fixture_run_dispatcher: FixtureRunDispatcher | None = None,
 ) -> FastAPI:
     """创建相互隔离、便于测试的 FastAPI 实例。"""
     app_settings = settings or get_settings()
@@ -83,6 +97,10 @@ def create_app(
     )
     application.state.secret_provider = secret_provider
     application.state.auth_session_dispatcher = auth_session_dispatcher
+    application.state.fixture_operation_registry = (
+        fixture_operation_registry or FixtureOperationRegistry.from_settings(app_settings)
+    )
+    application.state.fixture_run_dispatcher = fixture_run_dispatcher
 
     application.middleware("http")(request_context_middleware)
     register_exception_handlers(application)

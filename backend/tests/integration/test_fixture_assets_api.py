@@ -132,31 +132,6 @@ def blueprint_contract(atom_version_id: str) -> dict[str, object]:
     }
 
 
-def mark_runtime_and_cleanup_evidence(
-    table: str,
-    *,
-    tenant_id: str,
-    version_id: str,
-) -> None:
-    assert DATABASE_URL is not None
-    assert table in {"data_atom_version", "data_blueprint_version"}
-    with psycopg.connect(DATABASE_URL) as connection:
-        connection.execute(
-            "select set_config('atlas.tenant_id', %s, true)",
-            (tenant_id,),
-        )
-        connection.execute(
-            f"""
-            update atlas.{table}
-            set runtime_validation_state = 'PASSED',
-                cleanup_validation_state = 'PASSED',
-                revision = revision + 1
-            where id = %s
-            """,
-            (UUID(version_id),),
-        )
-
-
 def test_fixture_asset_control_plane_lifecycle_and_isolation() -> None:
     assert DATABASE_URL is not None
     suffix = uuid7().hex[-10:]
@@ -294,66 +269,29 @@ def test_fixture_asset_control_plane_lifecycle_and_isolation() -> None:
         assert blocked_blueprint_publish.status_code == 409
         assert blocked_blueprint_publish.json()["errorCode"] == "PUBLICATION_EVIDENCE_REQUIRED"
 
-        mark_runtime_and_cleanup_evidence(
-            "data_atom_version",
-            tenant_id=tenant_id,
-            version_id=atom_version_id,
-        )
-        published_atom = client.post(
+        still_blocked_atom = client.post(
             f"/v1/data-atom-versions/{atom_version_id}:publish",
+            headers={**headers, "If-Match": '"revision-2"'},
+        )
+        assert still_blocked_atom.status_code == 409
+        still_blocked_blueprint = client.post(
+            f"/v1/data-blueprint-versions/{blueprint_version_id}:publish",
             headers={**headers, "If-Match": '"revision-3"'},
         )
-        assert published_atom.status_code == 200, published_atom.text
-        assert published_atom.json()["status"] == "PUBLISHED"
-
-        immutable_atom = client.patch(
-            f"/v1/data-atom-versions/{atom_version_id}",
-            headers={**headers, "If-Match": '"revision-4"'},
-            json={"contract": atom_contract()},
-        )
-        assert immutable_atom.status_code == 409
-        assert immutable_atom.json()["errorCode"] == "ASSET_IMMUTABLE"
-
-        mark_runtime_and_cleanup_evidence(
-            "data_blueprint_version",
-            tenant_id=tenant_id,
-            version_id=blueprint_version_id,
-        )
-        published_blueprint = client.post(
-            f"/v1/data-blueprint-versions/{blueprint_version_id}:publish",
-            headers={**headers, "If-Match": '"revision-4"'},
-        )
-        assert published_blueprint.status_code == 200, published_blueprint.text
-        assert published_blueprint.json()["status"] == "PUBLISHED"
+        assert still_blocked_blueprint.status_code == 409
 
         atom_catalog = client.get(
             f"/v1/projects/{project_id}/data-atoms",
             headers=headers,
         )
         assert atom_catalog.status_code == 200, atom_catalog.text
-        assert atom_catalog.json()["items"][0]["latestVersionStatus"] == "PUBLISHED"
+        assert atom_catalog.json()["items"][0]["latestVersionStatus"] == "VALIDATED"
         blueprint_catalog = client.get(
             f"/v1/projects/{project_id}/data-blueprints",
             headers=headers,
         )
         assert blueprint_catalog.status_code == 200, blueprint_catalog.text
         assert blueprint_catalog.json()["items"][0]["planDigest"] == first_plan["planDigest"]
-
-    with psycopg.connect(DATABASE_URL) as connection:
-        connection.execute(
-            "select set_config('atlas.tenant_id', %s, true)",
-            (tenant_id,),
-        )
-        with pytest.raises(psycopg.Error):
-            connection.execute(
-                """
-                update atlas.data_atom_version
-                set contract = contract || '{"effect":"READ"}'::jsonb,
-                    revision = revision + 1
-                where id = %s
-                """,
-                (UUID(atom_version_id),),
-            )
 
     with psycopg.connect(DATABASE_URL) as connection:
         privileges = connection.execute(

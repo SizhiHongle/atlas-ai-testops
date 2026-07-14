@@ -28,6 +28,9 @@ Atlas AI 测试平台的 Python 3.14 模块化后端。
 - TestAccount 登录身份与角色健康检查、失败阈值、Cooldown / Quarantine、身份指纹与不可变状态迁移事实。
 - 独立 Auth Session Temporal Worker、每 Lease Single Flight、Fence / Origin / Revision CAS 与受限人工操作票据。
 - Playwright 非持久化 BrowserContext、AES-256-GCM + AAD SessionArtifact、S3-compatible Vault 与 Session Janitor。
+- DataAtom / DataBlueprint exact-version 资产、确定性编译与三类发布证据门禁。
+- PostgreSQL 权威的 FixtureRun、DataNodeAttempt、ResourceRecord、FixtureManifest 与 Runtime Evidence。
+- exact operation registry、事务外 Provider I/O、保守 `OUTCOME_UNCERTAIN` 和独立 Fixture Temporal Worker。
 
 首个真实 SaaS `PasswordLoginFlow`、生产 Secret Provider 与 KMS-backed Vault 仍需部署侧提供；缺失时 Password Session 明确 fail-closed。架构决策见 `../documents/adr/`。
 
@@ -56,6 +59,11 @@ uv run uvicorn atlas_testops.main:app --reload
 - 账号健康验证：`POST http://127.0.0.1:8000/v1/test-accounts/{accountId}:verify`
 - 健康检查历史：`GET http://127.0.0.1:8000/v1/test-accounts/{accountId}/health-checks`
 - 账号状态迁移：`GET http://127.0.0.1:8000/v1/test-accounts/{accountId}/state-transitions`
+- Fixture 启动：`POST http://127.0.0.1:8000/v1/projects/{projectId}/fixture-runs`
+- Fixture 详情：`GET http://127.0.0.1:8000/v1/fixture-runs/{runId}`
+- Fixture Manifest：`GET http://127.0.0.1:8000/v1/fixture-runs/{runId}/manifest`
+- Fixture 资源账本：`GET http://127.0.0.1:8000/v1/fixture-runs/{runId}/resources`
+- Fixture 释放：`POST http://127.0.0.1:8000/v1/fixture-runs/{runId}:release`
 
 ## 质量检查
 
@@ -89,6 +97,14 @@ uv run atlas-auth-session-worker
 
 API 需要设置 `ATLAS_AUTH_SESSION_DISPATCH_ENABLED=true` 才会连接该 Task Queue。Vault Key、Object Store Credential 和 Secret Provider 只允许注入 Auth Session Worker，不能注入 API。`compose.yaml` 提供仅限本地开发的 MinIO 与静态 AES Key 示例；Staging / Production 配置校验会拒绝静态 Key 和自动建 Bucket。
 
+运行独立 Fixture Worker：
+
+```bash
+uv run atlas-fixture-worker
+```
+
+API 需要设置 `ATLAS_FIXTURE_DISPATCH_ENABLED=true` 才会向 `ATLAS_FIXTURE_TASK_QUEUE` 提交耐久 Workflow。Provider Operation 只能通过部署时构造的 exact registry 注册；请求、资产协议和数据库均不能注入动态 URL、Module、Script 或 Callable。本地与测试环境提供确定性 Mock Provider，生产环境缺少已审核 Provider 时会 fail-closed。
+
 ## 环境变量
 
 所有服务变量使用 `ATLAS_` 前缀。数组值使用 JSON，例如：
@@ -101,4 +117,9 @@ ATLAS_ACCOUNT_HEALTH_ATTEMPT_TTL_SECONDS=120
 ATLAS_AUTH_SESSION_DISPATCH_ENABLED=true
 ATLAS_AUTH_SESSION_TASK_QUEUE=atlas-auth-session
 ATLAS_AUTH_SESSION_WORKER_MAX_CONCURRENCY=4
+ATLAS_FIXTURE_DISPATCH_ENABLED=true
+ATLAS_FIXTURE_TASK_QUEUE=atlas-fixture
+ATLAS_FIXTURE_ACTIVITY_TIMEOUT_SECONDS=330
+ATLAS_FIXTURE_CLEANUP_GRACE_SECONDS=900
+ATLAS_FIXTURE_WORKER_MAX_CONCURRENCY=8
 ```

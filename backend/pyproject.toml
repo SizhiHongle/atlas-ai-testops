@@ -25,6 +25,7 @@ dependencies = [
 
 [project.scripts]
 atlas-auth-session-worker = "atlas_testops.workers.auth_session:main"
+atlas-fixture-worker = "atlas_testops.workers.fixture:main"
 atlas-temporal-worker = "atlas_testops.workers.temporal:main"
 
 [dependency-groups]

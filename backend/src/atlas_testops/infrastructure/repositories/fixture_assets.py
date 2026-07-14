@@ -281,6 +281,8 @@ class FixtureAssetRepository:
                 static_validation_state = 'PENDING',
                 runtime_validation_state = 'PENDING',
                 cleanup_validation_state = 'PENDING',
+                runtime_validation_evidence_id = null,
+                runtime_validated_at = null,
                 validated_at = null, published_at = null, published_by = null,
                 revision = revision + 1
             where id = %s and revision = %s
@@ -311,6 +313,8 @@ class FixtureAssetRepository:
             set status = 'VALIDATED', static_validation_state = 'PASSED',
                 runtime_validation_state = 'PENDING',
                 cleanup_validation_state = 'PENDING',
+                runtime_validation_evidence_id = null,
+                runtime_validated_at = null,
                 validated_at = %s, revision = revision + 1
             where id = %s and revision = %s
               and status in ('DRAFT', 'VALIDATED')
@@ -549,6 +553,8 @@ class FixtureAssetRepository:
                 static_validation_state = 'PENDING',
                 runtime_validation_state = 'PENDING',
                 cleanup_validation_state = 'PENDING',
+                runtime_validation_evidence_id = null,
+                runtime_validated_at = null,
                 validated_at = null,
                 compiled_plan = null, plan_digest = null,
                 compile_issues = '[]'::jsonb, compiled_at = null,
@@ -590,6 +596,8 @@ class FixtureAssetRepository:
             set status = %s, static_validation_state = %s,
                 runtime_validation_state = 'PENDING',
                 cleanup_validation_state = 'PENDING',
+                runtime_validation_evidence_id = null,
+                runtime_validated_at = null,
                 validated_at = %s,
                 compiled_plan = %s, plan_digest = %s, compile_issues = %s,
                 compiled_at = %s, published_at = null, published_by = null,

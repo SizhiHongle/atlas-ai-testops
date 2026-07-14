@@ -372,6 +372,11 @@ class DataAtomContract(FrozenWireModel):
                 raise ValueError("resourceRefOutput must reference an output port")
             if any(item not in input_ports for item in self.resource_policy.parent_ref_inputs):
                 raise ValueError("parentRefInputs must reference input ports")
+            if (
+                self.resource_policy.ownership is ResourceOwnership.CREATED
+                and self.cleanup_contract is None
+            ):
+                raise ValueError("CREATED resource ownership requires cleanupContract")
         if (
             self.cleanup_contract is not None
             and self.cleanup_contract.resource_ref_input not in output_ports

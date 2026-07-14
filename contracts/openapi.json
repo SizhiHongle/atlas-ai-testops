@@ -3197,6 +3197,275 @@
         "title": "DataClassification",
         "type": "string"
       },
+      "DataNodeAttempt": {
+        "additionalProperties": false,
+        "description": "Append-oriented safe summary of one provider call.",
+        "properties": {
+          "attemptNumber": {
+            "maximum": 32.0,
+            "minimum": 1.0,
+            "title": "Attemptnumber",
+            "type": "integer"
+          },
+          "dataNodeRunId": {
+            "format": "uuid",
+            "title": "Datanoderunid",
+            "type": "string"
+          },
+          "failureCategory": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FixtureFailureCategory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failureCode": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z][A-Z0-9_]{2,79}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurecode"
+          },
+          "failureDetail": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failuredetail"
+          },
+          "finishedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finishedat"
+          },
+          "fixtureRunId": {
+            "format": "uuid",
+            "title": "Fixturerunid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "providerRequestId": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Providerrequestid"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "title": "Startedat",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DataNodeAttemptStatus"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fixtureRunId",
+          "dataNodeRunId",
+          "attemptNumber",
+          "status",
+          "startedAt",
+          "updatedAt"
+        ],
+        "title": "DataNodeAttempt",
+        "type": "object"
+      },
+      "DataNodeAttemptStatus": {
+        "description": "One real connector invocation attempt.",
+        "enum": [
+          "RUNNING",
+          "SUCCEEDED",
+          "FAILED",
+          "OUTCOME_UNCERTAIN"
+        ],
+        "title": "DataNodeAttemptStatus",
+        "type": "string"
+      },
+      "DataNodeRun": {
+        "additionalProperties": false,
+        "description": "Public state for one logical node in a fixture run.",
+        "properties": {
+          "actorSlot": {
+            "title": "Actorslot",
+            "type": "string"
+          },
+          "atomVersionId": {
+            "format": "uuid",
+            "title": "Atomversionid",
+            "type": "string"
+          },
+          "attemptCount": {
+            "minimum": 0.0,
+            "title": "Attemptcount",
+            "type": "integer"
+          },
+          "executionLevel": {
+            "minimum": 0.0,
+            "title": "Executionlevel",
+            "type": "integer"
+          },
+          "failureCategory": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FixtureFailureCategory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failureCode": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z][A-Z0-9_]{2,79}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurecode"
+          },
+          "failureDetail": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failuredetail"
+          },
+          "finishedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finishedat"
+          },
+          "fixtureRunId": {
+            "format": "uuid",
+            "title": "Fixturerunid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "nodeId": {
+            "title": "Nodeid",
+            "type": "string"
+          },
+          "outputDigest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outputdigest"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DataNodeRunStatus"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fixtureRunId",
+          "nodeId",
+          "atomVersionId",
+          "actorSlot",
+          "executionLevel",
+          "status",
+          "attemptCount",
+          "revision",
+          "updatedAt"
+        ],
+        "title": "DataNodeRun",
+        "type": "object"
+      },
+      "DataNodeRunStatus": {
+        "description": "Logical node state independent of individual provider attempts.",
+        "enum": [
+          "PENDING",
+          "READY",
+          "RUNNING",
+          "VERIFYING",
+          "SUCCEEDED",
+          "FAILED",
+          "OUTCOME_UNCERTAIN"
+        ],
+        "title": "DataNodeRunStatus",
+        "type": "string"
+      },
       "DependencyCheck": {
         "additionalProperties": false,
         "description": "单个依赖的 readiness 结果。",
@@ -3478,6 +3747,450 @@
         ],
         "title": "FieldViolation",
         "type": "object"
+      },
+      "FixtureActorBinding": {
+        "additionalProperties": false,
+        "description": "Frozen, safe actor slot binding visible in run diagnostics.",
+        "properties": {
+          "accountLeaseId": {
+            "format": "uuid",
+            "title": "Accountleaseid",
+            "type": "string"
+          },
+          "actorSlot": {
+            "title": "Actorslot",
+            "type": "string"
+          },
+          "boundAt": {
+            "format": "date-time",
+            "title": "Boundat",
+            "type": "string"
+          },
+          "connectorInstallationId": {
+            "format": "uuid",
+            "title": "Connectorinstallationid",
+            "type": "string"
+          },
+          "fencingToken": {
+            "minimum": 1.0,
+            "title": "Fencingtoken",
+            "type": "integer"
+          },
+          "fixtureRunId": {
+            "format": "uuid",
+            "title": "Fixturerunid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fixtureRunId",
+          "actorSlot",
+          "accountLeaseId",
+          "fencingToken",
+          "connectorInstallationId",
+          "boundAt"
+        ],
+        "title": "FixtureActorBinding",
+        "type": "object"
+      },
+      "FixtureActorLeaseBinding": {
+        "additionalProperties": false,
+        "description": "Caller-provided actor slot bound to an existing fenced account lease.",
+        "properties": {
+          "accountLeaseId": {
+            "format": "uuid",
+            "title": "Accountleaseid",
+            "type": "string"
+          },
+          "actorSlot": {
+            "maxLength": 80,
+            "minLength": 2,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{1,79}$",
+            "title": "Actorslot",
+            "type": "string"
+          },
+          "fencingToken": {
+            "minimum": 1.0,
+            "title": "Fencingtoken",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "actorSlot",
+          "accountLeaseId",
+          "fencingToken"
+        ],
+        "title": "FixtureActorLeaseBinding",
+        "type": "object"
+      },
+      "FixtureCleanupState": {
+        "description": "Cleanup projection kept separate from the preparation result.",
+        "enum": [
+          "NOT_REQUIRED",
+          "PENDING",
+          "RUNNING",
+          "CLEANED",
+          "LEAKED"
+        ],
+        "title": "FixtureCleanupState",
+        "type": "string"
+      },
+      "FixtureFailureCategory": {
+        "description": "Low-cardinality failure category safe for APIs and events.",
+        "enum": [
+          "VALIDATION",
+          "POLICY",
+          "AUTH",
+          "RATE_LIMIT",
+          "TRANSIENT",
+          "UNCERTAIN",
+          "CLEANUP",
+          "INFRASTRUCTURE"
+        ],
+        "title": "FixtureFailureCategory",
+        "type": "string"
+      },
+      "FixtureManifest": {
+        "additionalProperties": false,
+        "description": "Only explicitly exported fixture values cross into test execution.",
+        "properties": {
+          "blueprintVersionId": {
+            "format": "uuid",
+            "title": "Blueprintversionid",
+            "type": "string"
+          },
+          "exports": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Exports",
+            "type": "object"
+          },
+          "fixtureRunId": {
+            "format": "uuid",
+            "title": "Fixturerunid",
+            "type": "string"
+          },
+          "planDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Plandigest",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": "atlas.fixture-manifest/0.1",
+            "default": "atlas.fixture-manifest/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fixtureRunId",
+          "blueprintVersionId",
+          "planDigest",
+          "exports"
+        ],
+        "title": "FixtureManifest",
+        "type": "object"
+      },
+      "FixtureManifestRecord": {
+        "additionalProperties": false,
+        "description": "Immutable manifest fact created only after every node succeeds.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "fixtureRunId": {
+            "format": "uuid",
+            "title": "Fixturerunid",
+            "type": "string"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/FixtureManifest"
+          },
+          "manifestDigest": {
+            "title": "Manifestdigest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fixtureRunId",
+          "manifest",
+          "manifestDigest",
+          "createdAt"
+        ],
+        "title": "FixtureManifestRecord",
+        "type": "object"
+      },
+      "FixtureResourcePage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ResourceRecord"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "FixtureResourcePage",
+        "type": "object"
+      },
+      "FixtureRun": {
+        "additionalProperties": false,
+        "description": "Public safe projection of one durable fixture run.",
+        "properties": {
+          "blueprintVersionId": {
+            "format": "uuid",
+            "title": "Blueprintversionid",
+            "type": "string"
+          },
+          "cleanupState": {
+            "$ref": "#/components/schemas/FixtureCleanupState"
+          },
+          "environmentId": {
+            "format": "uuid",
+            "title": "Environmentid",
+            "type": "string"
+          },
+          "executionDeadline": {
+            "format": "date-time",
+            "title": "Executiondeadline",
+            "type": "string"
+          },
+          "executionId": {
+            "title": "Executionid",
+            "type": "string"
+          },
+          "failureCategory": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FixtureFailureCategory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failureCode": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z][A-Z0-9_]{2,79}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurecode"
+          },
+          "failureDetail": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failuredetail"
+          },
+          "finishedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finishedat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inputDigest": {
+            "title": "Inputdigest",
+            "type": "string"
+          },
+          "planDigest": {
+            "title": "Plandigest",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "readyAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readyat"
+          },
+          "releasedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Releasedat"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "title": "Requestedat",
+            "type": "string"
+          },
+          "requestedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestedby"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "runKind": {
+            "$ref": "#/components/schemas/FixtureRunKind"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FixtureRunStatus"
+          },
+          "temporalWorkflowId": {
+            "title": "Temporalworkflowid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "environmentId",
+          "blueprintVersionId",
+          "runKind",
+          "executionId",
+          "planDigest",
+          "inputDigest",
+          "status",
+          "cleanupState",
+          "temporalWorkflowId",
+          "requestedBy",
+          "executionDeadline",
+          "requestedAt",
+          "revision",
+          "updatedAt"
+        ],
+        "title": "FixtureRun",
+        "type": "object"
+      },
+      "FixtureRunDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "actorBindings": {
+            "items": {
+              "$ref": "#/components/schemas/FixtureActorBinding"
+            },
+            "title": "Actorbindings",
+            "type": "array"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/DataNodeAttempt"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/DataNodeRun"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "run": {
+            "$ref": "#/components/schemas/FixtureRun"
+          }
+        },
+        "required": [
+          "run",
+          "actorBindings",
+          "nodes",
+          "attempts"
+        ],
+        "title": "FixtureRunDetail",
+        "type": "object"
+      },
+      "FixtureRunKind": {
+        "description": "Why a fixture plan is being executed.",
+        "enum": [
+          "VALIDATION",
+          "EXECUTION"
+        ],
+        "title": "FixtureRunKind",
+        "type": "string"
+      },
+      "FixtureRunStatus": {
+        "description": "Durable lifecycle of one fixture execution.",
+        "enum": [
+          "REQUESTED",
+          "RUNNING",
+          "READY",
+          "FAILED",
+          "CANCELED",
+          "CLEANING",
+          "RELEASED",
+          "CLEANUP_FAILED"
+        ],
+        "title": "FixtureRunStatus",
+        "type": "string"
       },
       "HealthResponse": {
         "additionalProperties": false,
@@ -4399,6 +5112,115 @@
         "title": "ResourcePolicy",
         "type": "object"
       },
+      "ResourceRecord": {
+        "additionalProperties": false,
+        "description": "Public ledger projection that never reveals the provider locator.",
+        "properties": {
+          "cleanedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cleanedat"
+          },
+          "cleanupGeneration": {
+            "minimum": 0.0,
+            "title": "Cleanupgeneration",
+            "type": "integer"
+          },
+          "connectorInstallationId": {
+            "format": "uuid",
+            "title": "Connectorinstallationid",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "dataNodeRunId": {
+            "format": "uuid",
+            "title": "Datanoderunid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "title": "Expiresat",
+            "type": "string"
+          },
+          "fixtureRunId": {
+            "format": "uuid",
+            "title": "Fixturerunid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ownership": {
+            "$ref": "#/components/schemas/ResourceOwnership"
+          },
+          "resourceHandle": {
+            "pattern": "^fr_[A-Za-z0-9_-]{16,128}$",
+            "title": "Resourcehandle",
+            "type": "string"
+          },
+          "resourceType": {
+            "title": "Resourcetype",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ResourceRecordStatus"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fixtureRunId",
+          "dataNodeRunId",
+          "connectorInstallationId",
+          "resourceHandle",
+          "resourceType",
+          "ownership",
+          "status",
+          "expiresAt",
+          "cleanupGeneration",
+          "createdAt",
+          "revision",
+          "updatedAt"
+        ],
+        "title": "ResourceRecord",
+        "type": "object"
+      },
+      "ResourceRecordStatus": {
+        "description": "Resource ledger lifecycle used by cleanup and leak detection.",
+        "enum": [
+          "ACTIVE",
+          "CLEANUP_PENDING",
+          "CLEANING",
+          "CLEANED",
+          "LEAKED",
+          "BLOCKED_BY_CHILD",
+          "ORPHAN_SUSPECTED"
+        ],
+        "title": "ResourceRecordStatus",
+        "type": "string"
+      },
       "RetryPolicy": {
         "additionalProperties": false,
         "description": "Bounded retry budget for transient connector outcomes.",
@@ -4501,6 +5323,63 @@
           "expiresAt"
         ],
         "title": "SecretGrant",
+        "type": "object"
+      },
+      "StartFixtureRun": {
+        "additionalProperties": false,
+        "description": "Create one exact, input-frozen fixture execution.",
+        "properties": {
+          "actorBindings": {
+            "items": {
+              "$ref": "#/components/schemas/FixtureActorLeaseBinding"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Actorbindings",
+            "type": "array"
+          },
+          "blueprintVersionId": {
+            "format": "uuid",
+            "title": "Blueprintversionid",
+            "type": "string"
+          },
+          "environmentId": {
+            "format": "uuid",
+            "title": "Environmentid",
+            "type": "string"
+          },
+          "executionDeadline": {
+            "format": "date-time",
+            "title": "Executiondeadline",
+            "type": "string"
+          },
+          "executionId": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,159}$",
+            "title": "Executionid",
+            "type": "string"
+          },
+          "inputs": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Inputs",
+            "type": "object"
+          },
+          "runKind": {
+            "$ref": "#/components/schemas/FixtureRunKind",
+            "default": "VALIDATION"
+          }
+        },
+        "required": [
+          "blueprintVersionId",
+          "environmentId",
+          "executionId",
+          "actorBindings",
+          "executionDeadline"
+        ],
+        "title": "StartFixtureRun",
         "type": "object"
       },
       "Tenant": {
@@ -11558,6 +12437,586 @@
         ]
       }
     },
+    "/v1/fixture-runs/{runId}": {
+      "get": {
+        "operationId": "get_fixture_run_v1_fixture_runs__runId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureRunDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "FixtureRun 输入或绑定无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "FixtureRun 或关联资产不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产、租约、状态或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Fixture Worker 或 Connector 不可用"
+          }
+        },
+        "summary": "读取 FixtureRun 详情",
+        "tags": [
+          "fixture-runs"
+        ]
+      }
+    },
+    "/v1/fixture-runs/{runId}/manifest": {
+      "get": {
+        "operationId": "get_fixture_manifest_v1_fixture_runs__runId__manifest_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureManifestRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "FixtureRun 输入或绑定无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "FixtureRun 或关联资产不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产、租约、状态或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Fixture Worker 或 Connector 不可用"
+          }
+        },
+        "summary": "读取 FixtureManifest",
+        "tags": [
+          "fixture-runs"
+        ]
+      }
+    },
+    "/v1/fixture-runs/{runId}/resources": {
+      "get": {
+        "operationId": "list_fixture_resources_v1_fixture_runs__runId__resources_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureResourcePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "FixtureRun 输入或绑定无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "FixtureRun 或关联资产不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产、租约、状态或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Fixture Worker 或 Connector 不可用"
+          }
+        },
+        "summary": "读取 Fixture Resource Ledger",
+        "tags": [
+          "fixture-runs"
+        ]
+      }
+    },
+    "/v1/fixture-runs/{runId}:release": {
+      "post": {
+        "operationId": "release_fixture_run_v1_fixture_runs__runId__release_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "FixtureRun 输入或绑定无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "FixtureRun 或关联资产不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产、租约、状态或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Fixture Worker 或 Connector 不可用"
+          }
+        },
+        "summary": "请求释放 FixtureRun",
+        "tags": [
+          "fixture-runs"
+        ]
+      }
+    },
     "/v1/health/live": {
       "get": {
         "description": "只报告 API 进程是否存活，不访问外部依赖。",
@@ -13285,6 +14744,172 @@
         "summary": "创建 Environment",
         "tags": [
           "platform"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/fixture-runs": {
+      "post": {
+        "operationId": "start_fixture_run_v1_projects__projectId__fixture_runs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartFixtureRun"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "FixtureRun 输入或绑定无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "FixtureRun 或关联资产不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产、租约、状态或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Fixture Worker 或 Connector 不可用"
+          }
+        },
+        "summary": "启动 FixtureRun",
+        "tags": [
+          "fixture-runs"
         ]
       }
     },
