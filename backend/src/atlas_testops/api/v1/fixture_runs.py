@@ -121,3 +121,39 @@ async def release_fixture_run(
     response.headers["Location"] = f"/v1/fixture-runs/{run.id}"
     response.headers["ETag"] = format_revision_etag(run.revision)
     return run
+
+
+@router.post(
+    "/fixture-runs/{runId}:cancel",
+    response_model=FixtureRun,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="请求取消 FixtureRun 并执行补偿清理",
+)
+async def cancel_fixture_run(
+    run_id: RunIdPath,
+    response: Response,
+    actor: ActorDependency,
+    service: FixtureRunServiceDependency,
+) -> FixtureRun:
+    run = await service.cancel(actor, run_id)
+    response.headers["Location"] = f"/v1/fixture-runs/{run.id}"
+    response.headers["ETag"] = format_revision_etag(run.revision)
+    return run
+
+
+@router.post(
+    "/fixture-runs/{runId}:retry-cleanup",
+    response_model=FixtureRun,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="重试 Fixture Cleanup",
+)
+async def retry_fixture_cleanup(
+    run_id: RunIdPath,
+    response: Response,
+    actor: ActorDependency,
+    service: FixtureRunServiceDependency,
+) -> FixtureRun:
+    run = await service.retry_cleanup(actor, run_id)
+    response.headers["Location"] = f"/v1/fixture-runs/{run.id}"
+    response.headers["ETag"] = format_revision_etag(run.revision)
+    return run

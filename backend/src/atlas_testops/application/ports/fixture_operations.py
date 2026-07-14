@@ -13,6 +13,7 @@ from atlas_testops.domain.fixture import (
     ConnectorOperationRef,
     FixtureFailureCategory,
     FixtureOperationResult,
+    FixtureReconcileResult,
 )
 
 
@@ -63,6 +64,13 @@ class FixtureOperationProvider(Protocol):
         invocation: FixtureOperationInvocation,
     ) -> FixtureOperationResult: ...
 
+    async def reconcile(
+        self,
+        *,
+        context: FixtureOperationContext,
+        invocation: FixtureOperationInvocation,
+    ) -> FixtureReconcileResult: ...
+
 
 class FixtureOperationError(RuntimeError):
     """Safe provider failure without raw credentials or response bodies."""
@@ -76,6 +84,7 @@ class FixtureOperationError(RuntimeError):
         retryable: bool,
         outcome_uncertain: bool = False,
         retry_after_seconds: float | None = None,
+        provider_request_id: str | None = None,
     ) -> None:
         super().__init__(safe_detail)
         self.category = category
@@ -84,3 +93,4 @@ class FixtureOperationError(RuntimeError):
         self.retryable = retryable
         self.outcome_uncertain = outcome_uncertain
         self.retry_after_seconds = retry_after_seconds
+        self.provider_request_id = provider_request_id

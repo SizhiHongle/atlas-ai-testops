@@ -99,7 +99,7 @@
 - 当前协议拒绝 password、secret、cookie、token、storage-state 等秘密语义类型，也拒绝 Production Environment。Fixture 需要秘密时必须经由 P2 的 Lease / SecretGrant / SessionArtifact 边界，不得把秘密编码进 Literal、Port 或 Manifest。
 - `DataBlueprint` 只能引用同一 Project 的 exact `DataAtomVersion`。静态 Compiler 验证 Node / Port / Edge、JSON Schema Literal、必填输入、SourceRef、Semantic Type、Classification 单向流、DAG 与 Export，不在编译时执行 Connector 或访问外部系统。
 - 编译结果按稳定 Node ID 生成确定性并行层级，Cleanup 使用逆拓扑顺序；`CompiledFixturePlan` Digest 覆盖 Blueprint、Atom Version 和完整执行计划，任何引用或输入变化都会产生新 Digest。
-- 发布固定要求 Static Validation、Runtime Validation 与 Cleanup Validation 三类独立 PASSED 证据并绑定当前 Version Revision；Blueprint 还必须有当前 Revision 的 Compiled Plan。P3-02 已写入真实 Runtime Evidence，P3-03 Cleanup Evidence 完成前系统仍保持 fail-closed，不允许用运行成功冒充可清理。
+- 发布固定要求 Static Validation、Runtime Validation 与 Cleanup Validation 三类独立 PASSED 证据并绑定当前 Version Revision；Blueprint 还必须有当前 Revision 的 Compiled Plan。Runtime Evidence 来自成功运行，Cleanup Evidence 只来自正常 `RELEASED` 且真实清理完成的 Validation Run；失败、取消、泄漏或 Revision 变化时系统保持 fail-closed，不允许用运行成功冒充可清理。
 - Audit / Outbox 只记录资产 ID、Version、Revision、状态、Digest 与低基数结果，不复制 Atom / Blueprint Contract 正文，避免把 Literal 或未来敏感元数据扩散到事件面。
 - 前端只把真实 Catalog 投影到既有两个 DataAtom 卡片和一个 Blueprint 资产槽位；目录为空或尚无可展示 Version 时保留原型占位，不新增卡片、不重排 DOM、不修改 CSS 或既有交互。
 
@@ -107,9 +107,9 @@
 
 - API 启动 FixtureRun 时必须冻结 exact Blueprint Version、Compiled Plan / Digest、Run Input、Environment、Actor Slot、Account Lease 与 Fencing Token；`VALIDATION` 只能运行 `VALIDATED` 资产并产出 Runtime Evidence，`EXECUTION` 只能运行已经通过完整发布门禁的 `PUBLISHED` 资产。同一 Lease 只能绑定一个 FixtureRun，API 与 Worker 都必须确认其 TTL 覆盖 `executionDeadline + fixture_cleanup_grace`。PostgreSQL 是运行、Attempt、Manifest、Evidence 和资源状态的权威，Temporal History 不是业务数据库。
 - Provider Operation 只能由独立 Fixture Worker 通过部署时 exact registry 执行；资产、HTTP 请求和持久化数据不得注入动态 URL、Module、Callable、Script、Header、Shell 或 SQL。
-- 外部 I/O 前必须先持久化 `DataNodeAttempt=RUNNING`。无法证明 Provider 未生效的 Transport / Decode / Replay 异常必须进入 `OUTCOME_UNCERTAIN`，不得盲重试 CREATE；P3-03 再通过显式 Reconcile 收敛。
+- 外部 I/O 前必须先持久化 `DataNodeAttempt=RUNNING`。无法证明 Provider 未生效的 Transport / Decode / Replay 异常必须进入 `OUTCOME_UNCERTAIN`，不得盲重试 CREATE；显式 Reconcile 的 `FOUND` 恢复输出与资源，`ABSENT` 只开放一次有界 CREATE 重试，`INCONCLUSIVE` 按配置退避，耗尽则隔离为泄漏。
 - Resource Ledger 必须先于 Postcondition 保存；只有 `CREATED` Ownership 可进入自动 Cleanup，`ADOPTED / LEASED / SHARED` 即使具有资源引用也不得被平台自动删除。
-- 正常 Release 和节点失败按 Compiled Plan 的逆拓扑顺序清理已创建资源并释放绑定 Lease；Cleanup 前再次复核实时 Lease / Connector，旧 Fence、过期或已撤销 Lease 不得继续调用 Provider，而是把资源标记为 `LEAKED`。取消后必清理、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Validation Evidence 属于 P3-03，当前缺失时发布继续 fail-closed。
+- 正常 Release、节点失败和取消都按 Compiled Plan 的逆拓扑顺序清理已创建资源并释放绑定 Lease；Temporal Workflow 在业务信号和原生 Cancellation 下都通过 `finally` 进入补偿。Cleanup 前再次复核实时 Lease / Connector / Fence，旧 Fence、过期或已撤销 Lease 不得继续调用 Provider，而是把资源标记为 `LEAKED`。Transient Failure 通过 Generation Attempt、显式 Retry 或 Tenant Sweeper 继续处理，Sweeper 同时恢复 stale claim 并扫描到期孤儿；Permanent Failure 或重试耗尽保持隔离且不产生 Cleanup Evidence。
 - FixtureManifest 只包含 Blueprint 显式 Export 的非敏感值，不复制全部 Node Output、秘密、Connector 配置引用或 Provider 原始响应。当前前端只更新生成 API 类型，不修改原型页面、DOM、布局、CSS 或交互。
 
 ## 不可破坏的领域链

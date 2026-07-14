@@ -60,8 +60,8 @@ async def test_fixture_worker_wires_database_temporal_and_all_activities(
     ]
     assert captured["task_queue"] == "fixture-test-queue"
     assert captured["max_concurrent_activities"] == 3
-    assert len(captured["workflows"]) == 1
-    assert len(captured["activities"]) == 7
+    assert len(captured["workflows"]) == 3
+    assert len(captured["activities"]) == 10
 
 
 def test_fixture_worker_main_loads_settings_and_runs(

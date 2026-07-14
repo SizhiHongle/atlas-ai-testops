@@ -91,6 +91,34 @@ def test_auth_session_timeouts_preserve_attempt_and_workflow_deadlines() -> None
         )
 
 
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {
+            "account_health_verification_timeout_seconds": 30,
+            "account_health_attempt_ttl_seconds": 30,
+        },
+        {
+            "fixture_activity_timeout_seconds": 120,
+            "fixture_cleanup_grace_seconds": 60,
+        },
+        {
+            "fixture_activity_timeout_seconds": 330,
+            "fixture_recovery_claim_ttl_seconds": 330,
+        },
+        {
+            "fixture_retry_initial_seconds": 5,
+            "fixture_retry_maximum_seconds": 4,
+        },
+    ],
+)
+def test_rejects_unsafe_health_and_fixture_timeout_relationships(
+    overrides: dict[str, int],
+) -> None:
+    with pytest.raises(ValidationError):
+        Settings(environment="test", **overrides)  # type: ignore[arg-type]
+
+
 def test_local_auth_session_worker_accepts_complete_vault_configuration() -> None:
     encoded_key = b64encode(b"k" * 32).decode()
     settings = AuthSessionWorkerSettings(
@@ -133,4 +161,34 @@ def test_auth_session_worker_rejects_partial_or_unsafe_static_vault() -> None:
             session_object_store_secret_key=SecretStr("secret"),
             session_artifact_aes_key_base64=SecretStr(encoded_key),
             session_artifact_key_version="kms-placeholder",
+        )
+
+
+def test_auth_session_worker_rejects_unsafe_bucket_and_key_configuration() -> None:
+    encoded_key = b64encode(b"k" * 32).decode()
+    with pytest.raises(ValidationError, match="bucket creation requires"):
+        AuthSessionWorkerSettings(
+            environment="test",
+            session_object_store_create_bucket=True,
+        )
+
+    with pytest.raises(ValidationError, match="bucket creation is local-only"):
+        AuthSessionWorkerSettings(
+            environment="staging",
+            session_object_store_endpoint="minio.internal:9000",
+            session_object_store_access_key=SecretStr("access"),
+            session_object_store_secret_key=SecretStr("secret"),
+            session_object_store_create_bucket=True,
+            session_artifact_aes_key_base64=SecretStr(encoded_key),
+            session_artifact_key_version="staging-v1",
+        )
+
+    with pytest.raises(ValidationError, match="exactly 32 bytes"):
+        AuthSessionWorkerSettings(
+            environment="test",
+            session_object_store_endpoint="127.0.0.1:9000",
+            session_object_store_access_key=SecretStr("access"),
+            session_object_store_secret_key=SecretStr("secret"),
+            session_artifact_aes_key_base64=SecretStr(b64encode(b"k" * 31).decode()),
+            session_artifact_key_version="test-v1",
         )

@@ -13,9 +13,9 @@
 
 ## 当前状态
 
-- 当前阶段：`P3 Atom、Blueprint、Fixture Run 与 Cleanup`
-- 当前切片：`P3-02 FixtureRun 耐久执行与 Resource Ledger（已完成）`
-- 总体状态：进行中
+- 当前阶段：`P3 Atom、Blueprint、Fixture Run 与 Cleanup（已完成）`
+- 当前切片：`P3-03 Cleanup / Reconcile 与取消补偿（已完成）`
+- 总体状态：P3 已完成，准备进入 P4
 - 当前分支：`main`
 - 当前进入基线提交：`4015026`
 
@@ -26,7 +26,7 @@
 | P0 | 工程基础、契约、数据库、进程入口、前端 API 基础 | 已完成 | 46 tests、真实 PostgreSQL/Temporal、三容器构建、前端浏览器 QA |
 | P1 | Tenant、Project、Environment、平台身份与权限 | 已完成 | 88 tests、真实 PostgreSQL RLS/RBAC/Session、登录原型浏览器 QA |
 | P2 | TestRole、AccountPool、TestAccount、Lease 与 Auth Session | 已完成 | P2-01 至 P2-06 已验收；身份、租约、Secret Grant、加密 Session 与清理链已闭环 |
-| P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 进行中 | P3-00/P3-01 资产控制面与 P3-02 耐久 FixtureRun、Resource Ledger、Manifest、Runtime Evidence 已完成；P3-03 取消补偿与 Cleanup 验证待实施 |
+| P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 已完成 | P3-00 至 P3-03 已验收；资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与三类发布证据闭环 |
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 未开始 | — |
 | P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 未开始 | — |
 | P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 未开始 | — |
@@ -174,7 +174,7 @@
 - `20260714_0010` 建立强制 RLS 的 `data_atom_definition`、`data_atom_version`、`data_blueprint_definition` 与 `data_blueprint_version`；Definition 使用 Revision CAS，Published / Deprecated Version 由数据库 Trigger 保证不可修改，应用角色无 DELETE 权限。
 - DataAtom CREATE 语义必须同时声明 Resource、Cleanup 与 Reconcile；密码、Secret、Cookie、Token、Storage State 语义类型和 Production Environment 均不能进入当前 Fixture 资产协议。
 - DataAtom / DataBlueprint 提供 Definition、Version、Catalog、Validate、Compile 与 Publish API；命令支持 Idempotency-Key，更新使用 If-Match / ETag，目录使用 Cursor Pagination，并按 Tenant / Project RLS 隔离。
-- 发布门禁要求 Static Validation、Runtime Validation 与 Cleanup Validation 三类独立 PASSED 证据；DataBlueprint 还必须保存由当前 Revision 编译出的确定性 Compiled Plan。P3-02 已能写入绑定当前 Version / Digest 的 Runtime Evidence；Cleanup Evidence 仍保持 `PENDING`，所以发布继续 fail-closed。
+- 发布门禁要求 Static Validation、Runtime Validation 与 Cleanup Validation 三类独立 PASSED 证据；DataBlueprint 还必须保存由当前 Revision 编译出的确定性 Compiled Plan。P3-02 写入绑定当前 Version / Digest 的 Runtime Evidence，P3-03 只在正常 `RELEASED` 的 Validation Run 完成真实清理后写入 Cleanup Evidence；失败、取消、泄漏或证据过期时发布继续 fail-closed。
 - 既有 Atoms / Assets 原型只在原有两个 DataAtom 卡片和一个 Blueprint 资产槽位读取真实 Catalog；没有数据时保留原型占位内容，未新增页面、未重排 DOM、未修改布局、CSS 或既有交互。
 - 真实 PostgreSQL 集成测试覆盖全生命周期、RLS、幂等、Revision CAS、失败编译、确定性编译、发布证据、发布后不可变、无 DELETE 权限和 Audit 安全投影；领域 Compiler、RBAC 与分支行为均有单元测试。
 
@@ -190,11 +190,23 @@
 - Resource Ledger 在 Postcondition 前写入不透明资源引用及依赖；只有 `CREATED` 所有权进入自动清理，`ADOPTED / LEASED / SHARED` 不会被误删。正常 Release 与节点失败均按逆拓扑清理已创建资源并释放绑定 Lease。
 - 真实 PostgreSQL 和 Temporal 测试覆盖 READY → CLEANING → RELEASED、部分执行失败清理、Provider 显式失败、非法返回、Transport 不确定、幂等重放、Manifest / Evidence、Lease 释放和发布门禁；只更新生成的 OpenAPI / TypeScript 类型，未修改前端原型页面、DOM、布局、样式或交互。
 
+## P3-03 范围
+
+### 已完成
+
+- `20260714_0012` 为 FixtureRun 增加不可逆 `terminalIntent`、取消请求与 Cleanup Generation，为 DataNodeRun 增加 Reconcile 状态机，并新增强制 RLS 的 `data_node_reconcile_attempt` 与 `resource_cleanup_attempt`；状态迁移、Attempt 终态、Scope、索引、权限和发布证据绑定均由数据库约束。
+- `OUTCOME_UNCERTAIN` 的 CREATE 不再盲重试：Fixture Worker 先持久化 Reconcile Attempt，再在事务外调用 exact registry。`FOUND` 恢复原始输出和资源账本，`ABSENT` 只允许一次有界、安全的 CREATE 重试，`INCONCLUSIVE` 按配置退避，耗尽后进入 `EXHAUSTED` 并按泄漏处理。
+- API 提供 `POST /v1/fixture-runs/{runId}:cancel` 与 `POST /v1/fixture-runs/{runId}:retry-cleanup`；内部 API 提供有界 `POST /internal/v1/fixture-cleanup:sweep`。控制面只 dispatch，Provider I/O 仍由独立 Fixture Worker 在短事务 Claim 之外执行。
+- Temporal FixtureRun Workflow 同时处理业务取消信号和原生 Workflow Cancellation，并在 `finally` 中进入补偿；独立 Cleanup Workflow 负责显式重试，Tenant Sweep Workflow 负责到期重试、过期孤儿扫描以及 Reconcile / Cleanup stale claim 恢复。
+- Cleanup Attempt 使用 Generation 和 Worker Claim 保证幂等与所有权；Transient Failure 保留待重试，Permanent Failure 或重试耗尽进入 `LEAKED`。每次 Provider Cleanup 前重新校验 Lease / Connector / Fence，终态且已释放 Fence 的隔离资源不会被不安全地再次删除。
+- Cleanup Evidence 只由完成真实清理且终态意图为 `RELEASED` 的 Validation Run 产生；取消、失败、未决 Reconcile、泄漏或清理失败均不能伪造发布条件。资产 Contract、Validation 或 Compile Revision 变化时，旧 Cleanup Evidence 自动失效。
+- 真实 PostgreSQL 与 Temporal 测试覆盖 Reconcile `FOUND / ABSENT`、有界 CREATE 重试、业务信号取消、原生 Temporal Cancellation、Transient Cleanup Retry、Sweeper、孤儿与 stale claim 恢复、Cleanup Evidence 和发布门禁；只更新生成的 OpenAPI / TypeScript 类型，未修改前端原型页面、DOM、布局、样式或交互。
+
 ### 下一步
 
-1. 实施 P3-03 Cleanup / Reconcile：取消后必清理、未知结果 Reconcile、Cleanup Retry / Sweeper、孤儿资源扫描、故障注入和 Cleanup Validation Evidence；继续以前端现有 Atoms / Compose 原型为视觉与交互权威。
+1. 进入 P4，先落地 TestCase、WorkflowDraft、DebugRun 与 CaseVersion 的数据库权威、版本协议和发布边界；继续以前端现有 Cases / Case Canvas 原型为视觉与交互权威。
 2. 接入首个真实 SaaS Fixture Provider 与 `PasswordLoginFlow`、生产 Secret Provider 和 KMS-backed `SessionArtifactVault`；缺少受信部署配置时继续 fail-closed。
-3. 在后续 Identity Reconciler 切片调度周期性 `AccountHealthWorkflow`、Connector Reconcile、Credential Expiry Monitor 和按 Tenant 的 Session Janitor Workflow。
+3. 为各 Tenant 配置生产 Temporal Schedule，周期调度 Fixture Cleanup Sweep、`AccountHealthWorkflow`、Connector Reconcile、Credential Expiry Monitor 和 Session Janitor Workflow。
 4. 身份 MCP v1 Transport 与 `ExecutionIdentityGrant` 服务端校验延后到 P5 的 TaskRun / ExecutionUnit 权威事实落地后实施。
 
 ## 验证记录
@@ -248,6 +260,10 @@
 | 2026-07-14 | P3 Migration | `20260714_0011` downgrade `0010` → upgrade `0011` | 通过；Constraint、Trigger、Scope FK、Index、RLS、Privilege 与可选非 CREATED cleanup metadata 往返成功 |
 | 2026-07-14 | P3-02 契约 | OpenAPI → TypeScript、FixtureRun / Manifest / Resource API | 通过；仅更新生成契约和类型，未修改前端原型页面、结构、布局、样式或交互 |
 | 2026-07-14 | P3-02 全量门禁 | `make verify`、`docker compose config --quiet` | 通过；264 tests、覆盖率 90.04%、严格 mypy、契约漂移、Python 包与前端生产构建全部成功 |
+| 2026-07-14 | P3-03 Runtime / API | 取消补偿、Reconcile、Cleanup Retry / Sweeper、孤儿与 stale claim 恢复、Cleanup Evidence | 通过；真实 PostgreSQL / Temporal，覆盖业务信号与原生 Cancellation、`FOUND / ABSENT / INCONCLUSIVE / EXHAUSTED`、Transient / Permanent Cleanup Failure 与发布门禁 |
+| 2026-07-14 | P3 Migration | `20260714_0012` downgrade `0011` → upgrade `0012` | 通过；状态机 Constraint、Attempt Guard、Scope FK、Index、RLS、Privilege 与旧数据 fail-closed 修复往返成功 |
+| 2026-07-14 | P3-03 契约 | OpenAPI → TypeScript、cancel / retry-cleanup / cleanup sweep 与 Attempt 安全投影 | 通过；仅更新生成契约和类型，未修改前端原型页面、结构、布局、样式或交互 |
+| 2026-07-14 | P3-03 全量门禁 | `make verify` | 通过；286 tests、覆盖率 90.08%、ruff、严格 mypy、契约漂移、Python 包与前端生产构建全部成功 |
 
 ## 当前风险与外部输入
 
@@ -257,5 +273,5 @@
 - Feishu PlatformPrincipal OAuth 尚未提供 Client Secret、Redirect URI 与权限范围；当前入口不会模拟成功。
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
-- P3-02 已完成 FixtureRun、Resource Ledger、Manifest 与 Runtime Evidence；P3-03 的取消后必清理、Reconcile、Cleanup Retry / Sweeper、孤儿扫描和 Cleanup Evidence 尚未实现，因此发布门禁仍保持 fail-closed。
+- P3-03 已完成取消后补偿、Reconcile、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Evidence；生产环境仍需按 Tenant 配置 Temporal Schedule 和真实 Provider，缺失时继续 fail-closed。
 - 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

@@ -23,6 +23,6 @@ Fixture 需要组合多个数据准备能力，并在失败、取消或重试后
 ## 后果
 
 - 资产可在执行前发现端口、类型、数据分级、循环依赖和缺失输入问题，Compiled Plan 可由相同输入稳定重建。
-- CREATE 能力不能脱离资源账本和清理协议发布；P3-02 已提供 Runtime Evidence，P3-03 未提供 Cleanup Evidence 前，发布会明确拒绝而不是模拟成功。
+- CREATE 能力不能脱离资源账本和清理协议发布；P3-02 提供 Runtime Evidence，P3-03 只在正常释放并完成真实清理后提供 Cleanup Evidence，其他情况会明确拒绝发布而不是模拟成功。
 - Connector Operation 必须先在受信部署中登记，新增 Provider 能力需要代码和部署变更，换取可审计、可授权且无任意代码执行面的协议。
-- P3-02 已实现 FixtureRun、DataNodeRun / Attempt、ResourceRecord、FixtureManifest 与 Runtime Evidence；P3-03 仍需实现取消后必清理、Reconcile、Cleanup Retry / Sweeper、孤儿扫描、故障注入和 Cleanup Evidence。
+- P3-02 已实现 FixtureRun、DataNodeRun / Attempt、ResourceRecord、FixtureManifest 与 Runtime Evidence；P3-03 已实现取消后必清理、Reconcile Attempt、Cleanup Generation Attempt、Retry / Sweeper、孤儿扫描、故障注入和 Cleanup Evidence。

@@ -144,6 +144,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/internal/v1/fixture-cleanup:sweep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 执行一批 Fixture Cleanup Reconcile 与孤儿扫描 */
+        post: operations["sweep_fixture_cleanup_internal_v1_fixture_cleanup_sweep_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/account-pools/{poolId}": {
         parameters: {
             query?: never;
@@ -619,6 +636,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/fixture-runs/{runId}:cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 请求取消 FixtureRun 并执行补偿清理 */
+        post: operations["cancel_fixture_run_v1_fixture_runs__runId__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/fixture-runs/{runId}:release": {
         parameters: {
             query?: never;
@@ -630,6 +664,23 @@ export interface paths {
         put?: never;
         /** 请求释放 FixtureRun */
         post: operations["release_fixture_run_v1_fixture_runs__runId__release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/fixture-runs/{runId}:retry-cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 重试 Fixture Cleanup */
+        post: operations["retry_fixture_cleanup_v1_fixture_runs__runId__retry_cleanup_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2428,6 +2479,55 @@ export interface components {
          */
         DataNodeAttemptStatus: "RUNNING" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNCERTAIN";
         /**
+         * DataNodeReconcileAttempt
+         * @description Safe history for one exact reconciliation query.
+         */
+        DataNodeReconcileAttempt: {
+            /** Attemptnumber */
+            attemptNumber: number;
+            /**
+             * Datanoderunid
+             * Format: uuid
+             */
+            dataNodeRunId: string;
+            failureCategory?: components["schemas"]["FixtureFailureCategory"] | null;
+            /** Failurecode */
+            failureCode?: string | null;
+            /** Failuredetail */
+            failureDetail?: string | null;
+            /** Finishedat */
+            finishedAt?: string | null;
+            /**
+             * Fixturerunid
+             * Format: uuid
+             */
+            fixtureRunId: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Providerrequestid */
+            providerRequestId?: string | null;
+            /**
+             * Startedat
+             * Format: date-time
+             */
+            startedAt: string;
+            status: components["schemas"]["DataNodeReconcileAttemptStatus"];
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * DataNodeReconcileAttemptStatus
+         * @description Append-oriented outcome of one read-only reconcile operation.
+         * @enum {string}
+         */
+        DataNodeReconcileAttemptStatus: "RUNNING" | "FOUND" | "ABSENT" | "INCONCLUSIVE" | "FAILED";
+        /**
          * DataNodeRun
          * @description Public state for one logical node in a fixture run.
          */
@@ -2460,10 +2560,19 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Nextreconcileat */
+            nextReconcileAt?: string | null;
             /** Nodeid */
             nodeId: string;
             /** Outputdigest */
             outputDigest?: string | null;
+            /**
+             * Reconcileattemptcount
+             * @default 0
+             */
+            reconcileAttemptCount: number;
+            /** @default NOT_REQUIRED */
+            reconcileState: components["schemas"]["FixtureReconcileState"];
             /** Revision */
             revision: number;
             /** Startedat */
@@ -2659,6 +2768,33 @@ export interface components {
          */
         FixtureCleanupState: "NOT_REQUIRED" | "PENDING" | "RUNNING" | "CLEANED" | "LEAKED";
         /**
+         * FixtureCleanupSweepBatch
+         * @description Bounded, tenant-scoped result of one independent cleanup sweep.
+         */
+        FixtureCleanupSweepBatch: {
+            /** Cleanedresources */
+            cleanedResources: number;
+            /** Cleanupclaimed */
+            cleanupClaimed: number;
+            /** Finalizedruns */
+            finalizedRuns: number;
+            /** Leakedresources */
+            leakedResources: number;
+            /**
+             * Observedat
+             * Format: date-time
+             */
+            observedAt: string;
+            /** Reconciledabsent */
+            reconciledAbsent: number;
+            /** Reconciledfound */
+            reconciledFound: number;
+            /** Reconciledinconclusive */
+            reconciledInconclusive: number;
+            /** Retryscheduled */
+            retryScheduled: number;
+        };
+        /**
          * FixtureFailureCategory
          * @description Low-cardinality failure category safe for APIs and events.
          * @enum {string}
@@ -2711,8 +2847,19 @@ export interface components {
             /** Manifestdigest */
             manifestDigest: string;
         };
+        /**
+         * FixtureReconcileState
+         * @description Independent projection for resolving an uncertain create outcome.
+         * @enum {string}
+         */
+        FixtureReconcileState: "NOT_REQUIRED" | "PENDING" | "RUNNING" | "FOUND" | "ABSENT" | "INCONCLUSIVE" | "EXHAUSTED";
         /** FixtureResourcePage */
         FixtureResourcePage: {
+            /**
+             * Cleanupattempts
+             * @default []
+             */
+            cleanupAttempts: components["schemas"]["ResourceCleanupAttempt"][];
             /** Items */
             items: components["schemas"]["ResourceRecord"][];
         };
@@ -2726,6 +2873,15 @@ export interface components {
              * Format: uuid
              */
             blueprintVersionId: string;
+            /** Cancelrequestedat */
+            cancelRequestedAt?: string | null;
+            /** Cancelrequestedby */
+            cancelRequestedBy?: string | null;
+            /**
+             * Cleanupgeneration
+             * @default 0
+             */
+            cleanupGeneration: number;
             cleanupState: components["schemas"]["FixtureCleanupState"];
             /**
              * Environmentid
@@ -2784,6 +2940,7 @@ export interface components {
              * Format: uuid
              */
             tenantId: string;
+            terminalIntent?: components["schemas"]["FixtureRunTerminalIntent"] | null;
             /**
              * Updatedat
              * Format: date-time
@@ -2798,6 +2955,11 @@ export interface components {
             attempts: components["schemas"]["DataNodeAttempt"][];
             /** Nodes */
             nodes: components["schemas"]["DataNodeRun"][];
+            /**
+             * Reconcileattempts
+             * @default []
+             */
+            reconcileAttempts: components["schemas"]["DataNodeReconcileAttempt"][];
             run: components["schemas"]["FixtureRun"];
         };
         /**
@@ -2812,6 +2974,12 @@ export interface components {
          * @enum {string}
          */
         FixtureRunStatus: "REQUESTED" | "RUNNING" | "READY" | "FAILED" | "CANCELED" | "CLEANING" | "RELEASED" | "CLEANUP_FAILED";
+        /**
+         * FixtureRunTerminalIntent
+         * @description Terminal preparation outcome preserved while cleanup is in progress.
+         * @enum {string}
+         */
+        FixtureRunTerminalIntent: "RELEASED" | "FAILED" | "CANCELED";
         /**
          * HealthResponse
          * @description 稳定的健康检查协议。
@@ -3229,6 +3397,57 @@ export interface components {
             reason: components["schemas"]["LeaseReleaseReason"];
         };
         /**
+         * ResourceCleanupAttempt
+         * @description Safe append-only cleanup attempt without the provider locator.
+         */
+        ResourceCleanupAttempt: {
+            /** Cleanupgeneration */
+            cleanupGeneration: number;
+            failureCategory?: components["schemas"]["FixtureFailureCategory"] | null;
+            /** Failurecode */
+            failureCode?: string | null;
+            /** Failuredetail */
+            failureDetail?: string | null;
+            /** Finishedat */
+            finishedAt?: string | null;
+            /**
+             * Fixturerunid
+             * Format: uuid
+             */
+            fixtureRunId: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Providerrequestid */
+            providerRequestId?: string | null;
+            /**
+             * Resourcerecordid
+             * Format: uuid
+             */
+            resourceRecordId: string;
+            /**
+             * Startedat
+             * Format: date-time
+             */
+            startedAt: string;
+            status: components["schemas"]["ResourceCleanupAttemptStatus"];
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            /** Workeridentity */
+            workerIdentity: string;
+        };
+        /**
+         * ResourceCleanupAttemptStatus
+         * @description Durable outcome of one provider cleanup invocation.
+         * @enum {string}
+         */
+        ResourceCleanupAttemptStatus: "RUNNING" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNCERTAIN";
+        /**
          * ResourceOwnership
          * @description Ownership determines whether automatic cleanup may delete a resource.
          * @enum {string}
@@ -3295,6 +3514,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Nextcleanupat */
+            nextCleanupAt?: string | null;
             ownership: components["schemas"]["ResourceOwnership"];
             /** Resourcehandle */
             resourceHandle: string;
@@ -4352,6 +4573,50 @@ export interface operations {
                 };
             };
             /** @description 角色、标签、能力或认证要求无法满足 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    sweep_fixture_cleanup_internal_v1_fixture_cleanup_sweep_post: {
+        parameters: {
+            query?: {
+                workerIdentity?: string;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureCleanupSweepBatch"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -7950,7 +8215,201 @@ export interface operations {
             };
         };
     };
+    cancel_fixture_run_v1_fixture_runs__runId__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureRun"];
+                };
+            };
+            /** @description FixtureRun 输入或绑定无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description FixtureRun 或关联资产不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产、租约、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Fixture Worker 或 Connector 不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     release_fixture_run_v1_fixture_runs__runId__release_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureRun"];
+                };
+            };
+            /** @description FixtureRun 输入或绑定无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description FixtureRun 或关联资产不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产、租约、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Fixture Worker 或 Connector 不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    retry_fixture_cleanup_v1_fixture_runs__runId__retry_cleanup_post: {
         parameters: {
             query?: never;
             header?: {

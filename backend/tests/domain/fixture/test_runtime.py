@@ -44,10 +44,14 @@ from atlas_testops.domain.fixture import (
     ExecutionContextBinding,
     FixtureActorBindingRecord,
     FixtureActorLeaseBinding,
+    FixtureCleanupState,
     FixtureFailureCategory,
+    FixtureReconcileDisposition,
+    FixtureReconcileResult,
     FixtureRun,
     FixtureRunKind,
     FixtureRunRecord,
+    FixtureRunStatus,
     IdempotencyMode,
     IdempotencyPolicy,
     LiteralBinding,
@@ -254,6 +258,61 @@ def test_runtime_input_output_manifest_pointer_and_digest_guards() -> None:
     ensure_future_deadline(now + timedelta(seconds=1), now)
     with pytest.raises(ValueError):
         ensure_future_deadline(now, now)
+
+
+def test_runtime_rejects_invalid_failure_reconcile_and_sensitive_shapes() -> None:
+    now = datetime.now(UTC)
+    with pytest.raises(ValidationError, match="failure metadata must be complete"):
+        FixtureRun(
+            id=uuid7(),
+            tenant_id=uuid7(),
+            project_id=uuid7(),
+            environment_id=uuid7(),
+            blueprint_version_id=uuid7(),
+            run_kind=FixtureRunKind.VALIDATION,
+            execution_id="execution-01",
+            plan_digest=DIGEST_A,
+            input_digest=DIGEST_B,
+            status=FixtureRunStatus.REQUESTED,
+            cleanup_state=FixtureCleanupState.NOT_REQUIRED,
+            temporal_workflow_id="fixture-run-01",
+            requested_by=None,
+            failure_category=FixtureFailureCategory.VALIDATION,
+            execution_deadline=now + timedelta(minutes=5),
+            requested_at=now,
+            revision=1,
+            updated_at=now,
+        )
+
+    with pytest.raises(ValidationError, match="FOUND reconcile result requires outputs"):
+        FixtureReconcileResult(disposition=FixtureReconcileDisposition.FOUND)
+    with pytest.raises(ValidationError, match="only FOUND reconcile result"):
+        FixtureReconcileResult(
+            disposition=FixtureReconcileDisposition.ABSENT,
+            outputs={"customerRef": "customer-1"},
+        )
+
+    contract = _contract()
+    optional_port = contract.ports[0].model_copy(update={"required": False})
+    validate_operation_inputs(
+        contract.model_copy(update={"ports": (optional_port, contract.ports[1])}),
+        {},
+    )
+
+    plan = _plan(uuid7(), uuid7())
+    sensitive_export = plan.exports[0].model_copy(
+        update={"classification": DataClassification.SENSITIVE}
+    )
+    with pytest.raises(ValueError, match="sensitive fixture values"):
+        build_fixture_manifest(
+            fixture_run_id=uuid7(),
+            blueprint_version_id=plan.blueprint_version_id,
+            plan=plan.model_copy(update={"exports": (sensitive_export,)}),
+            node_outputs={"createCustomer": {"customerRef": "customer-1"}},
+        )
+
+    with pytest.raises(ValueError, match="pointer does not exist"):
+        pointer_value(cast(JsonValue, "scalar"), "/child")
 
 
 def test_start_command_rejects_duplicate_slots_and_leases() -> None:

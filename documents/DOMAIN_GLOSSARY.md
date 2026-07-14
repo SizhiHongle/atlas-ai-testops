@@ -99,11 +99,11 @@ DataBlueprintDefinition
 | `DataBlueprintDefinition` | 一个可维护的数据组合目录实体 | 不直接保存运行状态 |
 | `DataBlueprintVersion` | 以 exact DataAtom Version、Edge、Literal 与 Export 组成的 DAG | Published 后不可变；不得解析 floating version |
 | `CompiledFixturePlan` | 静态编译产生的确定性执行层级、逆序 Cleanup 与完整性 Digest | 不是运行事实，不执行外部 I/O |
-| `FixtureRun` | 一次冻结 Compiled Plan、Environment、调用作用域和策略的 Fixture 执行 | P3-02 已落地；PostgreSQL 是权威事实，Temporal 只负责耐久编排 |
-| `DataNodeRun` | Fixture 中一个逻辑节点的运行记录 | P3-02 已落地；不等同于正式测试的 `ExecutionUnit` |
-| `DataNodeAttempt` | DataNodeRun 的一次 Connector Operation 调用尝试 | P3-02 已落地且必须先于外部 I/O；不等同于正式测试的 `UnitAttempt` |
-| `ResourceRecord` | Fixture 外部资源的追加式身份、Ownership、状态与 Cleanup 账本 | P3-02 已落地；只有 CREATED 自动清理，P3-03 补充 Reconcile、Sweeper 与孤儿扫描 |
-| `FixtureManifest` | 冻结 Atom Version、Plan Digest 与显式输出的可复现运行清单 | P3-02 已实现不可变运行持久化；不得导出未声明或敏感输出 |
+| `FixtureRun` | 一次冻结 Compiled Plan、Environment、调用作用域和策略的 Fixture 执行 | P3 已落地；PostgreSQL 是权威事实，Temporal 只负责耐久编排与补偿 |
+| `DataNodeRun` | Fixture 中一个逻辑节点的运行记录 | P3 已落地并包含 Reconcile 状态；不等同于正式测试的 `ExecutionUnit` |
+| `DataNodeAttempt` | DataNodeRun 的一次 Connector Operation 调用尝试 | P3 已落地且必须先于外部 I/O；Reconcile 使用独立 Attempt，不等同于正式测试的 `UnitAttempt` |
+| `ResourceRecord` | Fixture 外部资源的追加式身份、Ownership、状态与 Cleanup 账本 | P3 已落地；只有 CREATED 自动清理，并由 Generation Attempt、Sweeper 与孤儿扫描恢复 |
+| `FixtureManifest` | 冻结 Atom Version、Plan Digest 与显式输出的可复现运行清单 | P3 已实现不可变运行持久化；不得导出未声明或敏感输出 |
 
 ```text
 FixtureRun

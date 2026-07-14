@@ -11,7 +11,11 @@ from atlas_testops.application.ports.fixture_operations import (
     FixtureOperationInvocation,
     FixtureOperationSpec,
 )
-from atlas_testops.domain.fixture import FixtureOperationResult
+from atlas_testops.domain.fixture import (
+    FixtureOperationResult,
+    FixtureReconcileDisposition,
+    FixtureReconcileResult,
+)
 
 _OPERATION_KEYS = (
     "customer.create",
@@ -55,6 +59,28 @@ class MockFixtureOperationProvider:
         return FixtureOperationResult(
             outputs=outputs,
             provider_request_id=f"mock-{seed[:24]}",
+        )
+
+    async def reconcile(
+        self,
+        *,
+        context: FixtureOperationContext,
+        invocation: FixtureOperationInvocation,
+    ) -> FixtureReconcileResult:
+        """Resolve the local deterministic create result from the stable marker."""
+
+        operation_prefix = invocation.operation.operation_key.removesuffix(".lookup")
+        seed = hashlib.sha256(
+            f"{context.idempotency_key}:{operation_prefix}.create".encode()
+        ).hexdigest()
+        outputs = {
+            key: _value_for_schema(schema, seed=seed, key=key)
+            for key, schema in sorted(invocation.expected_outputs.items())
+        }
+        return FixtureReconcileResult(
+            disposition=FixtureReconcileDisposition.FOUND,
+            outputs=outputs,
+            provider_request_id=f"mock-reconcile-{seed[:14]}",
         )
 
 

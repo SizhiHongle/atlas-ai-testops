@@ -9,7 +9,7 @@
 | Platform | 总体落地方案 | tenant、project、environment、platform_user、password_credential、platform_membership、platform_session、audit、outbox、idempotency | auth、session、projects、environments | 既有 Login、Space Header | 已验收：P1 真实数据库、API、RBAC 与浏览器 QA 完成 |
 | Workflow Contract | AI 用例 v0.3 | workflow_draft、node、edge、asset_version | draft validate / patch | Case Canvas | 基础中：结构契约已实现 |
 | Identity | 身份与测试账号 v1.1 | connector_installation、connector_capability、test_role、account_pool、test_account、account_slot、account_lease、credential_binding、secret_grant、account_health_check、account_state_transition、browser_session_artifact、auth_action_ticket、environment.allowed_origins | connectors、capability validation、roles、pools、accounts、leases、health verification / history、secret grants、ensure-session | Identities | 基础中：P2-01 至 P2-06 已验收；真实 SaaS Flow、生产 Secret/KMS 与 ExecutionIdentityGrant 延后接入 |
-| Fixture | 数据预加载 v0.2 | data_atom_definition/version、data_blueprint_definition/version、fixture_run、fixture_actor_binding、data_node_run/attempt、resource_record/dependency、fixture_manifest、fixture_validation_evidence；Cleanup Sweeper 待 P3-03 | data-atoms、data-blueprints、validate、compile、publish、fixture-runs、manifest、resources、release | 既有 Atoms、Assets 数据槽位 | 后端完成：P3-00/P3-01 资产控制面与 P3-02 耐久运行完成；P3-03 取消补偿、Reconcile 与 Cleanup Evidence 待实现 |
+| Fixture | 数据预加载 v0.2 | data_atom_definition/version、data_blueprint_definition/version、fixture_run、fixture_actor_binding、data_node_run/attempt、data_node_reconcile_attempt、resource_record/dependency、resource_cleanup_attempt、fixture_manifest、fixture_validation_evidence | data-atoms、data-blueprints、validate、compile、publish、fixture-runs、manifest、resources、release、cancel、retry-cleanup、cleanup sweep | 既有 Atoms、Assets 数据槽位 | 已验收：P3-00 至 P3-03 的资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与发布证据闭环 |
 | Case | AI 用例 v0.3 | test_case、draft、operation、case_version、plan_template、debug_run | test-cases、drafts、debug-runs、publish | Cases、Assets | 未开始 |
 | Task | 任务中心 v0.2 | task_plan/version、schedule、task_run、manifest、execution_unit、unit_attempt | task-plans、task-runs、commands、events | Launch、Task Control | 未开始 |
 | Live / Browser | 现场 v0.2 | browser_session、action、policy、grant、receipt、observation、control_lease | attempts、events、view-token、takeover、commands | Live Theatre | 未开始 |
@@ -27,7 +27,7 @@
 | Atom Contract | `atlas.atom/0.1` | `backend/src/atlas_testops/domain/fixture` | 已实现并导出 |
 | Fixture Blueprint | `atlas.fixture-blueprint/0.1` | `backend/src/atlas_testops/domain/fixture` | 已实现并导出 |
 | Compiled Fixture Plan | `atlas.compiled-fixture-plan/0.1` | `backend/src/atlas_testops/domain/fixture` | 已实现并导出 |
-| Fixture Manifest | `atlas.fixture-manifest/0.1` | `backend/src/atlas_testops/domain/fixture` | 已实现、导出并由 P3-02 运行持久化 |
+| Fixture Manifest | `atlas.fixture-manifest/0.1` | `backend/src/atlas_testops/domain/fixture` | 已实现、导出并由 P3 耐久运行持久化 |
 | Test IR | `atlas.test-ir/0.1` | 待 P4 创建 | 未开始 |
 | Execution Event | `atlas.execution-event/0.1` | 待 P5 创建 | 未开始 |
 | Attempt Seal | `atlas.attempt-seal/0.1` | 待 P6 创建 | 未开始 |
@@ -54,7 +54,7 @@
 | Fixture 发布证据不能伪造 | Static / Runtime / Cleanup 三类独立 PASSED 证据、Revision 绑定与缺失证据 fail-closed | P3 |
 | Provider I/O 不能先于 Attempt 事实 | Activity 调用前持久化 RUNNING Attempt；非法响应或未知提交结果进入 OUTCOME_UNCERTAIN，不盲重试 CREATE | P3 |
 | 非 CREATED 资源不能被自动删除 | Resource Ownership 数据库约束、只领取 CREATED 资源的逆拓扑 Cleanup 与真实 Ledger 测试 | P3 |
-| 取消后仍执行 Cleanup | Temporal replay + 故障注入 | P5-P6 |
+| 取消后仍执行 Cleanup | 业务取消信号与原生 Temporal Cancellation、`finally` 补偿、Transient Failure 重试与真实 Temporal 测试 | P3 |
 | Seal 不完整不能通过 | 领域属性测试 + Gate 集成测试 | P6-P7 |
 | SSE 重连不丢不重 | Cursor replay 集成测试 | P5-P6 |
 | 洞察可由事实重建 | 清空投影后重放一致性测试 | P8 |

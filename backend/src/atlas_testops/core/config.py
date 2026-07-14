@@ -61,6 +61,11 @@ class Settings(BaseSettings):
     fixture_activity_timeout_seconds: int = Field(default=330, ge=30, le=900)
     fixture_cleanup_grace_seconds: int = Field(default=900, ge=60, le=3_600)
     fixture_worker_max_concurrency: int = Field(default=8, ge=1, le=64)
+    fixture_cleanup_max_attempts: int = Field(default=5, ge=1, le=32)
+    fixture_reconcile_max_attempts: int = Field(default=5, ge=1, le=32)
+    fixture_recovery_claim_ttl_seconds: int = Field(default=600, ge=30, le=3_600)
+    fixture_retry_initial_seconds: int = Field(default=2, ge=1, le=300)
+    fixture_retry_maximum_seconds: int = Field(default=300, ge=1, le=900)
 
     @field_validator("api_v1_prefix")
     @classmethod
@@ -100,6 +105,14 @@ class Settings(BaseSettings):
         if self.fixture_cleanup_grace_seconds < self.fixture_activity_timeout_seconds:
             raise ValueError(
                 "fixture_cleanup_grace_seconds must cover one fixture activity timeout"
+            )
+        if self.fixture_recovery_claim_ttl_seconds <= self.fixture_activity_timeout_seconds:
+            raise ValueError(
+                "fixture_recovery_claim_ttl_seconds must exceed fixture activity timeout"
+            )
+        if self.fixture_retry_maximum_seconds < self.fixture_retry_initial_seconds:
+            raise ValueError(
+                "fixture_retry_maximum_seconds must be >= fixture_retry_initial_seconds"
             )
         return self
 

@@ -11,7 +11,12 @@ from atlas_testops.application.fixture_runs import FixtureWorkerService
 from atlas_testops.core.config import Settings, get_settings
 from atlas_testops.infrastructure.adapters.fixture_registry import FixtureOperationRegistry
 from atlas_testops.infrastructure.database import Database
-from atlas_testops.orchestration.fixtures import FixtureActivities, FixtureRunWorkflow
+from atlas_testops.orchestration.fixtures import (
+    FixtureActivities,
+    FixtureCleanupSweepWorkflow,
+    FixtureCleanupWorkflow,
+    FixtureRunWorkflow,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -25,6 +30,13 @@ async def run_worker(settings: Settings) -> None:
         database,
         registry,
         cleanup_grace=timedelta(seconds=settings.fixture_cleanup_grace_seconds),
+        cleanup_max_attempts=settings.fixture_cleanup_max_attempts,
+        reconcile_max_attempts=settings.fixture_reconcile_max_attempts,
+        recovery_claim_ttl=timedelta(
+            seconds=settings.fixture_recovery_claim_ttl_seconds
+        ),
+        retry_initial=timedelta(seconds=settings.fixture_retry_initial_seconds),
+        retry_maximum=timedelta(seconds=settings.fixture_retry_maximum_seconds),
     )
     activities = FixtureActivities(service)
     client = await Client.connect(
@@ -34,15 +46,22 @@ async def run_worker(settings: Settings) -> None:
     worker = Worker(
         client,
         task_queue=settings.fixture_task_queue,
-        workflows=[FixtureRunWorkflow],
+        workflows=[
+            FixtureRunWorkflow,
+            FixtureCleanupWorkflow,
+            FixtureCleanupSweepWorkflow,
+        ],
         activities=[
             activities.load_plan,
             activities.execute_node,
+            activities.reconcile_node,
             activities.finalize_ready,
             activities.begin_release,
             activities.begin_failed_cleanup,
+            activities.begin_canceled_cleanup,
             activities.cleanup_node,
             activities.finalize_release,
+            activities.sweep_cleanup,
         ],
         max_concurrent_activities=settings.fixture_worker_max_concurrency,
     )

@@ -16,6 +16,7 @@ from atlas_testops.core.contracts import new_entity_id
 from atlas_testops.domain.fixture import (
     DataNodeRunStatus,
     FixtureCleanupState,
+    FixtureCleanupSweepBatch,
     FixtureFailureCategory,
     FixtureNodeActivityResult,
     FixtureReleaseResult,
@@ -27,6 +28,9 @@ from atlas_testops.domain.fixture import (
 from atlas_testops.domain.identity import EnsureLoginSession, LoginSessionReady
 from atlas_testops.orchestration.fixtures import (
     FixtureActivities,
+    FixtureCleanupSweepWorkflow,
+    FixtureCleanupWorkflow,
+    FixtureNodeInput,
     FixtureRunWorkflow,
     TemporalFixtureRunDispatcher,
 )
@@ -134,8 +138,11 @@ async def test_real_worker_executes_auth_session_dispatch_contract() -> None:
 class FakeFixtureWorkerService:
     """Record workflow sequencing without using PostgreSQL or a provider."""
 
-    def __init__(self, *, fail_node: bool) -> None:
+    def __init__(self, *, fail_node: bool, reconcile_absent: bool = False) -> None:
         self.fail_node = fail_node
+        self.reconcile_absent = reconcile_absent
+        self.execute_calls = 0
+        self.canceled = False
         self.calls: list[str] = []
 
     async def load_plan(self, tenant_id: UUID, run_id: UUID) -> FixtureWorkerPlan:
@@ -153,12 +160,36 @@ class FakeFixtureWorkerService:
         run_id: UUID,
         node_id: str,
     ) -> FixtureNodeActivityResult:
+        self.execute_calls += 1
         self.calls.append(f"execute:{node_id}")
+        if self.reconcile_absent and self.execute_calls == 1:
+            return FixtureNodeActivityResult(
+                node_id=node_id,
+                status=DataNodeRunStatus.OUTCOME_UNCERTAIN,
+                failure_category=FixtureFailureCategory.UNCERTAIN,
+                failure_code="MOCK_CREATE_UNCERTAIN",
+            )
         return FixtureNodeActivityResult(
             node_id=node_id,
             status=(DataNodeRunStatus.FAILED if self.fail_node else DataNodeRunStatus.SUCCEEDED),
             failure_category=(FixtureFailureCategory.TRANSIENT if self.fail_node else None),
             failure_code="MOCK_NODE_FAILED" if self.fail_node else None,
+        )
+
+    async def reconcile_node(
+        self,
+        tenant_id: UUID,
+        run_id: UUID,
+        node_id: str,
+    ) -> FixtureNodeActivityResult:
+        self.calls.append(f"reconcile:{node_id}")
+        return FixtureNodeActivityResult(
+            node_id=node_id,
+            status=(
+                DataNodeRunStatus.READY
+                if self.reconcile_absent
+                else DataNodeRunStatus.SUCCEEDED
+            ),
         )
 
     async def finalize_ready(self, tenant_id: UUID, run_id: UUID) -> FixtureRun:
@@ -180,6 +211,11 @@ class FakeFixtureWorkerService:
         assert category is FixtureFailureCategory.TRANSIENT
         self.calls.append(f"begin-failed:{code}")
         return _fixture_run(tenant_id, run_id, status=FixtureRunStatus.RUNNING)
+
+    async def begin_canceled_cleanup(self, tenant_id: UUID, run_id: UUID) -> FixtureRun:
+        self.canceled = True
+        self.calls.append("begin-canceled")
+        return _fixture_run(tenant_id, run_id, status=FixtureRunStatus.CLEANING)
 
     async def cleanup_node(
         self,
@@ -206,10 +242,34 @@ class FakeFixtureWorkerService:
         self.calls.append(f"finalize:{failed_run}")
         return FixtureReleaseResult(
             fixture_run_id=run_id,
-            status=(FixtureRunStatus.FAILED if failed_run else FixtureRunStatus.RELEASED),
+            status=(
+                FixtureRunStatus.CANCELED
+                if self.canceled
+                else (FixtureRunStatus.FAILED if failed_run else FixtureRunStatus.RELEASED)
+            ),
             cleanup_state=FixtureCleanupState.CLEANED,
             cleaned_resources=1,
             leaked_resources=0,
+        )
+
+    async def sweep_cleanup(
+        self,
+        tenant_id: UUID,
+        *,
+        worker_identity: str,
+        limit: int,
+    ) -> FixtureCleanupSweepBatch:
+        self.calls.append(f"sweep:{tenant_id}:{worker_identity}:{limit}")
+        return FixtureCleanupSweepBatch(
+            reconciled_found=1,
+            reconciled_absent=2,
+            reconciled_inconclusive=3,
+            cleanup_claimed=4,
+            cleaned_resources=5,
+            retry_scheduled=6,
+            leaked_resources=7,
+            finalized_runs=8,
+            observed_at=datetime.now(UTC),
         )
 
 
@@ -275,6 +335,7 @@ async def test_real_fixture_workflow_sequences_prepare_and_cleanup(fail_node: bo
             activities.finalize_ready,
             activities.begin_release,
             activities.begin_failed_cleanup,
+            activities.begin_canceled_cleanup,
             activities.cleanup_node,
             activities.finalize_release,
         ],
@@ -294,3 +355,178 @@ async def test_real_fixture_workflow_sequences_prepare_and_cleanup(fail_node: bo
     else:
         assert "ready" in fake.calls
         assert "begin-release" in fake.calls
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("cancel_mode", ["signal", "temporal-cancel"])
+async def test_real_fixture_workflow_cancel_signal_runs_cleanup(cancel_mode: str) -> None:
+    assert TEMPORAL_ADDRESS is not None
+    client = await Client.connect(TEMPORAL_ADDRESS, namespace="default")
+    task_queue = f"atlas-fixture-cancel-{uuid7()}"
+    fake = FakeFixtureWorkerService(fail_node=False)
+    activities = FixtureActivities(cast(FixtureWorkerService, fake))
+    dispatcher = TemporalFixtureRunDispatcher(
+        client,
+        task_queue=task_queue,
+        activity_timeout=timedelta(seconds=10),
+        cleanup_grace=timedelta(seconds=10),
+    )
+    tenant_id = uuid7()
+    run_id = uuid7()
+    run = _fixture_run(tenant_id, run_id, status=FixtureRunStatus.REQUESTED)
+
+    async with Worker(
+        client,
+        task_queue=task_queue,
+        workflows=[FixtureRunWorkflow],
+        activities=[
+            activities.load_plan,
+            activities.execute_node,
+            activities.finalize_ready,
+            activities.begin_release,
+            activities.begin_failed_cleanup,
+            activities.begin_canceled_cleanup,
+            activities.cleanup_node,
+            activities.finalize_release,
+        ],
+    ):
+        await dispatcher.start(run)
+        handle = client.get_workflow_handle(run.temporal_workflow_id)
+        if cancel_mode == "signal":
+            await dispatcher.cancel(run)
+        else:
+            await handle.cancel()
+        result = await handle.result()
+
+    assert result["status"] == "CANCELED"
+    assert "begin-canceled" in fake.calls
+    assert "cleanup:createCustomer" in fake.calls
+
+
+@pytest.mark.anyio
+async def test_real_fixture_workflow_reconciles_absent_then_retries_create() -> None:
+    assert TEMPORAL_ADDRESS is not None
+    client = await Client.connect(TEMPORAL_ADDRESS, namespace="default")
+    task_queue = f"atlas-fixture-reconcile-{uuid7()}"
+    fake = FakeFixtureWorkerService(fail_node=False, reconcile_absent=True)
+    activities = FixtureActivities(cast(FixtureWorkerService, fake))
+    dispatcher = TemporalFixtureRunDispatcher(
+        client,
+        task_queue=task_queue,
+        activity_timeout=timedelta(seconds=10),
+        cleanup_grace=timedelta(seconds=10),
+    )
+    tenant_id = uuid7()
+    run_id = uuid7()
+    run = _fixture_run(tenant_id, run_id, status=FixtureRunStatus.REQUESTED)
+
+    async with Worker(
+        client,
+        task_queue=task_queue,
+        workflows=[FixtureRunWorkflow],
+        activities=[
+            activities.load_plan,
+            activities.execute_node,
+            activities.reconcile_node,
+            activities.finalize_ready,
+            activities.begin_release,
+            activities.begin_failed_cleanup,
+            activities.begin_canceled_cleanup,
+            activities.cleanup_node,
+            activities.finalize_release,
+        ],
+    ):
+        await dispatcher.start(run)
+        await dispatcher.release(run)
+        result = await client.get_workflow_handle(run.temporal_workflow_id).result()
+
+    assert result["status"] == "RELEASED"
+    assert fake.calls.count("execute:createCustomer") == 2
+    assert "reconcile:createCustomer" in fake.calls
+
+
+@pytest.mark.anyio
+async def test_real_fixture_cleanup_retry_workflow_only_replays_cleanup() -> None:
+    assert TEMPORAL_ADDRESS is not None
+    client = await Client.connect(TEMPORAL_ADDRESS, namespace="default")
+    task_queue = f"atlas-fixture-cleanup-{uuid7()}"
+    fake = FakeFixtureWorkerService(fail_node=False)
+    activities = FixtureActivities(cast(FixtureWorkerService, fake))
+    dispatcher = TemporalFixtureRunDispatcher(
+        client,
+        task_queue=task_queue,
+        activity_timeout=timedelta(seconds=10),
+        cleanup_grace=timedelta(seconds=10),
+    )
+    tenant_id = uuid7()
+    run_id = uuid7()
+    run = _fixture_run(tenant_id, run_id, status=FixtureRunStatus.CLEANING)
+
+    async with Worker(
+        client,
+        task_queue=task_queue,
+        workflows=[FixtureCleanupWorkflow],
+        activities=[
+            activities.load_plan,
+            activities.cleanup_node,
+            activities.finalize_release,
+        ],
+    ):
+        await dispatcher.retry_cleanup(run)
+        result = await client.get_workflow_handle(
+            f"{run.temporal_workflow_id}/cleanup/{run.cleanup_generation}"
+        ).result()
+
+    assert result["status"] == "RELEASED"
+    assert fake.calls == ["load", "cleanup:createCustomer", "finalize:False"]
+
+
+@pytest.mark.anyio
+async def test_real_fixture_cleanup_sweep_workflow_returns_bounded_summary() -> None:
+    assert TEMPORAL_ADDRESS is not None
+    client = await Client.connect(TEMPORAL_ADDRESS, namespace="default")
+    task_queue = f"atlas-fixture-sweep-{uuid7()}"
+    fake = FakeFixtureWorkerService(fail_node=False)
+    activities = FixtureActivities(cast(FixtureWorkerService, fake))
+    dispatcher = TemporalFixtureRunDispatcher(
+        client,
+        task_queue=task_queue,
+        activity_timeout=timedelta(seconds=10),
+        cleanup_grace=timedelta(seconds=10),
+    )
+    tenant_id = uuid7()
+
+    async with Worker(
+        client,
+        task_queue=task_queue,
+        workflows=[FixtureCleanupSweepWorkflow],
+        activities=[activities.sweep_cleanup],
+    ):
+        result = await dispatcher.sweep(
+            tenant_id=tenant_id,
+            worker_identity="fixture-temporal-sweeper",
+            limit=12,
+        )
+
+    assert result.cleanup_claimed == 4
+    assert result.finalized_runs == 8
+    assert fake.calls == [f"sweep:{tenant_id}:fixture-temporal-sweeper:12"]
+
+
+@pytest.mark.anyio
+async def test_fixture_reconcile_activity_maps_safe_result() -> None:
+    tenant_id = uuid7()
+    run_id = uuid7()
+    fake = FakeFixtureWorkerService(fail_node=False)
+    activities = FixtureActivities(cast(FixtureWorkerService, fake))
+
+    result = await activities.reconcile_node(
+        FixtureNodeInput(
+            tenant_id=str(tenant_id),
+            run_id=str(run_id),
+            node_id="createCustomer",
+        )
+    )
+
+    assert result.status == "SUCCEEDED"
+    assert fake.calls == ["reconcile:createCustomer"]

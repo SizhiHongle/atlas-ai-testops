@@ -49,6 +49,14 @@ class FixtureRunStatus(StrEnum):
     CLEANUP_FAILED = "CLEANUP_FAILED"
 
 
+class FixtureRunTerminalIntent(StrEnum):
+    """Terminal preparation outcome preserved while cleanup is in progress."""
+
+    RELEASED = "RELEASED"
+    FAILED = "FAILED"
+    CANCELED = "CANCELED"
+
+
 class FixtureCleanupState(StrEnum):
     """Cleanup projection kept separate from the preparation result."""
 
@@ -80,6 +88,36 @@ class DataNodeAttemptStatus(StrEnum):
     OUTCOME_UNCERTAIN = "OUTCOME_UNCERTAIN"
 
 
+class FixtureReconcileState(StrEnum):
+    """Independent projection for resolving an uncertain create outcome."""
+
+    NOT_REQUIRED = "NOT_REQUIRED"
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    FOUND = "FOUND"
+    ABSENT = "ABSENT"
+    INCONCLUSIVE = "INCONCLUSIVE"
+    EXHAUSTED = "EXHAUSTED"
+
+
+class FixtureReconcileDisposition(StrEnum):
+    """Explicit provider answer for one reviewed reconciliation query."""
+
+    FOUND = "FOUND"
+    ABSENT = "ABSENT"
+    INCONCLUSIVE = "INCONCLUSIVE"
+
+
+class DataNodeReconcileAttemptStatus(StrEnum):
+    """Append-oriented outcome of one read-only reconcile operation."""
+
+    RUNNING = "RUNNING"
+    FOUND = "FOUND"
+    ABSENT = "ABSENT"
+    INCONCLUSIVE = "INCONCLUSIVE"
+    FAILED = "FAILED"
+
+
 class ResourceRecordStatus(StrEnum):
     """Resource ledger lifecycle used by cleanup and leak detection."""
 
@@ -90,6 +128,15 @@ class ResourceRecordStatus(StrEnum):
     LEAKED = "LEAKED"
     BLOCKED_BY_CHILD = "BLOCKED_BY_CHILD"
     ORPHAN_SUSPECTED = "ORPHAN_SUSPECTED"
+
+
+class ResourceCleanupAttemptStatus(StrEnum):
+    """Durable outcome of one provider cleanup invocation."""
+
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    OUTCOME_UNCERTAIN = "OUTCOME_UNCERTAIN"
 
 
 class FixtureFailureCategory(StrEnum):
@@ -106,7 +153,7 @@ class FixtureFailureCategory(StrEnum):
 
 
 class ValidationEvidenceKind(StrEnum):
-    """Runtime evidence is delivered now; cleanup evidence is delivered in P3-03."""
+    """Independent runtime and cleanup proofs bound to frozen asset digests."""
 
     RUNTIME = "RUNTIME"
     CLEANUP = "CLEANUP"
@@ -167,6 +214,7 @@ class FixtureRun(FrozenWireModel):
     input_digest: str
     status: FixtureRunStatus
     cleanup_state: FixtureCleanupState
+    terminal_intent: FixtureRunTerminalIntent | None = None
     temporal_workflow_id: str
     requested_by: UUID | None
     failure_category: FixtureFailureCategory | None = None
@@ -174,6 +222,9 @@ class FixtureRun(FrozenWireModel):
     failure_detail: str | None = Field(default=None, max_length=500)
     execution_deadline: AwareDatetime
     requested_at: AwareDatetime
+    cancel_requested_at: AwareDatetime | None = None
+    cancel_requested_by: UUID | None = None
+    cleanup_generation: int = Field(default=0, ge=0, le=1_000)
     started_at: AwareDatetime | None = None
     ready_at: AwareDatetime | None = None
     finished_at: AwareDatetime | None = None
@@ -234,6 +285,9 @@ class DataNodeRun(FrozenWireModel):
     execution_level: int = Field(ge=0)
     status: DataNodeRunStatus
     attempt_count: int = Field(ge=0)
+    reconcile_state: FixtureReconcileState = FixtureReconcileState.NOT_REQUIRED
+    reconcile_attempt_count: int = Field(default=0, ge=0, le=32)
+    next_reconcile_at: AwareDatetime | None = None
     output_digest: str | None = None
     failure_category: FixtureFailureCategory | None = None
     failure_code: str | None = Field(default=None, pattern=SAFE_ERROR_CODE_PATTERN)
@@ -270,6 +324,23 @@ class DataNodeAttempt(FrozenWireModel):
     updated_at: AwareDatetime
 
 
+class DataNodeReconcileAttempt(FrozenWireModel):
+    """Safe history for one exact reconciliation query."""
+
+    id: UUID
+    fixture_run_id: UUID
+    data_node_run_id: UUID
+    attempt_number: int = Field(ge=1, le=32)
+    status: DataNodeReconcileAttemptStatus
+    failure_category: FixtureFailureCategory | None = None
+    failure_code: str | None = Field(default=None, pattern=SAFE_ERROR_CODE_PATTERN)
+    failure_detail: str | None = Field(default=None, max_length=500)
+    provider_request_id: str | None = Field(default=None, max_length=200)
+    started_at: AwareDatetime
+    finished_at: AwareDatetime | None = None
+    updated_at: AwareDatetime
+
+
 class ResourceRecord(FrozenWireModel):
     """Public ledger projection that never reveals the provider locator."""
 
@@ -283,6 +354,7 @@ class ResourceRecord(FrozenWireModel):
     status: ResourceRecordStatus
     expires_at: AwareDatetime
     cleanup_generation: int = Field(ge=0)
+    next_cleanup_at: AwareDatetime | None = None
     created_at: AwareDatetime
     cleaned_at: AwareDatetime | None = None
     revision: int = Field(ge=1)
@@ -298,8 +370,27 @@ class ResourceRecordInternal(ResourceRecord):
     cleanup_operation_version: str
 
 
+class ResourceCleanupAttempt(FrozenWireModel):
+    """Safe append-only cleanup attempt without the provider locator."""
+
+    id: UUID
+    fixture_run_id: UUID
+    resource_record_id: UUID
+    cleanup_generation: int = Field(ge=1, le=1_000)
+    status: ResourceCleanupAttemptStatus
+    worker_identity: str = Field(min_length=3, max_length=160, pattern=WORKER_ID_PATTERN)
+    failure_category: FixtureFailureCategory | None = None
+    failure_code: str | None = Field(default=None, pattern=SAFE_ERROR_CODE_PATTERN)
+    failure_detail: str | None = Field(default=None, max_length=500)
+    provider_request_id: str | None = Field(default=None, max_length=200)
+    started_at: AwareDatetime
+    finished_at: AwareDatetime | None = None
+    updated_at: AwareDatetime
+
+
 class FixtureResourcePage(FrozenWireModel):
     items: tuple[ResourceRecord, ...]
+    cleanup_attempts: tuple[ResourceCleanupAttempt, ...] = ()
 
 
 class FixtureRunDetail(FrozenWireModel):
@@ -307,6 +398,7 @@ class FixtureRunDetail(FrozenWireModel):
     actor_bindings: tuple[FixtureActorBinding, ...]
     nodes: tuple[DataNodeRun, ...]
     attempts: tuple[DataNodeAttempt, ...]
+    reconcile_attempts: tuple[DataNodeReconcileAttempt, ...] = ()
 
 
 class FixtureManifestRecord(FrozenWireModel):
@@ -368,6 +460,36 @@ class FixtureOperationResult(FrozenWireModel):
 
     outputs: dict[str, JsonValue]
     provider_request_id: str | None = Field(default=None, min_length=1, max_length=200)
+
+
+class FixtureReconcileResult(FrozenWireModel):
+    """Explicit, schema-validated result of a read-only reconcile operation."""
+
+    disposition: FixtureReconcileDisposition
+    outputs: dict[str, JsonValue] = Field(default_factory=dict)
+    provider_request_id: str | None = Field(default=None, min_length=1, max_length=200)
+
+    @model_validator(mode="after")
+    def validate_disposition_shape(self) -> Self:
+        if self.disposition is FixtureReconcileDisposition.FOUND and not self.outputs:
+            raise ValueError("FOUND reconcile result requires outputs")
+        if self.disposition is not FixtureReconcileDisposition.FOUND and self.outputs:
+            raise ValueError("only FOUND reconcile result may contain outputs")
+        return self
+
+
+class FixtureCleanupSweepBatch(FrozenWireModel):
+    """Bounded, tenant-scoped result of one independent cleanup sweep."""
+
+    reconciled_found: int = Field(ge=0)
+    reconciled_absent: int = Field(ge=0)
+    reconciled_inconclusive: int = Field(ge=0)
+    cleanup_claimed: int = Field(ge=0)
+    cleaned_resources: int = Field(ge=0)
+    retry_scheduled: int = Field(ge=0)
+    leaked_resources: int = Field(ge=0)
+    finalized_runs: int = Field(ge=0)
+    observed_at: AwareDatetime
 
 
 def canonical_json_digest(value: object) -> str:
