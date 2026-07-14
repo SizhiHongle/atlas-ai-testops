@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/workflow-graph/0.1/schema.json",
+  "$defs": {
+    "EdgeMapping": {
+      "description": "Supported edge mapping operations for the v0.1 contract.",
+      "enum": [
+        "direct"
+      ],
+      "title": "EdgeMapping",
+      "type": "string"
+    },
+    "JsonValue": {},
+    "OracleStrength": {
+      "description": "Oracle authority level.",
+      "enum": [
+        "hard",
+        "soft",
+        "diagnostic"
+      ],
+      "title": "OracleStrength",
+      "type": "string"
+    },
+    "PortKind": {
+      "description": "Port trust and scheduling category.",
+      "enum": [
+        "data",
+        "control"
+      ],
+      "title": "PortKind",
+      "type": "string"
+    },
+    "PortSpec": {
+      "additionalProperties": false,
+      "description": "A strongly typed node port.",
+      "properties": {
+        "key": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Key",
+          "type": "string"
+        },
+        "semanticType": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Semantictype",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PortKind",
+          "default": "data"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "sensitive": {
+          "default": false,
+          "title": "Sensitive",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "semanticType"
+      ],
+      "title": "PortSpec",
+      "type": "object"
+    },
+    "WorkflowEdge": {
+      "additionalProperties": false,
+      "description": "A direct typed mapping between two node ports.",
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "sourceNodeId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$",
+          "title": "Sourcenodeid",
+          "type": "string"
+        },
+        "sourcePort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Sourceport",
+          "type": "string"
+        },
+        "targetNodeId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$",
+          "title": "Targetnodeid",
+          "type": "string"
+        },
+        "targetPort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Targetport",
+          "type": "string"
+        },
+        "semanticType": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Semantictype",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PortKind",
+          "default": "data"
+        },
+        "mapping": {
+          "$ref": "#/$defs/EdgeMapping",
+          "default": "direct"
+        }
+      },
+      "required": [
+        "id",
+        "sourceNodeId",
+        "sourcePort",
+        "targetNodeId",
+        "targetPort",
+        "semanticType"
+      ],
+      "title": "WorkflowEdge",
+      "type": "object"
+    },
+    "WorkflowNode": {
+      "additionalProperties": false,
+      "description": "A published node reference inside an authoring graph.",
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "versionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Versionref",
+          "type": "string"
+        },
+        "phase": {
+          "$ref": "#/$defs/WorkflowPhase"
+        },
+        "inputPorts": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PortSpec"
+          },
+          "title": "Inputports",
+          "type": "array"
+        },
+        "outputPorts": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PortSpec"
+          },
+          "title": "Outputports",
+          "type": "array"
+        },
+        "params": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Params",
+          "type": "object"
+        },
+        "terminal": {
+          "default": false,
+          "title": "Terminal",
+          "type": "boolean"
+        },
+        "oracleStrength": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OracleStrength"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "versionRef",
+        "phase"
+      ],
+      "title": "WorkflowNode",
+      "type": "object"
+    },
+    "WorkflowPhase": {
+      "description": "Supported deterministic workflow phases.",
+      "enum": [
+        "setup",
+        "identity",
+        "execute",
+        "assert",
+        "cleanup"
+      ],
+      "title": "WorkflowPhase",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The semantic graph owned by a WorkflowDraft revision.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.workflow-graph/0.1",
+      "default": "atlas.workflow-graph/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/WorkflowNode"
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "edges": {
+      "items": {
+        "$ref": "#/$defs/WorkflowEdge"
+      },
+      "title": "Edges",
+      "type": "array"
+    }
+  },
+  "required": [
+    "nodes",
+    "edges"
+  ],
+  "title": "WorkflowGraph",
+  "type": "object"
+}

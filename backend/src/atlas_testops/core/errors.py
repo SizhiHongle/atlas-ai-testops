@@ -1,0 +1,51 @@
+"""应用错误与稳定错误码。"""
+
+from enum import StrEnum
+
+
+class ErrorCode(StrEnum):
+    """可以安全暴露给调用方的稳定错误码。"""
+
+    INVALID_REQUEST = "INVALID_REQUEST"
+    VALIDATION_FAILED = "VALIDATION_FAILED"
+    AUTHENTICATION_REQUIRED = "AUTHENTICATION_REQUIRED"
+    AUTHENTICATION_FAILED = "AUTHENTICATION_FAILED"
+    FORBIDDEN = "FORBIDDEN"
+    NOT_FOUND = "NOT_FOUND"
+    CONFLICT = "CONFLICT"
+    PRECONDITION_FAILED = "PRECONDITION_FAILED"
+    POOL_EXHAUSTED = "POOL_EXHAUSTED"
+    CONSTRAINT_UNSATISFIED = "CONSTRAINT_UNSATISFIED"
+    LEASE_EXPIRED = "LEASE_EXPIRED"
+    LEASE_FENCED = "LEASE_FENCED"
+    CREDENTIAL_EXPIRED = "CREDENTIAL_EXPIRED"
+    ORIGIN_NOT_ALLOWED = "ORIGIN_NOT_ALLOWED"
+    SECRET_GRANT_EXPIRED = "SECRET_GRANT_EXPIRED"
+    SECRET_GRANT_REPLAYED = "SECRET_GRANT_REPLAYED"
+    SECRET_GRANT_REVOKED = "SECRET_GRANT_REVOKED"
+    SESSION_CREATION_IN_PROGRESS = "SESSION_CREATION_IN_PROGRESS"
+    SESSION_UNAVAILABLE = "SESSION_UNAVAILABLE"
+    SESSION_INTEGRITY_FAILED = "SESSION_INTEGRITY_FAILED"
+    PROVIDER_UNAVAILABLE = "PROVIDER_UNAVAILABLE"
+    DEPENDENCY_UNAVAILABLE = "DEPENDENCY_UNAVAILABLE"
+    INTERNAL_ERROR = "INTERNAL_ERROR"
+
+
+class ApplicationError(Exception):
+    """由应用层显式抛出并转换为 Problem Details 的错误。"""
+
+    def __init__(
+        self,
+        *,
+        error_code: ErrorCode,
+        title: str,
+        detail: str,
+        status_code: int,
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(detail)
+        self.error_code = error_code
+        self.title = title
+        self.detail = detail
+        self.status_code = status_code
+        self.headers = headers or {}

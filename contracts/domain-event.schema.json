@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/domain-event/0.1/schema.json",
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "description": "与业务状态在同一事务写入 Outbox 的不可变事件。",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.domain-event/0.1",
+      "default": "atlas.domain-event/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "eventId": {
+      "format": "uuid",
+      "title": "Eventid",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_.-]+$",
+      "title": "Aggregatetype",
+      "type": "string"
+    },
+    "aggregateId": {
+      "format": "uuid",
+      "title": "Aggregateid",
+      "type": "string"
+    },
+    "eventType": {
+      "maxLength": 160,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_.-]+$",
+      "title": "Eventtype",
+      "type": "string"
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "title": "Occurredat",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Payload",
+      "type": "object"
+    }
+  },
+  "required": [
+    "tenantId",
+    "aggregateType",
+    "aggregateId",
+    "eventType"
+  ],
+  "title": "DomainEvent",
+  "type": "object"
+}

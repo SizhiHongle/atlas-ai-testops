@@ -19,24 +19,101 @@ import {
   TestTube2,
   Zap
 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+
+import { loginToPlatform } from "../../lib/api/auth";
+import { ApiProblemError } from "../../lib/api/problem";
 
 type LoginState = "idle" | "account" | "feishu";
+type WorkspaceId = "crm" | "staging";
+type LoginFeedback = { title: string; detail: string };
+
+const WORKSPACE_CONFIG: Record<
+  WorkspaceId,
+  { tenantId: string | undefined; projectId: string | undefined }
+> = {
+  crm: {
+    tenantId: process.env.NEXT_PUBLIC_ATLAS_TENANT_ID,
+    projectId: process.env.NEXT_PUBLIC_ATLAS_PROJECT_ID
+  },
+  staging: {
+    tenantId: process.env.NEXT_PUBLIC_ATLAS_STAGING_TENANT_ID,
+    projectId: process.env.NEXT_PUBLIC_ATLAS_STAGING_PROJECT_ID
+  }
+};
 
 export default function LoginPage() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [remembered, setRemembered] = useState(true);
   const [loginState, setLoginState] = useState<LoginState>("idle");
+  const [loginFeedback, setLoginFeedback] = useState<LoginFeedback | null>(null);
 
-  const enterSpace = (method: Exclude<LoginState, "idle">) => {
+  useEffect(() => {
+    if (!loginFeedback) return;
+    const timer = window.setTimeout(() => {
+      setLoginFeedback(null);
+      setLoginState("idle");
+    }, 2600);
+    return () => window.clearTimeout(timer);
+  }, [loginFeedback]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (loginState !== "idle") return;
-    setLoginState(method);
-    window.setTimeout(() => window.location.assign("/"), 950);
+
+    const form = new FormData(event.currentTarget);
+    const workspaceId = form.get("workspace");
+    const account = form.get("account");
+    const password = form.get("password");
+    if (
+      typeof workspaceId !== "string" ||
+      !Object.hasOwn(WORKSPACE_CONFIG, workspaceId) ||
+      typeof account !== "string" ||
+      typeof password !== "string"
+    ) {
+      setLoginState("account");
+      setLoginFeedback({ title: "登录未完成", detail: "请检查测试空间与账号信息。" });
+      return;
+    }
+
+    const workspace = WORKSPACE_CONFIG[workspaceId as WorkspaceId];
+    if (!workspace.tenantId || !workspace.projectId) {
+      setLoginState("account");
+      setLoginFeedback({
+        title: "测试空间尚未连接",
+        detail: "请先配置当前原型对应的 Tenant 与 Project。"
+      });
+      return;
+    }
+
+    setLoginState("account");
+    try {
+      await loginToPlatform({
+        tenantId: workspace.tenantId,
+        projectId: workspace.projectId,
+        email: account,
+        password,
+        remember: remembered
+      });
+      window.setTimeout(() => window.location.assign("/"), 950);
+    } catch (error) {
+      setLoginFeedback({
+        title: "登录未完成",
+        detail:
+          error instanceof ApiProblemError
+            ? error.problem.detail
+            : "身份网关暂时不可用，请稍后再试。"
+      });
+    }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    enterSpace("account");
+  const handleFeishuLogin = () => {
+    if (loginState !== "idle") return;
+    setLoginState("feishu");
+    setLoginFeedback({
+      title: "飞书身份尚未连接",
+      detail: "企业 Feishu OAuth 配置完成后即可启用。"
+    });
   };
 
   return (
@@ -100,7 +177,7 @@ export default function LoginPage() {
                 <span>测试空间</span>
                 <div className="login-select-wrap">
                   <TestTube2 size={17} />
-                  <select defaultValue="crm" aria-label="选择测试空间">
+                  <select name="workspace" defaultValue="crm" aria-label="选择测试空间">
                     <option value="crm">客户运营 · CRM R26.07</option>
                     <option value="staging">预发验证 · STAGING</option>
                   </select>
@@ -135,16 +212,16 @@ export default function LoginPage() {
               </div>
 
               <button className="login-primary" type="submit" disabled={loginState !== "idle"}>
-                <span>{loginState === "account" ? "正在验证身份…" : "登录测试空间"}</span>
+                <span>{loginState === "account" ? loginFeedback ? "请检查登录信息" : "正在验证身份…" : "登录测试空间"}</span>
                 {loginState === "account" ? <i className="login-spinner" /> : <ArrowRight size={17} />}
               </button>
             </form>
 
             <div className="login-divider"><span>或使用可信身份</span></div>
 
-            <button className="feishu-login" type="button" onClick={() => enterSpace("feishu")} disabled={loginState !== "idle"}>
+            <button className="feishu-login" type="button" onClick={handleFeishuLogin} disabled={loginState !== "idle"}>
               <span className="feishu-mark" aria-hidden="true"><i /><i /><i /><i /></span>
-              <strong>{loginState === "feishu" ? "正在连接飞书身份…" : "飞书一键登录"}</strong>
+              <strong>{loginState === "feishu" ? loginFeedback ? "飞书身份尚未配置" : "正在连接飞书身份…" : "飞书一键登录"}</strong>
               {loginState === "feishu" ? <i className="login-spinner dark" /> : <ArrowRight size={17} />}
             </button>
 
@@ -157,7 +234,7 @@ export default function LoginPage() {
 
       <div className={`login-progress ${loginState !== "idle" ? "visible" : ""}`} role="status" aria-live="polite">
         <span><BadgeCheck size={16} /></span>
-        <div><strong>{loginState === "feishu" ? "正在连接飞书" : "正在验证 Atlas 身份"}</strong><small>即将进入客户运营测试空间</small></div>
+        <div><strong>{loginFeedback?.title ?? (loginState === "feishu" ? "正在连接飞书" : "正在验证 Atlas 身份")}</strong><small>{loginFeedback?.detail ?? "即将进入客户运营测试空间"}</small></div>
         <i className="login-spinner dark" />
       </div>
     </div>

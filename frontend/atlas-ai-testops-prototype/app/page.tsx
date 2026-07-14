@@ -60,6 +60,9 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { usePlatformSession } from "../lib/api/auth";
+import { useIdentityWallet } from "../lib/api/identity";
+
 type ViewId = "space" | "identities" | "atoms" | "compose" | "cases" | "launch" | "live" | "results" | "insights";
 
 type AtomSpec = {
@@ -345,10 +348,10 @@ const atomSpecs: AtomSpec[] = [
 ];
 
 const identities = [
-  { id: "sales", role: "销售", available: 11, total: 14, color: "mint", account: "sales-11", powers: ["读取客户", "创建来访", "查看本人数据"] },
-  { id: "manager", role: "主管", available: 4, total: 5, color: "violet", account: "manager-02", powers: ["团队视图", "角色筛选", "分配归属人"] },
-  { id: "service", role: "客服", available: 6, total: 8, color: "coral", account: "service-04", powers: ["客户只读", "工单处理", "禁止改归属"] },
-  { id: "admin", role: "管理员", available: 2, total: 2, color: "ink", account: "admin-qa", powers: ["全域访问", "策略管理", "账号维护"] }
+  { id: "sales", role: "销售", available: 11, total: 14, leased: 3, health: 98, environment: "PRE / TEST", color: "mint", account: "sales-11", powers: ["读取客户", "创建来访", "查看本人数据"] },
+  { id: "manager", role: "主管", available: 4, total: 5, leased: 1, health: 98, environment: "PRE / TEST", color: "violet", account: "manager-02", powers: ["团队视图", "角色筛选", "分配归属人"] },
+  { id: "service", role: "客服", available: 6, total: 8, leased: 2, health: 98, environment: "PRE / TEST", color: "coral", account: "service-04", powers: ["客户只读", "工单处理", "禁止改归属"] },
+  { id: "admin", role: "管理员", available: 2, total: 2, leased: 0, health: 98, environment: "PRE / TEST", color: "ink", account: "admin-qa", powers: ["全域访问", "策略管理", "账号维护"] }
 ];
 
 const customerWorkflow: WorkflowNode[] = [
@@ -677,6 +680,8 @@ function WorkflowCanvas({
 }
 
 export default function Home() {
+  const { data: platformSession } = usePlatformSession();
+  const { data: identityWallet } = useIdentityWallet(platformSession?.project.id ?? null);
   const [view, setView] = useState<ViewId>("space");
   const [mobileNav, setMobileNav] = useState(false);
   const [selectedAtom, setSelectedAtom] = useState("customer");
@@ -707,9 +712,36 @@ export default function Home() {
   const [taskTrigger, setTaskTrigger] = useState("立即执行");
   const [scheduledTask, setScheduledTask] = useState<TaskRun | null>(null);
   const [toast, setToast] = useState("");
+  const currentProjectName = platformSession?.project.name ?? "客户运营";
+  const compactProjectName = currentProjectName.length > 8
+    ? `${currentProjectName.slice(0, 8)}…`
+    : currentProjectName;
+  const currentProjectMark = platformSession?.project.projectKey.slice(0, 3) ?? "CRM";
+  const currentUserMark = platformSession?.user.displayName.trim().slice(0, 2) ?? "CH";
+  const identityCards = identities.map((fallback, index) => {
+    const entry = identityWallet?.entries[index];
+    if (!entry) return fallback;
+    const unresolved = entry.capacity.quarantinedAccounts + entry.capacity.unverifiedAccounts;
+    const health = entry.capacity.totalSlots
+      ? Math.max(0, Math.round((entry.capacity.totalSlots - unresolved) / entry.capacity.totalSlots * 100))
+      : 0;
+    return {
+      ...fallback,
+      role: entry.role.name,
+      available: entry.capacity.availableSlots,
+      total: entry.capacity.totalSlots,
+      leased: entry.capacity.leasedSlots,
+      health,
+      environment: `${entry.environment.environmentKey.toUpperCase()} / ${entry.environment.kind}`,
+      account: entry.account?.accountKey ?? entry.pool.poolKey,
+      powers: entry.role.capabilities.length ? entry.role.capabilities.slice(0, 3) : fallback.powers
+    };
+  });
+  const totalIdentityAvailable = identityCards.reduce((total, item) => total + item.available, 0);
+  const totalIdentityLeased = identityCards.reduce((total, item) => total + item.leased, 0);
 
   const atom = atomSpecs.find((item) => item.id === selectedAtom) ?? atomSpecs[0];
-  const identity = identities.find((item) => item.id === selectedIdentity) ?? identities[0];
+  const identity = identityCards.find((item) => item.id === selectedIdentity) ?? identityCards[0];
   const selectedAsset = workflowAssets.find((item) => item.id === selectedAssetId) ?? workflowAssets[0];
   const selectedCase = testCases.find((item) => item.id === selectedCaseId) ?? testCases[0];
   const graphValidation = validateWorkflowGraph(selectedCase.workflow, selectedCase.edges);
@@ -1096,10 +1128,10 @@ export default function Home() {
         </article>
 
         <article className="identity-pulse" onClick={() => navigate("identities")}>
-          <div className="card-heading"><div><span>IDENTITY WALLET</span><h2>身份池</h2></div><StatusPill tone="good">17 可用</StatusPill></div>
+          <div className="card-heading"><div><span>IDENTITY WALLET</span><h2>身份池</h2></div><StatusPill tone="good">{totalIdentityAvailable} 可用</StatusPill></div>
           <div className="avatar-orbit"><span>销</span><span>管</span><span>客</span><span>管</span><i>+20</i></div>
           <div className="pulse-line"><i /><i /><i /><i /><i /></div>
-          <p>5 个身份正在被执行旅程租用</p>
+          <p>{totalIdentityLeased} 个身份正在被执行旅程租用</p>
         </article>
 
         <article className="release-card">
@@ -1129,14 +1161,14 @@ export default function Home() {
         <div className="identity-wallet">
           <div className="wallet-label"><span>TEST IDENTITIES</span><b>04</b></div>
           <div className="identity-stack">
-            {identities.map((item, index) => <button key={item.id} className={`identity-card identity-${item.color} identity-index-${index} ${selectedIdentity === item.id ? "selected" : ""}`} onClick={() => setSelectedIdentity(item.id)}><div><span>{item.role}身份</span><Fingerprint size={20} /></div><strong>{item.account}</strong><p>{item.available} / {item.total} 可用</p><footer><span>PRE / TEST</span><b>{String(index + 1).padStart(2, "0")}</b></footer></button>)}
+            {identityCards.map((item, index) => <button key={item.id} className={`identity-card identity-${item.color} identity-index-${index} ${selectedIdentity === item.id ? "selected" : ""}`} onClick={() => setSelectedIdentity(item.id)}><div><span>{item.role}身份</span><Fingerprint size={20} /></div><strong>{item.account}</strong><p>{item.available} / {item.total} 可用</p><footer><span>{item.environment}</span><b>{String(index + 1).padStart(2, "0")}</b></footer></button>)}
           </div>
         </div>
         <aside className="identity-passport">
-          <div className="passport-top"><div className={`passport-avatar identity-${identity.color}`}>{identity.role.slice(0, 1)}</div><div><span>SELECTED IDENTITY</span><h2>{identity.role} · {identity.account}</h2></div><StatusPill tone="good">READY</StatusPill></div>
-          <div className="capacity-orbit"><div><strong>{identity.available}</strong><span>可用账号</span></div><i style={{ "--capacity": `${Math.round(identity.available / identity.total * 100)}%` } as React.CSSProperties} /></div>
+          <div className="passport-top"><div className={`passport-avatar identity-${identity.color}`}>{identity.role.slice(0, 1)}</div><div><span>SELECTED IDENTITY</span><h2>{identity.role} · {identity.account}</h2></div><StatusPill tone={identity.available ? "good" : "warn"}>{identity.available ? "READY" : "WAIT"}</StatusPill></div>
+          <div className="capacity-orbit"><div><strong>{identity.available}</strong><span>可用账号</span></div><i style={{ "--capacity": `${Math.round(identity.available / Math.max(identity.total, 1) * 100)}%` } as React.CSSProperties} /></div>
           <div className="passport-section"><span>权限钥匙</span><div className="power-keys">{identity.powers.map((power) => <button key={power}><KeyRound size={13} />{power}</button>)}</div></div>
-          <div className="lease-thread"><span><i />空闲 {identity.available}</span><span><i />租用中 {identity.total - identity.available}</span><span><i />健康度 98%</span></div>
+          <div className="lease-thread"><span><i />空闲 {identity.available}</span><span><i />租用中 {identity.leased}</span><span><i />健康度 {identity.health}%</span></div>
           <button className="passport-action" onClick={() => navigate("compose")}>将身份放入场景 <ArrowRight size={15} /></button>
         </aside>
       </div>
@@ -1422,7 +1454,7 @@ export default function Home() {
         <header className="floating-header">
           <button className="brand-lockup" onClick={() => navigate("space")}><span><Zap size={19} /></span><div><strong>atlas</strong><small>test space</small></div></button>
           <nav className={`nav-capsule ${mobileNav ? "open" : ""}`}>{views.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => navigate(item.id)}>{item.label}</button>)}</nav>
-          <div className="header-tools"><button className="project-chip" onClick={() => setToast("当前项目：客户运营平台 · R26.07")}><span>CRM</span><div><small>当前空间</small><strong>客户运营</strong></div><ChevronDown size={13} /></button><button className="circle-tool" aria-label="搜索"><Search size={17} /></button><button className="circle-tool notification" aria-label="通知"><Bell size={17} /><i /></button><a className="user-orb" href="/login" aria-label="打开登录页面">CH</a><button className="mobile-nav" onClick={() => setMobileNav((value) => !value)}>{mobileNav ? <X size={18} /> : <Menu size={18} />}</button></div>
+          <div className="header-tools"><button className="project-chip" title={currentProjectName} onClick={() => setToast(`当前项目：${currentProjectName}`)}><span>{currentProjectMark}</span><div><small>当前空间</small><strong>{compactProjectName}</strong></div><ChevronDown size={13} /></button><button className="circle-tool" aria-label="搜索"><Search size={17} /></button><button className="circle-tool notification" aria-label="通知"><Bell size={17} /><i /></button><a className="user-orb" href="/login" aria-label="打开登录页面">{currentUserMark}</a><button className="mobile-nav" onClick={() => setMobileNav((value) => !value)}>{mobileNav ? <X size={18} /> : <Menu size={18} />}</button></div>
         </header>
         <main className="scene-host" key={view}>{sceneMap[view]}</main>
       </div>

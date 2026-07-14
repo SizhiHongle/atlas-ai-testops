@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 FROM ghcr.io/astral-sh/uv:0.11.28 AS uv
-FROM python:3.14.6-slim
+FROM python:3.14.6-slim AS runtime
 
 COPY --from=uv /uv /uvx /bin/
 
@@ -23,5 +23,31 @@ RUN uv sync --frozen --no-dev --no-editable \
 USER atlas
 
 EXPOSE 8000
+
+FROM runtime AS temporal-worker
+
+CMD ["atlas-temporal-worker"]
+
+FROM runtime AS auth-session-worker
+
+USER root
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+RUN playwright install --with-deps chromium \
+    && chown -R atlas:atlas /ms-playwright
+
+USER atlas
+
+CMD ["atlas-auth-session-worker"]
+
+FROM runtime AS migrations
+
+COPY --chown=atlas:atlas alembic.ini ./
+COPY --chown=atlas:atlas migrations ./migrations
+
+CMD ["alembic", "upgrade", "head"]
+
+FROM runtime AS api
 
 CMD ["uvicorn", "atlas_testops.main:app", "--host", "0.0.0.0", "--port", "8000"]

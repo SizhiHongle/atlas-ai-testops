@@ -123,6 +123,24 @@ def validate_workflow_graph(graph: WorkflowGraph) -> GraphValidationResult:
                     edge_id=edge.id,
                 )
             )
+        if (
+            edge.semantic_type
+            not in {
+                source_port.semantic_type,
+                target_port.semantic_type,
+            }
+            or source_port.semantic_type != target_port.semantic_type
+        ):
+            issues.append(
+                GraphIssue(
+                    code=GraphIssueCode.EDGE_TYPE_DECLARATION_MISMATCH,
+                    message=(
+                        f"Edge '{edge.id}' declares '{edge.semantic_type}' but connects "
+                        f"'{source_port.semantic_type}' to '{target_port.semantic_type}'."
+                    ),
+                    edge_id=edge.id,
+                )
+            )
 
     total_required_inputs = 0
     matched_required_inputs = 0
