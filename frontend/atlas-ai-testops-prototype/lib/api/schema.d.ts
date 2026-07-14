@@ -324,6 +324,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/data-atom-versions/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 DataAtomVersion */
+        get: operations["get_data_atom_version_v1_data_atom_versions__versionId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新 DataAtomVersion 草稿 */
+        patch: operations["update_data_atom_version_v1_data_atom_versions__versionId__patch"];
+        trace?: never;
+    };
+    "/v1/data-atom-versions/{versionId}:publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发布 DataAtomVersion */
+        post: operations["publish_data_atom_version_v1_data_atom_versions__versionId__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data-atom-versions/{versionId}:validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 静态验证 DataAtomVersion */
+        post: operations["validate_data_atom_version_v1_data_atom_versions__versionId__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data-atoms/{atomId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 DataAtom 定义 */
+        get: operations["get_data_atom_v1_data_atoms__atomId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新 DataAtom 定义 */
+        patch: operations["update_data_atom_v1_data_atoms__atomId__patch"];
+        trace?: never;
+    };
+    "/v1/data-atoms/{atomId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 DataAtomVersion */
+        get: operations["list_data_atom_versions_v1_data_atoms__atomId__versions_get"];
+        put?: never;
+        /** 创建 DataAtomVersion */
+        post: operations["create_data_atom_version_v1_data_atoms__atomId__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data-blueprint-versions/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 DataBlueprintVersion */
+        get: operations["get_data_blueprint_version_v1_data_blueprint_versions__versionId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新 DataBlueprintVersion 草稿 */
+        patch: operations["update_data_blueprint_version_v1_data_blueprint_versions__versionId__patch"];
+        trace?: never;
+    };
+    "/v1/data-blueprint-versions/{versionId}:compile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 静态编译 DataBlueprintVersion */
+        post: operations["compile_data_blueprint_version_v1_data_blueprint_versions__versionId__compile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data-blueprint-versions/{versionId}:publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发布 DataBlueprintVersion */
+        post: operations["publish_data_blueprint_version_v1_data_blueprint_versions__versionId__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data-blueprints/{blueprintId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 DataBlueprint 定义 */
+        get: operations["get_data_blueprint_v1_data_blueprints__blueprintId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新 DataBlueprint 定义 */
+        patch: operations["update_data_blueprint_v1_data_blueprints__blueprintId__patch"];
+        trace?: never;
+    };
+    "/v1/data-blueprints/{blueprintId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 DataBlueprintVersion */
+        get: operations["list_data_blueprint_versions_v1_data_blueprints__blueprintId__versions_get"];
+        put?: never;
+        /** 创建 DataBlueprintVersion */
+        post: operations["create_data_blueprint_version_v1_data_blueprints__blueprintId__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/environments/{environmentId}": {
         parameters: {
             query?: never;
@@ -478,6 +654,42 @@ export interface paths {
          * @description 仅在 If-Match Revision 仍为当前值时更新 Project。
          */
         patch: operations["update_project_v1_projects__projectId__patch"];
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/data-atoms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 DataAtom Catalog */
+        get: operations["list_data_atoms_v1_projects__projectId__data_atoms_get"];
+        put?: never;
+        /** 创建 DataAtom 定义 */
+        post: operations["create_data_atom_v1_projects__projectId__data_atoms_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/data-blueprints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 DataBlueprint Catalog */
+        get: operations["list_data_blueprints_v1_projects__projectId__data_blueprints_get"];
+        put?: never;
+        /** 创建 DataBlueprint 定义 */
+        post: operations["create_data_blueprint_v1_projects__projectId__data_blueprints_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/projects/{projectId}/environments": {
@@ -1120,11 +1332,93 @@ export interface components {
          */
         AdapterMode: "native_api" | "browser" | "webhook" | "polling" | "manual";
         /**
+         * AssetDefinitionStatus
+         * @description Lifecycle of a stable asset identity.
+         * @enum {string}
+         */
+        AssetDefinitionStatus: "ACTIVE" | "ARCHIVED";
+        /**
+         * AssetVersionStatus
+         * @description Lifecycle of an immutable-after-publication asset version.
+         * @enum {string}
+         */
+        AssetVersionStatus: "DRAFT" | "VALIDATED" | "PUBLISHED" | "DEPRECATED";
+        /**
+         * AtomEffect
+         * @description Externally observable effect of an atom operation.
+         * @enum {string}
+         */
+        AtomEffect: "READ" | "CREATE" | "UPDATE" | "DELETE" | "WAIT";
+        /**
+         * AtomPort
+         * @description A JSON-Schema-backed port with a domain semantic type.
+         */
+        AtomPort: {
+            /** @default INTERNAL */
+            classification: components["schemas"]["DataClassification"];
+            direction: components["schemas"]["PortDirection"];
+            /** Jsonschema */
+            jsonSchema: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Key */
+            key: string;
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+            /** Semantictype */
+            semanticType: string;
+        };
+        /**
          * AuthenticationMethod
          * @description 平台 Session 的认证来源，不包含被测系统认证。
          * @enum {string}
          */
         AuthenticationMethod: "PASSWORD" | "FEISHU";
+        /** BlueprintCompilationResult */
+        BlueprintCompilationResult: {
+            /** Issues */
+            issues: components["schemas"]["CompileIssue"][];
+            plan?: components["schemas"]["CompiledFixturePlan"] | null;
+            /** Valid */
+            valid: boolean;
+        };
+        /**
+         * BlueprintExport
+         * @description An explicitly named field visible to downstream test execution.
+         */
+        BlueprintExport: {
+            /** @default INTERNAL */
+            classification: components["schemas"]["DataClassification"];
+            /** Name */
+            name: string;
+            /** Sourcenodeid */
+            sourceNodeId: string;
+            /** Sourceport */
+            sourcePort: string;
+        };
+        /**
+         * BlueprintNode
+         * @description One exact atom version and its structured inputs inside a static DAG.
+         */
+        BlueprintNode: {
+            /** Actorslot */
+            actorSlot: string;
+            /**
+             * Atomversionid
+             * Format: uuid
+             */
+            atomVersionId: string;
+            /**
+             * Bindings
+             * @default []
+             */
+            bindings: (components["schemas"]["LiteralBinding"] | components["schemas"]["RunInputBinding"] | components["schemas"]["NodeOutputBinding"] | components["schemas"]["ExecutionContextBinding"])[];
+            /** Id */
+            id: string;
+        };
         /**
          * BootstrapPrincipal
          * @description Development Bootstrap 创建的主体与初始授权。
@@ -1167,6 +1461,92 @@ export interface components {
             name: components["schemas"]["ProviderCapability"];
             /** Version */
             version: string;
+        };
+        /**
+         * CleanupContract
+         * @description A reviewed operation that cleans one ledger-owned resource.
+         */
+        CleanupContract: {
+            operation: components["schemas"]["ConnectorOperationRef"];
+            /** Resourcerefinput */
+            resourceRefInput: string;
+            verifyOperation?: components["schemas"]["ConnectorOperationRef"] | null;
+        };
+        /**
+         * CleanupPolicy
+         * @description Fixture cleanup policy frozen into a blueprint version.
+         * @enum {string}
+         */
+        CleanupPolicy: "ALWAYS" | "RETAIN_ON_FAILURE";
+        /** CompileBlueprintResponse */
+        CompileBlueprintResponse: {
+            compilation: components["schemas"]["BlueprintCompilationResult"];
+            version: components["schemas"]["DataBlueprintVersion"];
+        };
+        /** CompileIssue */
+        CompileIssue: {
+            code: components["schemas"]["CompileIssueCode"];
+            /** Exportname */
+            exportName?: string | null;
+            /** Message */
+            message: string;
+            /** Nodeid */
+            nodeId?: string | null;
+            /** Portkey */
+            portKey?: string | null;
+        };
+        /**
+         * CompileIssueCode
+         * @description Stable compiler failures safe for API and UI consumption.
+         * @enum {string}
+         */
+        CompileIssueCode: "ATOM_VERSION_NOT_FOUND" | "ATOM_VERSION_NOT_VALIDATED" | "TARGET_PORT_NOT_FOUND" | "SOURCE_NODE_NOT_FOUND" | "SOURCE_PORT_NOT_FOUND" | "PORT_TYPE_MISMATCH" | "REQUIRED_INPUT_MISSING" | "LITERAL_SCHEMA_MISMATCH" | "GRAPH_CYCLE_DETECTED" | "EXPORT_SOURCE_NOT_FOUND" | "EXPORT_CLASSIFICATION_MISMATCH" | "CLEANUP_CONTRACT_MISSING" | "FORBIDDEN_SECRET_FLOW";
+        /**
+         * CompiledFixturePlan
+         * @description Immutable, digest-addressed plan consumed by the future Fixture Worker.
+         */
+        CompiledFixturePlan: {
+            /** Blueprintdigest */
+            blueprintDigest: string;
+            /**
+             * Blueprintversionid
+             * Format: uuid
+             */
+            blueprintVersionId: string;
+            /** Cleanuporder */
+            cleanupOrder: string[];
+            /** Executionlevels */
+            executionLevels: string[][];
+            /** Exports */
+            exports: components["schemas"]["BlueprintExport"][];
+            /** Nodes */
+            nodes: components["schemas"]["CompiledNode"][];
+            /** Plandigest */
+            planDigest: string;
+            /**
+             * Schemaversion
+             * @default atlas.compiled-fixture-plan/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.compiled-fixture-plan/0.1";
+        };
+        /** CompiledNode */
+        CompiledNode: {
+            /** Actorslot */
+            actorSlot: string;
+            /** Atomdigest */
+            atomDigest: string;
+            /**
+             * Atomversionid
+             * Format: uuid
+             */
+            atomVersionId: string;
+            /** Bindings */
+            bindings: (components["schemas"]["LiteralBinding"] | components["schemas"]["RunInputBinding"] | components["schemas"]["NodeOutputBinding"] | components["schemas"]["ExecutionContextBinding"])[];
+            /** Executionlevel */
+            executionLevel: number;
+            /** Nodeid */
+            nodeId: string;
         };
         /**
          * ConnectorInstallation
@@ -1252,6 +1632,23 @@ export interface components {
          */
         ConnectorMode: "OBSERVE_ONLY" | "MANAGED_TEST_ACCOUNTS" | "HYBRID" | "FEDERATED_SESSION";
         /**
+         * ConnectorOperationRef
+         * @description A deployment-registered operation; never a URL, module, or callable.
+         */
+        ConnectorOperationRef: {
+            /** Operationkey */
+            operationKey: string;
+            /** Operationversion */
+            operationVersion: string;
+            /** Requiredcapabilities */
+            requiredCapabilities: string[];
+            /**
+             * Timeoutseconds
+             * @default 30
+             */
+            timeoutSeconds: number;
+        };
+        /**
          * ConnectorStatus
          * @description Connector 当前是否可供控制面和 Worker 使用。
          * @enum {string}
@@ -1321,6 +1718,50 @@ export interface components {
             name: string;
             /** Requiredcapabilities */
             requiredCapabilities: components["schemas"]["ProviderCapability"][];
+        };
+        /**
+         * CreateDataAtom
+         * @description Create a stable atom identity inside a project.
+         */
+        CreateDataAtom: {
+            /** Atomkey */
+            atomKey: string;
+            /** Businessdomain */
+            businessDomain: string;
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * CreateDataAtomVersion
+         * @description Create a mutable draft of one exact atom version.
+         */
+        CreateDataAtomVersion: {
+            contract: components["schemas"]["DataAtomContract"];
+            /** Version */
+            version: string;
+        };
+        /**
+         * CreateDataBlueprint
+         * @description Create a stable data blueprint identity.
+         */
+        CreateDataBlueprint: {
+            /** Blueprintkey */
+            blueprintKey: string;
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * CreateDataBlueprintVersion
+         * @description Create a mutable draft of one exact blueprint version.
+         */
+        CreateDataBlueprintVersion: {
+            contract: components["schemas"]["DataBlueprintContract"];
+            /** Version */
+            version: string;
         };
         /**
          * CreateEnvironment
@@ -1431,6 +1872,428 @@ export interface components {
          */
         CredentialPurpose: "LOGIN" | "REFRESH_SESSION" | "ROTATE_CREDENTIAL";
         /**
+         * DataAtomCatalogItem
+         * @description Atom definition plus the most advanced visible version projection.
+         */
+        DataAtomCatalogItem: {
+            /** Atomkey */
+            atomKey: string;
+            /** Businessdomain */
+            businessDomain: string;
+            /**
+             * Cleanupcapable
+             * @default false
+             */
+            cleanupCapable: boolean;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Inputports
+             * @default []
+             */
+            inputPorts: string[];
+            latestEffect?: components["schemas"]["AtomEffect"] | null;
+            /** Latestversion */
+            latestVersion?: string | null;
+            /** Latestversionid */
+            latestVersionId?: string | null;
+            latestVersionStatus?: components["schemas"]["AssetVersionStatus"] | null;
+            /** Name */
+            name: string;
+            /**
+             * Outputports
+             * @default []
+             */
+            outputPorts: string[];
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Revision */
+            revision: number;
+            status: components["schemas"]["AssetDefinitionStatus"];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * DataAtomContract
+         * @description Immutable atom behavior and safety contract exported as atlas.atom/0.1.
+         */
+        DataAtomContract: {
+            /**
+             * Allowedenvironmentkinds
+             * @default [
+             *       "TEST",
+             *       "STAGING"
+             *     ]
+             */
+            allowedEnvironmentKinds: components["schemas"]["EnvironmentKind"][];
+            cleanupContract?: components["schemas"]["CleanupContract"] | null;
+            effect: components["schemas"]["AtomEffect"];
+            idempotencyPolicy: components["schemas"]["IdempotencyPolicy"];
+            operation: components["schemas"]["ConnectorOperationRef"];
+            /** Ports */
+            ports: components["schemas"]["AtomPort"][];
+            /** Postconditions */
+            postconditions: components["schemas"]["Postcondition"][];
+            reconcileContract?: components["schemas"]["ReconcileContract"] | null;
+            resourcePolicy?: components["schemas"]["ResourcePolicy"] | null;
+            /**
+             * @default {
+             *       "initialBackoffMs": 250,
+             *       "maxAttempts": 3,
+             *       "maximumBackoffMs": 5000,
+             *       "retryableCategories": [
+             *         "RATE_LIMIT",
+             *         "TRANSIENT"
+             *       ]
+             *     }
+             */
+            retryPolicy: components["schemas"]["RetryPolicy"];
+            /**
+             * Schemaversion
+             * @default atlas.atom/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.atom/0.1";
+        };
+        /**
+         * DataAtomDefinition
+         * @description Stable atom identity independent of any version.
+         */
+        DataAtomDefinition: {
+            /** Atomkey */
+            atomKey: string;
+            /** Businessdomain */
+            businessDomain: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Revision */
+            revision: number;
+            status: components["schemas"]["AssetDefinitionStatus"];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * DataAtomPage
+         * @description Cursor page for the atom catalog.
+         */
+        DataAtomPage: {
+            /** Items */
+            items: components["schemas"]["DataAtomCatalogItem"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * DataAtomVersion
+         * @description One contract version with three independent publication evidence states.
+         */
+        DataAtomVersion: {
+            /**
+             * Atomid
+             * Format: uuid
+             */
+            atomId: string;
+            cleanupValidationState: components["schemas"]["ValidationState"];
+            /** Contentdigest */
+            contentDigest: string;
+            contract: components["schemas"]["DataAtomContract"];
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Publishedat */
+            publishedAt: string | null;
+            /** Publishedby */
+            publishedBy: string | null;
+            /** Revision */
+            revision: number;
+            runtimeValidationState: components["schemas"]["ValidationState"];
+            staticValidationState: components["schemas"]["ValidationState"];
+            status: components["schemas"]["AssetVersionStatus"];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            /** Validatedat */
+            validatedAt: string | null;
+            /** Version */
+            version: string;
+        };
+        /**
+         * DataAtomVersionPage
+         * @description Cursor page for versions of one atom definition.
+         */
+        DataAtomVersionPage: {
+            /** Items */
+            items: components["schemas"]["DataAtomVersion"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * DataBlueprintCatalogItem
+         * @description Blueprint definition plus the most advanced visible version projection.
+         */
+        DataBlueprintCatalogItem: {
+            /** Blueprintkey */
+            blueprintKey: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Description */
+            description: string;
+            /**
+             * Exportcount
+             * @default 0
+             */
+            exportCount: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Latestversion */
+            latestVersion?: string | null;
+            /** Latestversionid */
+            latestVersionId?: string | null;
+            latestVersionStatus?: components["schemas"]["AssetVersionStatus"] | null;
+            /** Name */
+            name: string;
+            /**
+             * Nodecount
+             * @default 0
+             */
+            nodeCount: number;
+            /** Plandigest */
+            planDigest?: string | null;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Revision */
+            revision: number;
+            status: components["schemas"]["AssetDefinitionStatus"];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * DataBlueprintContract
+         * @description Static fixture DAG exported as atlas.fixture-blueprint/0.1.
+         */
+        DataBlueprintContract: {
+            /** @default ALWAYS */
+            cleanupPolicy: components["schemas"]["CleanupPolicy"];
+            /** Exports */
+            exports: components["schemas"]["BlueprintExport"][];
+            /** Nodes */
+            nodes: components["schemas"]["BlueprintNode"][];
+            /** Runinputschema */
+            runInputSchema: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Schemaversion
+             * @default atlas.fixture-blueprint/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.fixture-blueprint/0.1";
+        };
+        /**
+         * DataBlueprintDefinition
+         * @description Stable blueprint identity independent of any version.
+         */
+        DataBlueprintDefinition: {
+            /** Blueprintkey */
+            blueprintKey: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Revision */
+            revision: number;
+            status: components["schemas"]["AssetDefinitionStatus"];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /** DataBlueprintPage */
+        DataBlueprintPage: {
+            /** Items */
+            items: components["schemas"]["DataBlueprintCatalogItem"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * DataBlueprintVersion
+         * @description One blueprint contract and its latest deterministic compilation.
+         */
+        DataBlueprintVersion: {
+            /**
+             * Blueprintid
+             * Format: uuid
+             */
+            blueprintId: string;
+            cleanupValidationState: components["schemas"]["ValidationState"];
+            /**
+             * Compileissues
+             * @default []
+             */
+            compileIssues: components["schemas"]["CompileIssue"][];
+            /** Compiledat */
+            compiledAt: string | null;
+            compiledPlan?: components["schemas"]["CompiledFixturePlan"] | null;
+            /** Contentdigest */
+            contentDigest: string;
+            contract: components["schemas"]["DataBlueprintContract"];
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Plandigest */
+            planDigest?: string | null;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Publishedat */
+            publishedAt: string | null;
+            /** Publishedby */
+            publishedBy: string | null;
+            /** Revision */
+            revision: number;
+            runtimeValidationState: components["schemas"]["ValidationState"];
+            staticValidationState: components["schemas"]["ValidationState"];
+            status: components["schemas"]["AssetVersionStatus"];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            /** Validatedat */
+            validatedAt: string | null;
+            /** Version */
+            version: string;
+        };
+        /** DataBlueprintVersionPage */
+        DataBlueprintVersionPage: {
+            /** Items */
+            items: components["schemas"]["DataBlueprintVersion"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * DataClassification
+         * @description Data exposure class used by compilation and manifest gates.
+         * @enum {string}
+         */
+        DataClassification: "PUBLIC" | "INTERNAL" | "CONFIDENTIAL" | "SENSITIVE";
+        /**
          * DependencyCheck
          * @description 单个依赖的 readiness 结果。
          */
@@ -1527,7 +2390,23 @@ export interface components {
          * @description 可以安全暴露给调用方的稳定错误码。
          * @enum {string}
          */
-        ErrorCode: "INVALID_REQUEST" | "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "AUTHENTICATION_FAILED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "POOL_EXHAUSTED" | "CONSTRAINT_UNSATISFIED" | "LEASE_EXPIRED" | "LEASE_FENCED" | "CREDENTIAL_EXPIRED" | "ORIGIN_NOT_ALLOWED" | "SECRET_GRANT_EXPIRED" | "SECRET_GRANT_REPLAYED" | "SECRET_GRANT_REVOKED" | "SESSION_CREATION_IN_PROGRESS" | "SESSION_UNAVAILABLE" | "SESSION_INTEGRITY_FAILED" | "PROVIDER_UNAVAILABLE" | "DEPENDENCY_UNAVAILABLE" | "INTERNAL_ERROR";
+        ErrorCode: "INVALID_REQUEST" | "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "AUTHENTICATION_FAILED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "POOL_EXHAUSTED" | "CONSTRAINT_UNSATISFIED" | "LEASE_EXPIRED" | "LEASE_FENCED" | "CREDENTIAL_EXPIRED" | "ORIGIN_NOT_ALLOWED" | "SECRET_GRANT_EXPIRED" | "SECRET_GRANT_REPLAYED" | "SECRET_GRANT_REVOKED" | "SESSION_CREATION_IN_PROGRESS" | "SESSION_UNAVAILABLE" | "SESSION_INTEGRITY_FAILED" | "PROVIDER_UNAVAILABLE" | "DEPENDENCY_UNAVAILABLE" | "ASSET_IMMUTABLE" | "PUBLICATION_EVIDENCE_REQUIRED" | "INTERNAL_ERROR";
+        /** ExecutionContextBinding */
+        ExecutionContextBinding: {
+            /**
+             * Field
+             * @default executionId
+             * @constant
+             */
+            field: "executionId";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "EXECUTION_CONTEXT";
+            /** Targetport */
+            targetPort: string;
+        };
         /**
          * FieldViolation
          * @description 请求字段的单个校验问题。
@@ -1570,6 +2449,21 @@ export interface components {
             ttlSeconds?: number | null;
         };
         /**
+         * IdempotencyMode
+         * @description Supported provider idempotency and reconciliation strategies.
+         * @enum {string}
+         */
+        IdempotencyMode: "PROVIDER_NATIVE" | "BUSINESS_MARKER" | "RECONCILE";
+        /**
+         * IdempotencyPolicy
+         * @description Stable provider-side deduplication and reconciliation contract.
+         */
+        IdempotencyPolicy: {
+            /** Markerinput */
+            markerInput?: string | null;
+            mode: components["schemas"]["IdempotencyMode"];
+        };
+        /**
          * IssueSecretGrant
          * @description 为有效 Lease 签发单次、短期、Origin 受限的凭证授权。
          */
@@ -1582,6 +2476,7 @@ export interface components {
             /** Workeridentity */
             workerIdentity: string;
         };
+        JsonValue: unknown;
         /**
          * LeaseReleaseReason
          * @description 释放、回收和撤销只能使用结构化原因。
@@ -1608,6 +2503,17 @@ export interface components {
              * @default []
              */
             tags: string[];
+        };
+        /** LiteralBinding */
+        LiteralBinding: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "LITERAL";
+            /** Targetport */
+            targetPort: string;
+            value: components["schemas"]["JsonValue"];
         };
         /**
          * LoginCommand
@@ -1684,6 +2590,20 @@ export interface components {
          * @enum {string}
          */
         MembershipStatus: "ACTIVE" | "REVOKED";
+        /** NodeOutputBinding */
+        NodeOutputBinding: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "NODE_OUTPUT";
+            /** Sourcenodeid */
+            sourceNodeId: string;
+            /** Sourceport */
+            sourcePort: string;
+            /** Targetport */
+            targetPort: string;
+        };
         /**
          * PlatformMembership
          * @description 平台主体在 Tenant 或 Project 范围内的一项角色授权。
@@ -1778,6 +2698,28 @@ export interface components {
          * @enum {string}
          */
         PlatformUserStatus: "ACTIVE" | "DISABLED";
+        /**
+         * PortDirection
+         * @description Direction of a strongly typed atom port.
+         * @enum {string}
+         */
+        PortDirection: "INPUT" | "OUTPUT";
+        /**
+         * Postcondition
+         * @description A bounded read-after-write or output verification declaration.
+         */
+        Postcondition: {
+            kind: components["schemas"]["PostconditionKind"];
+            operation?: components["schemas"]["ConnectorOperationRef"] | null;
+            /** Outputport */
+            outputPort?: string | null;
+        };
+        /**
+         * PostconditionKind
+         * @description Structured postconditions that never execute arbitrary expressions.
+         * @enum {string}
+         */
+        PostconditionKind: "OUTPUT_SCHEMA" | "RESOURCE_VISIBLE" | "RESOURCE_RELATION";
         /**
          * ProblemDetails
          * @description Atlas 扩展的 RFC Problem Details。
@@ -1874,6 +2816,17 @@ export interface components {
             reaped: number;
         };
         /**
+         * ReconcileContract
+         * @description A reviewed lookup used after an uncertain provider outcome.
+         */
+        ReconcileContract: {
+            /** Markerinput */
+            markerInput: string;
+            operation: components["schemas"]["ConnectorOperationRef"];
+            /** Resourcerefoutput */
+            resourceRefOutput: string;
+        };
+        /**
          * ReleaseAccountLease
          * @description 幂等结束 Lease；原因不接受自由文本。
          */
@@ -1881,6 +2834,75 @@ export interface components {
             /** Fencingtoken */
             fencingToken: number;
             reason: components["schemas"]["LeaseReleaseReason"];
+        };
+        /**
+         * ResourceOwnership
+         * @description Ownership determines whether automatic cleanup may delete a resource.
+         * @enum {string}
+         */
+        ResourceOwnership: "CREATED" | "ADOPTED" | "LEASED" | "SHARED";
+        /**
+         * ResourcePolicy
+         * @description How an external resource is registered and later cleaned up.
+         */
+        ResourcePolicy: {
+            /** @default CREATED */
+            ownership: components["schemas"]["ResourceOwnership"];
+            /**
+             * Parentrefinputs
+             * @default []
+             */
+            parentRefInputs: string[];
+            /** Resourcerefoutput */
+            resourceRefOutput: string;
+            /** Resourcetype */
+            resourceType: string;
+            /**
+             * Ttlseconds
+             * @default 3600
+             */
+            ttlSeconds: number;
+        };
+        /**
+         * RetryPolicy
+         * @description Bounded retry budget for transient connector outcomes.
+         */
+        RetryPolicy: {
+            /**
+             * Initialbackoffms
+             * @default 250
+             */
+            initialBackoffMs: number;
+            /**
+             * Maxattempts
+             * @default 3
+             */
+            maxAttempts: number;
+            /**
+             * Maximumbackoffms
+             * @default 5000
+             */
+            maximumBackoffMs: number;
+            /**
+             * Retryablecategories
+             * @default [
+             *       "RATE_LIMIT",
+             *       "TRANSIENT"
+             *     ]
+             */
+            retryableCategories: ("RATE_LIMIT" | "TRANSIENT" | "AUTH_REFRESH")[];
+        };
+        /** RunInputBinding */
+        RunInputBinding: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "RUN_INPUT";
+            /** Pointer */
+            pointer: string;
+            /** Targetport */
+            targetPort: string;
         };
         /**
          * SecretGrant
@@ -2116,6 +3138,42 @@ export interface components {
             status?: components["schemas"]["ConnectorStatus"] | null;
         };
         /**
+         * UpdateDataAtom
+         * @description Update mutable atom definition metadata.
+         */
+        UpdateDataAtom: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+            status?: components["schemas"]["AssetDefinitionStatus"] | null;
+        };
+        /**
+         * UpdateDataAtomVersion
+         * @description Replace the contract of a non-published atom version.
+         */
+        UpdateDataAtomVersion: {
+            contract: components["schemas"]["DataAtomContract"];
+        };
+        /**
+         * UpdateDataBlueprint
+         * @description Update mutable blueprint definition metadata.
+         */
+        UpdateDataBlueprint: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+            status?: components["schemas"]["AssetDefinitionStatus"] | null;
+        };
+        /**
+         * UpdateDataBlueprintVersion
+         * @description Replace the contract of a non-published blueprint version.
+         */
+        UpdateDataBlueprintVersion: {
+            contract: components["schemas"]["DataBlueprintContract"];
+        };
+        /**
          * UpdateEnvironment
          * @description Environment 可变属性补丁。
          */
@@ -2163,6 +3221,12 @@ export interface components {
             name?: string | null;
             status?: components["schemas"]["TestRoleStatus"] | null;
         };
+        /**
+         * ValidationState
+         * @description Independent static, runtime, and cleanup publication evidence.
+         * @enum {string}
+         */
+        ValidationState: "PENDING" | "PASSED" | "FAILED" | "NOT_REQUIRED";
         /**
          * VerifyTestAccount
          * @description Request a login and role health check on one exact Origin.
@@ -4010,6 +5074,1598 @@ export interface operations {
             };
         };
     };
+    get_data_atom_version_v1_data_atom_versions__versionId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataAtomVersion"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_data_atom_version_v1_data_atom_versions__versionId__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDataAtomVersion"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataAtomVersion"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    publish_data_atom_version_v1_data_atom_versions__versionId__publish_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataAtomVersion"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    validate_data_atom_version_v1_data_atom_versions__versionId__validate_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataAtomVersion"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_data_atom_v1_data_atoms__atomId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                atomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataAtomDefinition"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_data_atom_v1_data_atoms__atomId__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                atomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDataAtom"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataAtomDefinition"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_data_atom_versions_v1_data_atoms__atomId__versions_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                atomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataAtomVersionPage"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_data_atom_version_v1_data_atoms__atomId__versions_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                atomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDataAtomVersion"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataAtomVersion"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_data_blueprint_version_v1_data_blueprint_versions__versionId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataBlueprintVersion"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_data_blueprint_version_v1_data_blueprint_versions__versionId__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDataBlueprintVersion"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataBlueprintVersion"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    compile_data_blueprint_version_v1_data_blueprint_versions__versionId__compile_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompileBlueprintResponse"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    publish_data_blueprint_version_v1_data_blueprint_versions__versionId__publish_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataBlueprintVersion"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_data_blueprint_v1_data_blueprints__blueprintId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                blueprintId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataBlueprintDefinition"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_data_blueprint_v1_data_blueprints__blueprintId__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                blueprintId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDataBlueprint"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataBlueprintDefinition"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_data_blueprint_versions_v1_data_blueprints__blueprintId__versions_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                blueprintId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataBlueprintVersionPage"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_data_blueprint_version_v1_data_blueprints__blueprintId__versions_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                blueprintId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDataBlueprintVersion"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataBlueprintVersion"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     get_environment_v1_environments__environmentId__get: {
         parameters: {
             query?: never;
@@ -4956,6 +7612,410 @@ export interface operations {
                 };
             };
             /** @description 唯一键或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_data_atoms_v1_projects__projectId__data_atoms_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataAtomPage"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_data_atom_v1_projects__projectId__data_atoms_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDataAtom"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataAtomDefinition"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_data_blueprints_v1_projects__projectId__data_blueprints_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataBlueprintPage"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_data_blueprint_v1_projects__projectId__data_blueprints_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDataBlueprint"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataBlueprintDefinition"];
+                };
+            };
+            /** @description 请求或契约语义无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 资产不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 状态、唯一键、幂等或发布门禁冲突 */
             409: {
                 headers: {
                     [name: string]: unknown;

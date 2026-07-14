@@ -7,12 +7,22 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from atlas_testops.domain.events import DomainEvent
+from atlas_testops.domain.fixture import (
+    CompiledFixturePlan,
+    DataAtomContract,
+    DataBlueprintContract,
+    FixtureManifest,
+)
 from atlas_testops.domain.workflow import WorkflowDraft, WorkflowGraph
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW_GRAPH_SCHEMA = REPOSITORY_ROOT / "contracts" / "workflow-graph.schema.json"
 WORKFLOW_DRAFT_SCHEMA = REPOSITORY_ROOT / "contracts" / "workflow-draft.schema.json"
 DOMAIN_EVENT_SCHEMA = REPOSITORY_ROOT / "contracts" / "domain-event.schema.json"
+DATA_ATOM_SCHEMA = REPOSITORY_ROOT / "contracts" / "data-atom.schema.json"
+DATA_BLUEPRINT_SCHEMA = REPOSITORY_ROOT / "contracts" / "fixture-blueprint.schema.json"
+COMPILED_FIXTURE_PLAN_SCHEMA = REPOSITORY_ROOT / "contracts" / "compiled-fixture-plan.schema.json"
+FIXTURE_MANIFEST_SCHEMA = REPOSITORY_ROOT / "contracts" / "fixture-manifest.schema.json"
 
 
 def render_schema(model: type[BaseModel], schema_id: str) -> str:
@@ -45,6 +55,22 @@ def main() -> None:
         DOMAIN_EVENT_SCHEMA: render_schema(
             DomainEvent,
             "https://atlas.test/contracts/domain-event/0.1/schema.json",
+        ),
+        DATA_ATOM_SCHEMA: render_schema(
+            DataAtomContract,
+            "https://atlas.test/contracts/data-atom/0.1/schema.json",
+        ),
+        DATA_BLUEPRINT_SCHEMA: render_schema(
+            DataBlueprintContract,
+            "https://atlas.test/contracts/fixture-blueprint/0.1/schema.json",
+        ),
+        COMPILED_FIXTURE_PLAN_SCHEMA: render_schema(
+            CompiledFixturePlan,
+            "https://atlas.test/contracts/compiled-fixture-plan/0.1/schema.json",
+        ),
+        FIXTURE_MANIFEST_SCHEMA: render_schema(
+            FixtureManifest,
+            "https://atlas.test/contracts/fixture-manifest/0.1/schema.json",
         ),
     }
 

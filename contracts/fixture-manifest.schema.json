@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/fixture-manifest/0.1/schema.json",
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "description": "Only explicitly exported fixture values cross into test execution.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.fixture-manifest/0.1",
+      "default": "atlas.fixture-manifest/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "fixtureRunId": {
+      "format": "uuid",
+      "title": "Fixturerunid",
+      "type": "string"
+    },
+    "blueprintVersionId": {
+      "format": "uuid",
+      "title": "Blueprintversionid",
+      "type": "string"
+    },
+    "planDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plandigest",
+      "type": "string"
+    },
+    "exports": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Exports",
+      "type": "object"
+    }
+  },
+  "required": [
+    "fixtureRunId",
+    "blueprintVersionId",
+    "planDigest",
+    "exports"
+  ],
+  "title": "FixtureManifest",
+  "type": "object"
+}

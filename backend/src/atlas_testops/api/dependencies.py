@@ -9,6 +9,7 @@ from atlas_testops.application.account_health import AccountHealthService
 from atlas_testops.application.auth import AuthService
 from atlas_testops.application.connectors import ConnectorService
 from atlas_testops.application.credentials import CredentialBrokerService
+from atlas_testops.application.fixture_assets import FixtureAssetService
 from atlas_testops.application.identity import IdentityService
 from atlas_testops.application.leases import LeaseService
 from atlas_testops.application.platform import PlatformService
@@ -98,6 +99,18 @@ def get_platform_service(database: DatabaseDependency) -> PlatformService:
 
 
 PlatformServiceDependency = Annotated[PlatformService, Depends(get_platform_service)]
+
+
+def get_fixture_asset_service(database: DatabaseDependency) -> FixtureAssetService:
+    """Create a stateless fixture asset control-plane service."""
+
+    return FixtureAssetService(database)
+
+
+FixtureAssetServiceDependency = Annotated[
+    FixtureAssetService,
+    Depends(get_fixture_asset_service),
+]
 
 
 def get_identity_service(database: DatabaseDependency) -> IdentityService:

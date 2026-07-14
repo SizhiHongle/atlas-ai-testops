@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/fixture-blueprint/0.1/schema.json",
+  "$defs": {
+    "BlueprintExport": {
+      "additionalProperties": false,
+      "description": "An explicitly named field visible to downstream test execution.",
+      "properties": {
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "sourceNodeId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Sourcenodeid",
+          "type": "string"
+        },
+        "sourcePort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Sourceport",
+          "type": "string"
+        },
+        "classification": {
+          "$ref": "#/$defs/DataClassification",
+          "default": "INTERNAL"
+        }
+      },
+      "required": [
+        "name",
+        "sourceNodeId",
+        "sourcePort"
+      ],
+      "title": "BlueprintExport",
+      "type": "object"
+    },
+    "BlueprintNode": {
+      "additionalProperties": false,
+      "description": "One exact atom version and its structured inputs inside a static DAG.",
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "atomVersionId": {
+          "format": "uuid",
+          "title": "Atomversionid",
+          "type": "string"
+        },
+        "actorSlot": {
+          "maxLength": 80,
+          "minLength": 2,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Actorslot",
+          "type": "string"
+        },
+        "bindings": {
+          "default": [],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "EXECUTION_CONTEXT": "#/$defs/ExecutionContextBinding",
+                "LITERAL": "#/$defs/LiteralBinding",
+                "NODE_OUTPUT": "#/$defs/NodeOutputBinding",
+                "RUN_INPUT": "#/$defs/RunInputBinding"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/LiteralBinding"
+              },
+              {
+                "$ref": "#/$defs/RunInputBinding"
+              },
+              {
+                "$ref": "#/$defs/NodeOutputBinding"
+              },
+              {
+                "$ref": "#/$defs/ExecutionContextBinding"
+              }
+            ]
+          },
+          "maxItems": 64,
+          "title": "Bindings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "atomVersionId",
+        "actorSlot"
+      ],
+      "title": "BlueprintNode",
+      "type": "object"
+    },
+    "CleanupPolicy": {
+      "description": "Fixture cleanup policy frozen into a blueprint version.",
+      "enum": [
+        "ALWAYS",
+        "RETAIN_ON_FAILURE"
+      ],
+      "title": "CleanupPolicy",
+      "type": "string"
+    },
+    "DataClassification": {
+      "description": "Data exposure class used by compilation and manifest gates.",
+      "enum": [
+        "PUBLIC",
+        "INTERNAL",
+        "CONFIDENTIAL",
+        "SENSITIVE"
+      ],
+      "title": "DataClassification",
+      "type": "string"
+    },
+    "ExecutionContextBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "targetPort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Targetport",
+          "type": "string"
+        },
+        "kind": {
+          "const": "EXECUTION_CONTEXT",
+          "default": "EXECUTION_CONTEXT",
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "const": "executionId",
+          "default": "executionId",
+          "title": "Field",
+          "type": "string"
+        }
+      },
+      "required": [
+        "targetPort"
+      ],
+      "title": "ExecutionContextBinding",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "LiteralBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "targetPort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Targetport",
+          "type": "string"
+        },
+        "kind": {
+          "const": "LITERAL",
+          "default": "LITERAL",
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      },
+      "required": [
+        "targetPort",
+        "value"
+      ],
+      "title": "LiteralBinding",
+      "type": "object"
+    },
+    "NodeOutputBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "targetPort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Targetport",
+          "type": "string"
+        },
+        "kind": {
+          "const": "NODE_OUTPUT",
+          "default": "NODE_OUTPUT",
+          "title": "Kind",
+          "type": "string"
+        },
+        "sourceNodeId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Sourcenodeid",
+          "type": "string"
+        },
+        "sourcePort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Sourceport",
+          "type": "string"
+        }
+      },
+      "required": [
+        "targetPort",
+        "sourceNodeId",
+        "sourcePort"
+      ],
+      "title": "NodeOutputBinding",
+      "type": "object"
+    },
+    "RunInputBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "targetPort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Targetport",
+          "type": "string"
+        },
+        "kind": {
+          "const": "RUN_INPUT",
+          "default": "RUN_INPUT",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pointer": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^(?:/(?:[^~/]|~[01])*)+$",
+          "title": "Pointer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "targetPort",
+        "pointer"
+      ],
+      "title": "RunInputBinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Static fixture DAG exported as atlas.fixture-blueprint/0.1.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.fixture-blueprint/0.1",
+      "default": "atlas.fixture-blueprint/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "runInputSchema": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Runinputschema",
+      "type": "object"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/BlueprintNode"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Nodes",
+      "type": "array"
+    },
+    "exports": {
+      "items": {
+        "$ref": "#/$defs/BlueprintExport"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Exports",
+      "type": "array"
+    },
+    "cleanupPolicy": {
+      "$ref": "#/$defs/CleanupPolicy",
+      "default": "ALWAYS"
+    }
+  },
+  "required": [
+    "runInputSchema",
+    "nodes",
+    "exports"
+  ],
+  "title": "DataBlueprintContract",
+  "type": "object"
+}

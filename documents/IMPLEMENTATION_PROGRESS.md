@@ -13,11 +13,11 @@
 
 ## 当前状态
 
-- 当前阶段：`P2 测试身份、账号池与租约`
-- 当前切片：`P2-06 Auth Session Worker / SessionArtifact（已完成）`
+- 当前阶段：`P3 Atom、Blueprint、Fixture Run 与 Cleanup`
+- 当前切片：`P3-00/P3-01 DataAtom / DataBlueprint 资产控制面（已完成）`
 - 总体状态：进行中
 - 当前分支：`main`
-- 当前基线提交：`f38cd8b`
+- 当前进入基线提交：`4015026`
 
 ## 阶段看板
 
@@ -26,7 +26,7 @@
 | P0 | 工程基础、契约、数据库、进程入口、前端 API 基础 | 已完成 | 46 tests、真实 PostgreSQL/Temporal、三容器构建、前端浏览器 QA |
 | P1 | Tenant、Project、Environment、平台身份与权限 | 已完成 | 88 tests、真实 PostgreSQL RLS/RBAC/Session、登录原型浏览器 QA |
 | P2 | TestRole、AccountPool、TestAccount、Lease 与 Auth Session | 已完成 | P2-01 至 P2-06 已验收；身份、租约、Secret Grant、加密 Session 与清理链已闭环 |
-| P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 未开始 | — |
+| P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 进行中 | P3-00/P3-01 资产契约、静态编译、版本控制、发布门禁、真实 API 与既有原型数据绑定完成 |
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 未开始 | — |
 | P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 未开始 | — |
 | P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 未开始 | — |
@@ -165,12 +165,26 @@
 - 真实 PostgreSQL 测试证明 20 路并发只执行一次登录并生成一个密文 Artifact，旧 Fence 被拒绝，跨 Tenant RLS 不可见，Revision Race 无法发布，Lease 撤销后 Artifact 失效并被 Janitor 销毁。
 - 真实 Temporal、Chromium 与 MinIO 分别通过 Workflow、隔离 Context 和 AES-GCM 上传 / 解密 / 删除验证；OpenAPI 与前端生成类型已同步，未修改前端原型页面、DOM、布局、样式或交互。
 
+## P3-00/P3-01 范围
+
+### 已完成
+
+- 建立 `atlas.atom/0.1`、`atlas.fixture-blueprint/0.1`、`atlas.compiled-fixture-plan/0.1` 与 `atlas.fixture-manifest/0.1` 领域契约并导出 JSON Schema；只允许引用部署时登记的结构化 Connector Operation，不允许 URL、Module、Callable、Header、Shell、SQL 或任意代码进入协议。
+- 静态 Blueprint Compiler 只解析 exact DataAtom Version，验证 Port、JSON Schema Literal、必填输入、SourceRef、Semantic Type、Classification、DAG 与 Export，并生成确定性的执行层级、逆序 Cleanup 顺序与 Plan Digest。
+- `20260714_0010` 建立强制 RLS 的 `data_atom_definition`、`data_atom_version`、`data_blueprint_definition` 与 `data_blueprint_version`；Definition 使用 Revision CAS，Published / Deprecated Version 由数据库 Trigger 保证不可修改，应用角色无 DELETE 权限。
+- DataAtom CREATE 语义必须同时声明 Resource、Cleanup 与 Reconcile；密码、Secret、Cookie、Token、Storage State 语义类型和 Production Environment 均不能进入当前 Fixture 资产协议。
+- DataAtom / DataBlueprint 提供 Definition、Version、Catalog、Validate、Compile 与 Publish API；命令支持 Idempotency-Key，更新使用 If-Match / ETag，目录使用 Cursor Pagination，并按 Tenant / Project RLS 隔离。
+- 发布门禁要求 Static Validation、Runtime Validation 与 Cleanup Validation 三类独立 PASSED 证据；DataBlueprint 还必须保存由当前 Revision 编译出的确定性 Compiled Plan。P3-02 运行验证链落地前，缺失证据会稳定 fail-closed。
+- 既有 Atoms / Assets 原型只在原有两个 DataAtom 卡片和一个 Blueprint 资产槽位读取真实 Catalog；没有数据时保留原型占位内容，未新增页面、未重排 DOM、未修改布局、CSS 或既有交互。
+- 真实 PostgreSQL 集成测试覆盖全生命周期、RLS、幂等、Revision CAS、失败编译、确定性编译、发布证据、发布后不可变、无 DELETE 权限和 Audit 安全投影；领域 Compiler、RBAC 与分支行为均有单元测试。
+
 ### 下一步
 
-1. 进入 P3 DataAtom、Blueprint、FixtureRun 与 Cleanup 垂直切片，并继续以前端现有 Atoms / Compose 原型为视觉与交互权威。
-2. 接入首个真实 SaaS `PasswordLoginFlow`、生产 Secret Provider 与 KMS-backed `SessionArtifactVault`；本地静态 AES Key 只允许 local / test / development，Staging / Production 配置会 fail-closed。
-3. 在后续 Identity Reconciler 切片调度周期性 `AccountHealthWorkflow`、Connector Reconcile、Credential Expiry Monitor 和按 Tenant 的 Session Janitor Workflow。
-4. 身份 MCP v1 Transport 与 `ExecutionIdentityGrant` 服务端校验延后到 P5 的 TaskRun / ExecutionUnit 权威事实落地后实施。
+1. 实施 P3-02 `FixtureRun`、`DataNodeRun`、`DataNodeAttempt`、`ResourceRecord` 与冻结 `FixtureManifest`，通过 Temporal Activity 执行部署登记的 Connector Operation，并把 Runtime Validation Evidence 接入发布门禁。
+2. 实施 P3-03 Cleanup / Reconcile：逆序补偿、取消后必清理、Fencing、幂等重试、孤儿资源扫描和 Cleanup Validation Evidence；继续以前端现有 Atoms / Compose 原型为视觉与交互权威。
+3. 接入首个真实 SaaS `PasswordLoginFlow`、生产 Secret Provider 与 KMS-backed `SessionArtifactVault`；本地静态 AES Key 只允许 local / test / development，Staging / Production 配置会 fail-closed。
+4. 在后续 Identity Reconciler 切片调度周期性 `AccountHealthWorkflow`、Connector Reconcile、Credential Expiry Monitor 和按 Tenant 的 Session Janitor Workflow。
+5. 身份 MCP v1 Transport 与 `ExecutionIdentityGrant` 服务端校验延后到 P5 的 TaskRun / ExecutionUnit 权威事实落地后实施。
 
 ## 验证记录
 
@@ -214,6 +228,11 @@
 | 2026-07-14 | P2-06 契约 | OpenAPI → TypeScript、ensure-session discriminated response、no-store | 通过；仅更新生成类型，前端原型页面、结构、布局、样式与交互未改动 |
 | 2026-07-14 | P2-06 后端门禁 | Python 3.14.6、239 tests、coverage | 通过；239 tests，覆盖率 90.06%、严格 mypy |
 | 2026-07-14 | P2-06 全量门禁 | `make verify` | 通过；后端 lint / type / test / contract / package 与前端 type / contract / production build 全部成功 |
+| 2026-07-14 | P3-00/P3-01 领域与 API | DataAtom / DataBlueprint Contract、静态 Compiler、Catalog、CRUD、Validate / Compile / Publish | 通过；exact version、DAG、Port、Schema、Classification、RBAC、Idempotency 与 Revision CAS 均有测试 |
+| 2026-07-14 | P3 Migration | `20260714_0010` upgrade → downgrade `0009` → upgrade `0010` | 通过；Constraint、Trigger、Index、RLS、发布后不可变与无 DELETE 权限往返成功 |
+| 2026-07-14 | P3-00/P3-01 PostgreSQL | 双 Tenant RLS、完整资产生命周期、确定性编译、三类发布证据与安全 Audit | 通过；真实 PostgreSQL，Published 版本不可修改，协议正文不进入 Audit Payload |
+| 2026-07-14 | P3-00/P3-01 前端 | 既有 Atoms / Assets 原型接入真实 DataAtom / DataBlueprint Catalog | 类型检查与生产构建通过；只替换既有数据槽位，未修改布局、样式或原型结构；应用内 Browser 插件初始化异常，渲染复核待恢复后补做 |
+| 2026-07-14 | P3-00/P3-01 全量门禁 | `make verify` | 通过；247 tests、覆盖率 90.52%、严格 mypy、契约漂移、Python 包与前端生产构建全部成功 |
 
 ## 当前风险与外部输入
 
@@ -223,3 +242,5 @@
 - Feishu PlatformPrincipal OAuth 尚未提供 Client Secret、Redirect URI 与权限范围；当前入口不会模拟成功。
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
+- P3 资产控制面已完成，`FixtureRun` 执行、Resource Ledger、Runtime / Cleanup Evidence 与取消后补偿尚未实现；在 P3-02/P3-03 完成前发布门禁保持 fail-closed。
+- 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

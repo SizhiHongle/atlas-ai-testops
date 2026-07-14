@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/compiled-fixture-plan/0.1/schema.json",
+  "$defs": {
+    "BlueprintExport": {
+      "additionalProperties": false,
+      "description": "An explicitly named field visible to downstream test execution.",
+      "properties": {
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "sourceNodeId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Sourcenodeid",
+          "type": "string"
+        },
+        "sourcePort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Sourceport",
+          "type": "string"
+        },
+        "classification": {
+          "$ref": "#/$defs/DataClassification",
+          "default": "INTERNAL"
+        }
+      },
+      "required": [
+        "name",
+        "sourceNodeId",
+        "sourcePort"
+      ],
+      "title": "BlueprintExport",
+      "type": "object"
+    },
+    "CompiledNode": {
+      "additionalProperties": false,
+      "properties": {
+        "nodeId": {
+          "title": "Nodeid",
+          "type": "string"
+        },
+        "atomVersionId": {
+          "format": "uuid",
+          "title": "Atomversionid",
+          "type": "string"
+        },
+        "atomDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Atomdigest",
+          "type": "string"
+        },
+        "actorSlot": {
+          "title": "Actorslot",
+          "type": "string"
+        },
+        "bindings": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "EXECUTION_CONTEXT": "#/$defs/ExecutionContextBinding",
+                "LITERAL": "#/$defs/LiteralBinding",
+                "NODE_OUTPUT": "#/$defs/NodeOutputBinding",
+                "RUN_INPUT": "#/$defs/RunInputBinding"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/LiteralBinding"
+              },
+              {
+                "$ref": "#/$defs/RunInputBinding"
+              },
+              {
+                "$ref": "#/$defs/NodeOutputBinding"
+              },
+              {
+                "$ref": "#/$defs/ExecutionContextBinding"
+              }
+            ]
+          },
+          "title": "Bindings",
+          "type": "array"
+        },
+        "executionLevel": {
+          "minimum": 0,
+          "title": "Executionlevel",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "nodeId",
+        "atomVersionId",
+        "atomDigest",
+        "actorSlot",
+        "bindings",
+        "executionLevel"
+      ],
+      "title": "CompiledNode",
+      "type": "object"
+    },
+    "DataClassification": {
+      "description": "Data exposure class used by compilation and manifest gates.",
+      "enum": [
+        "PUBLIC",
+        "INTERNAL",
+        "CONFIDENTIAL",
+        "SENSITIVE"
+      ],
+      "title": "DataClassification",
+      "type": "string"
+    },
+    "ExecutionContextBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "targetPort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Targetport",
+          "type": "string"
+        },
+        "kind": {
+          "const": "EXECUTION_CONTEXT",
+          "default": "EXECUTION_CONTEXT",
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "const": "executionId",
+          "default": "executionId",
+          "title": "Field",
+          "type": "string"
+        }
+      },
+      "required": [
+        "targetPort"
+      ],
+      "title": "ExecutionContextBinding",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "LiteralBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "targetPort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Targetport",
+          "type": "string"
+        },
+        "kind": {
+          "const": "LITERAL",
+          "default": "LITERAL",
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      },
+      "required": [
+        "targetPort",
+        "value"
+      ],
+      "title": "LiteralBinding",
+      "type": "object"
+    },
+    "NodeOutputBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "targetPort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Targetport",
+          "type": "string"
+        },
+        "kind": {
+          "const": "NODE_OUTPUT",
+          "default": "NODE_OUTPUT",
+          "title": "Kind",
+          "type": "string"
+        },
+        "sourceNodeId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Sourcenodeid",
+          "type": "string"
+        },
+        "sourcePort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Sourceport",
+          "type": "string"
+        }
+      },
+      "required": [
+        "targetPort",
+        "sourceNodeId",
+        "sourcePort"
+      ],
+      "title": "NodeOutputBinding",
+      "type": "object"
+    },
+    "RunInputBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "targetPort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Targetport",
+          "type": "string"
+        },
+        "kind": {
+          "const": "RUN_INPUT",
+          "default": "RUN_INPUT",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pointer": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^(?:/(?:[^~/]|~[01])*)+$",
+          "title": "Pointer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "targetPort",
+        "pointer"
+      ],
+      "title": "RunInputBinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable, digest-addressed plan consumed by the future Fixture Worker.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.compiled-fixture-plan/0.1",
+      "default": "atlas.compiled-fixture-plan/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "blueprintVersionId": {
+      "format": "uuid",
+      "title": "Blueprintversionid",
+      "type": "string"
+    },
+    "blueprintDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Blueprintdigest",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/CompiledNode"
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "executionLevels": {
+      "items": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Executionlevels",
+      "type": "array"
+    },
+    "cleanupOrder": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Cleanuporder",
+      "type": "array"
+    },
+    "exports": {
+      "items": {
+        "$ref": "#/$defs/BlueprintExport"
+      },
+      "title": "Exports",
+      "type": "array"
+    },
+    "planDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plandigest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "blueprintVersionId",
+    "blueprintDigest",
+    "nodes",
+    "executionLevels",
+    "cleanupOrder",
+    "exports",
+    "planDigest"
+  ],
+  "title": "CompiledFixturePlan",
+  "type": "object"
+}

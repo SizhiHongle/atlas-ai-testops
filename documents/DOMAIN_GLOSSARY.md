@@ -79,14 +79,39 @@ TestCase
 ## Fixture 执行对象链
 
 ```text
-DataSetupRun
+DataAtomDefinition
+  -> DataAtomVersion
+DataBlueprintDefinition
+  -> DataBlueprintVersion
+    -> CompiledFixturePlan
+      -> FixtureRun
+        -> DataNodeRun
+          -> DataNodeAttempt
+        -> ResourceRecord
+        -> FixtureManifest
+        -> Cleanup / Reconcile
+```
+
+| 对象 | 定义 | 禁止混用或当前状态 |
+| --- | --- | --- |
+| `DataAtomDefinition` | 一个可维护的数据能力目录实体 | 不是可执行版本；名称和归档状态使用 Revision CAS |
+| `DataAtomVersion` | 声明 Input / Output Port、结构化 Connector Operation、Resource、Cleanup 与 Reconcile 的 exact 版本协议 | Published 后不可变；不得包含动态代码、任意 URL / Header 或秘密语义 |
+| `DataBlueprintDefinition` | 一个可维护的数据组合目录实体 | 不直接保存运行状态 |
+| `DataBlueprintVersion` | 以 exact DataAtom Version、Edge、Literal 与 Export 组成的 DAG | Published 后不可变；不得解析 floating version |
+| `CompiledFixturePlan` | 静态编译产生的确定性执行层级、逆序 Cleanup 与完整性 Digest | 不是运行事实，不执行外部 I/O |
+| `FixtureRun` | 一次冻结 Compiled Plan、Environment、调用作用域和策略的 Fixture 执行 | P3-02 落地；不得以 Temporal History 替代 PostgreSQL 权威事实 |
+| `DataNodeRun` | Fixture 中一个逻辑节点的运行记录 | 不等同于正式测试的 `ExecutionUnit` |
+| `DataNodeAttempt` | DataNodeRun 的一次 Connector Operation 调用尝试 | 不等同于正式测试的 `UnitAttempt` |
+| `ResourceRecord` | CREATE Atom 产生资源的追加式身份、状态、Fencing 与 Cleanup 账本 | P3-02/P3-03 落地；不得保存秘密或把资源删除视为无状态调用 |
+| `FixtureManifest` | 冻结 Atom Version、Plan Digest、输入、输出引用、Resource 与策略版本的可复现运行清单 | 协议已定义，运行持久化待 P3-02 |
+
+```text
+FixtureRun
   -> DataNodeRun
     -> DataNodeAttempt
 ```
 
-- `DataNodeRun` 是 Fixture Recipe 中一个逻辑节点的运行记录。
-- `DataNodeAttempt` 是该节点的一次 Connector 调用尝试，不等同于正式测试链路中的 `UnitAttempt`。
-- Fixture 通过 `ResourceRecord` 与 `accountLeaseId` 接入正式执行，但保持独立的生命周期与幂等键。
+- Fixture 通过 `ResourceRecord` 与 `accountLeaseId` 接入正式执行，但保持独立的生命周期、Fencing 与幂等键。
 
 ## 禁止继续使用的旧称
 

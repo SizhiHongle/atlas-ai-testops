@@ -58,9 +58,14 @@ import {
   ZoomOut,
   type LucideIcon
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { usePlatformSession } from "../lib/api/auth";
+import {
+  useFixtureAssetCatalog,
+  type DataAtomCatalogItem,
+  type DataBlueprintCatalogItem
+} from "../lib/api/fixture";
 import { useIdentityWallet } from "../lib/api/identity";
 
 type ViewId = "space" | "identities" | "atoms" | "compose" | "cases" | "launch" | "live" | "results" | "insights";
@@ -75,6 +80,17 @@ type AtomSpec = {
   inputs: string[];
   outputs: string[];
   description: string;
+};
+
+type WorkflowAsset = {
+  id: string;
+  name: string;
+  category: string;
+  version: string;
+  refs: number;
+  health: number;
+  atoms: string[];
+  tone: string;
 };
 
 type WorkflowPhase = "setup" | "identity" | "execute" | "assert" | "cleanup";
@@ -385,13 +401,61 @@ const initialCases: TestCase[] = [
   { id: "TC-1091", name: "客服权限边界", role: "客服", intent: "验证客服可以查看客户与来访，但无法修改客户归属人。", draftRevision: 3, updatedBy: "AI", workflow: serviceWorkflow, edges: serviceEdges, versions: [{ id: "TC-1091@v0.9", version: "v0.9", caseName: "客服权限边界", role: "客服", sourceRevision: 2, publishedAt: "07-08 14:06", workflowSnapshot: cloneWorkflow(serviceWorkflow), edgeSnapshot: cloneEdges(serviceEdges) }] }
 ];
 
-const workflowAssets = [
+const workflowAssets: WorkflowAsset[] = [
   { id: "asset-data", name: "客户 + 来访数据链", category: "数据初始化", version: "v2.6", refs: 18, health: 99, atoms: ["customer", "visit"], tone: "mint" },
   { id: "asset-login", name: "角色身份登录", category: "身份子流程", version: "v3.1", refs: 26, health: 98, atoms: ["account", "open"], tone: "sand" },
   { id: "asset-filter", name: "语义筛选动作", category: "Agent 能力", version: "v4.0", refs: 12, health: 94, atoms: ["filter"], tone: "violet" },
   { id: "asset-assert", name: "客户关系双通道断言", category: "断言模板", version: "v2.7", refs: 21, health: 100, atoms: ["assert"], tone: "coral" },
   { id: "asset-cleanup", name: "测试数据清理补偿", category: "清理策略", version: "v1.4", refs: 9, health: 97, atoms: [], tone: "blue" }
 ];
+
+function fixtureAssetHealth(status: string | null | undefined): number {
+  if (status === "PUBLISHED") return 100;
+  if (status === "VALIDATED") return 98;
+  if (status === "DEPRECATED") return 82;
+  return 90;
+}
+
+function projectDataAtoms(items: DataAtomCatalogItem[]): AtomSpec[] {
+  if (!items.length) return atomSpecs;
+  let dataIndex = 0;
+  return atomSpecs.map((slot): AtomSpec => {
+    if (slot.type !== "data") return slot;
+    const item = items[dataIndex];
+    dataIndex += 1;
+    if (!item) return slot;
+    return {
+      ...slot,
+      name: item.name,
+      key: item.atomKey,
+      version: item.latestVersion ?? "0.0-draft",
+      health: fixtureAssetHealth(item.latestVersionStatus),
+      inputs: item.inputPorts,
+      outputs: item.outputPorts,
+      description: item.description
+    };
+  });
+}
+
+function projectDataBlueprints(
+  items: DataBlueprintCatalogItem[],
+  projectedAtoms: AtomSpec[]
+): WorkflowAsset[] {
+  const blueprint = items.find((item) => item.latestVersionId && item.nodeCount > 0);
+  if (!blueprint) return workflowAssets;
+  const dataAtomIds = projectedAtoms
+    .filter((item) => item.type === "data")
+    .slice(0, blueprint.nodeCount)
+    .map((item) => item.id);
+  return workflowAssets.map((asset) => asset.id === "asset-data" ? {
+    ...asset,
+    name: blueprint.name,
+    version: `v${blueprint.latestVersion ?? "0.0-draft"}`,
+    refs: 0,
+    health: fixtureAssetHealth(blueprint.latestVersionStatus),
+    atoms: dataAtomIds
+  } : asset);
+}
 
 type TaskStatus = "running" | "attention" | "queued" | "passed";
 
@@ -682,6 +746,9 @@ function WorkflowCanvas({
 export default function Home() {
   const { data: platformSession } = usePlatformSession();
   const { data: identityWallet } = useIdentityWallet(platformSession?.project.id ?? null);
+  const { data: fixtureAssetCatalog } = useFixtureAssetCatalog(
+    platformSession?.project.id ?? null
+  );
   const [view, setView] = useState<ViewId>("space");
   const [mobileNav, setMobileNav] = useState(false);
   const [selectedAtom, setSelectedAtom] = useState("customer");
@@ -740,9 +807,20 @@ export default function Home() {
   const totalIdentityAvailable = identityCards.reduce((total, item) => total + item.available, 0);
   const totalIdentityLeased = identityCards.reduce((total, item) => total + item.leased, 0);
 
-  const atom = atomSpecs.find((item) => item.id === selectedAtom) ?? atomSpecs[0];
+  const visibleAtomSpecs = useMemo(
+    () => projectDataAtoms(fixtureAssetCatalog?.atoms ?? []),
+    [fixtureAssetCatalog?.atoms]
+  );
+  const visibleWorkflowAssets = useMemo(
+    () => projectDataBlueprints(
+      fixtureAssetCatalog?.blueprints ?? [],
+      visibleAtomSpecs
+    ),
+    [fixtureAssetCatalog?.blueprints, visibleAtomSpecs]
+  );
+  const atom = visibleAtomSpecs.find((item) => item.id === selectedAtom) ?? visibleAtomSpecs[0];
   const identity = identityCards.find((item) => item.id === selectedIdentity) ?? identityCards[0];
-  const selectedAsset = workflowAssets.find((item) => item.id === selectedAssetId) ?? workflowAssets[0];
+  const selectedAsset = visibleWorkflowAssets.find((item) => item.id === selectedAssetId) ?? visibleWorkflowAssets[0];
   const selectedCase = testCases.find((item) => item.id === selectedCaseId) ?? testCases[0];
   const graphValidation = validateWorkflowGraph(selectedCase.workflow, selectedCase.edges);
   const publishedVersions = testCases.flatMap((item) => item.versions.map((version) => ({ ...version, caseId: item.id, caseName: version.caseName, role: version.role })));
@@ -961,7 +1039,7 @@ export default function Home() {
   }
 
   function applyAsset(assetId: string) {
-    const asset = workflowAssets.find((item) => item.id === assetId);
+    const asset = visibleWorkflowAssets.find((item) => item.id === assetId);
     if (!asset) return;
     const instanceId = `${asset.id}-${selectedCase.draftRevision + 1}`;
     setWorkflowMode("manual");
@@ -1183,13 +1261,13 @@ export default function Home() {
         <div className="atom-toolbar"><label><Search size={15} /><input placeholder="描述你需要的能力，例如：创建一个已绑定来访单的客户" /></label><button><WandSparkles size={16} />让 AI 推荐组合</button></div>
         <div className="atom-field">
           <div className="periodic-grid">
-            {atomSpecs.map((item, index) => <button key={item.id} className={`atom-tile atom-${item.type} atom-pos-${index} ${selectedAtom === item.id ? "selected" : ""}`} onClick={() => setSelectedAtom(item.id)}><span>{item.key}</span><Atom size={20} /><strong>{item.name}</strong><footer><small>v{item.version}</small><b>{item.health}%</b></footer></button>)}
+            {visibleAtomSpecs.map((item, index) => <button key={item.id} className={`atom-tile atom-${item.type} atom-pos-${index} ${atom.id === item.id ? "selected" : ""}`} onClick={() => setSelectedAtom(item.id)}><span>{item.key}</span><Atom size={20} /><strong>{item.name}</strong><footer><small>v{item.version}</small><b>{item.health}%</b></footer></button>)}
             <button className="atom-empty" onClick={() => setToast("开始制造一个新的原子组件")}><Plus size={20} /><span>空位</span></button>
           </div>
           <div className="assembly-shelf"><span>快速装配槽</span><div><i><Fingerprint size={15} /></i><ArrowRight size={14} /><i><Database size={15} /></i><ArrowRight size={14} /><i><Bot size={15} /></i><ArrowRight size={14} /><i><ShieldCheck size={15} /></i></div><button onClick={() => navigate("compose")}>打开为场景</button></div>
         </div>
         <aside className={`atom-lens lens-${atom.type}`}>
-          <div className="lens-index">A/{atomSpecs.findIndex((item) => item.id === atom.id) + 1}</div>
+          <div className="lens-index">A/{visibleAtomSpecs.findIndex((item) => item.id === atom.id) + 1}</div>
           <div className="lens-icon"><Atom size={27} /></div>
           <span>{atom.key} · v{atom.version}</span><h2>{atom.name}</h2><p>{atom.description}</p>
           <div className="port-contract"><div><span>输入端口</span>{atom.inputs.map((input) => <code key={input}><i />{input}</code>)}</div><div><span>输出端口</span>{atom.outputs.map((output) => <code key={output}>{output}<i /></code>)}</div></div>
@@ -1207,9 +1285,9 @@ export default function Home() {
         <div className="asset-context-bar"><div><span>当前目标用例</span><strong>{selectedCase.id} · {selectedCase.name}</strong><small>加入资产会写入同一份 Draft r{selectedCase.draftRevision}</small></div><StatusPill tone={getCaseState(selectedCase).tone}>{getCaseState(selectedCase).label}</StatusPill><button onClick={() => navigate("cases")}>更换目标 <ChevronRight size={14} /></button></div>
         <div className="asset-constellation">
           <div className="asset-section-title"><div><span>REUSABLE CONSTELLATION</span><h2>编排资产星图</h2></div><p>由多个原子封装而成，可被不同用例引用，但不会脱离用例单独运行。</p></div>
-          <div className="asset-grid">{workflowAssets.map((assetItem, index) => <article key={assetItem.id} className={`asset-card asset-${assetItem.tone} asset-card-${index} ${selectedAssetId === assetItem.id ? "selected" : ""}`}><button className="asset-card-main" onClick={() => setSelectedAssetId(assetItem.id)}><span>{assetItem.category}</span><Component size={20} /><strong>{assetItem.name}</strong><small>{assetItem.version} · {assetItem.refs} 个用例引用</small><div>{assetItem.atoms.length ? assetItem.atoms.map((atomId) => <i key={atomId}>{atomSpecs.find((item) => item.id === atomId)?.name.slice(0, 1)}</i>) : <i>清</i>}<b>{assetItem.health}%</b></div></button><button className="asset-apply" onClick={() => applyAsset(assetItem.id)}>加入当前用例 <Plus size={13} /></button></article>)}</div>
+          <div className="asset-grid">{visibleWorkflowAssets.map((assetItem, index) => <article key={assetItem.id} className={`asset-card asset-${assetItem.tone} asset-card-${index} ${selectedAsset.id === assetItem.id ? "selected" : ""}`}><button className="asset-card-main" onClick={() => setSelectedAssetId(assetItem.id)}><span>{assetItem.category}</span><Component size={20} /><strong>{assetItem.name}</strong><small>{assetItem.version} · {assetItem.refs} 个用例引用</small><div>{assetItem.atoms.length ? assetItem.atoms.map((atomId) => <i key={atomId}>{visibleAtomSpecs.find((item) => item.id === atomId)?.name.slice(0, 1)}</i>) : <i>清</i>}<b>{assetItem.health}%</b></div></button><button className="asset-apply" onClick={() => applyAsset(assetItem.id)}>加入当前用例 <Plus size={13} /></button></article>)}</div>
         </div>
-        <aside className="asset-inspector"><div className="asset-inspector-head"><Box size={19} /><StatusPill tone="good">HEALTHY</StatusPill></div><span>SELECTED ASSET</span><h2>{selectedAsset.name}</h2><p>资产只保存节点、端口映射与策略默认值。加入用例后会生成独立实例，再由 AI 或人工继续修改。</p><div className="asset-contract"><span>组成原子</span>{selectedAsset.atoms.length ? selectedAsset.atoms.map((atomId) => <code key={atomId}><i />{atomSpecs.find((item) => item.id === atomId)?.key}</code>) : <code><i />cleanup.compensation</code>}</div><div className="ownership-ladder"><span><Atom size={13} />Atomic</span><ArrowRight size={12} /><span className="active"><Component size={13} />Asset</span><ArrowRight size={12} /><span><GitBranch size={13} />Case Draft</span><ArrowRight size={12} /><span><BadgeCheck size={13} />Version</span></div><button onClick={() => applyAsset(selectedAsset.id)}>套用到 {selectedCase.id} <ArrowRight size={14} /></button></aside>
+        <aside className="asset-inspector"><div className="asset-inspector-head"><Box size={19} /><StatusPill tone="good">HEALTHY</StatusPill></div><span>SELECTED ASSET</span><h2>{selectedAsset.name}</h2><p>资产只保存节点、端口映射与策略默认值。加入用例后会生成独立实例，再由 AI 或人工继续修改。</p><div className="asset-contract"><span>组成原子</span>{selectedAsset.atoms.length ? selectedAsset.atoms.map((atomId) => <code key={atomId}><i />{visibleAtomSpecs.find((item) => item.id === atomId)?.key}</code>) : <code><i />cleanup.compensation</code>}</div><div className="ownership-ladder"><span><Atom size={13} />Atomic</span><ArrowRight size={12} /><span className="active"><Component size={13} />Asset</span><ArrowRight size={12} /><span><GitBranch size={13} />Case Draft</span><ArrowRight size={12} /><span><BadgeCheck size={13} />Version</span></div><button onClick={() => applyAsset(selectedAsset.id)}>套用到 {selectedCase.id} <ArrowRight size={14} /></button></aside>
       </div>
     </section>
   );

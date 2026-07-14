@@ -72,11 +72,27 @@ class ActorContext:
             for grant in self.grants
         )
 
+    def can_maintain_components(self, project_id: UUID) -> bool:
+        """Fixture asset authoring requires a component maintenance role."""
+
+        return self.is_organization_admin() or any(
+            grant.project_id == project_id
+            and grant.role in {PlatformRole.PROJECT_ADMIN, PlatformRole.COMPONENT_MAINTAINER}
+            for grant in self.grants
+        )
+
+    def can_publish_components(self, project_id: UUID) -> bool:
+        """Publication is separated from authoring and requires reviewer authority."""
+
+        return self.is_organization_admin() or any(
+            grant.project_id == project_id
+            and grant.role in {PlatformRole.PROJECT_ADMIN, PlatformRole.CASE_REVIEWER}
+            for grant in self.grants
+        )
+
     def visible_project_ids(self) -> frozenset[UUID] | None:
         """None 表示允许全部；集合用于 Repository 下推项目过滤。"""
 
         if self.is_organization_admin():
             return None
-        return frozenset(
-            grant.project_id for grant in self.grants if grant.project_id is not None
-        )
+        return frozenset(grant.project_id for grant in self.grants if grant.project_id is not None)

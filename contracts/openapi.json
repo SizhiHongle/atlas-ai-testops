@@ -899,6 +899,85 @@
         "title": "AdapterMode",
         "type": "string"
       },
+      "AssetDefinitionStatus": {
+        "description": "Lifecycle of a stable asset identity.",
+        "enum": [
+          "ACTIVE",
+          "ARCHIVED"
+        ],
+        "title": "AssetDefinitionStatus",
+        "type": "string"
+      },
+      "AssetVersionStatus": {
+        "description": "Lifecycle of an immutable-after-publication asset version.",
+        "enum": [
+          "DRAFT",
+          "VALIDATED",
+          "PUBLISHED",
+          "DEPRECATED"
+        ],
+        "title": "AssetVersionStatus",
+        "type": "string"
+      },
+      "AtomEffect": {
+        "description": "Externally observable effect of an atom operation.",
+        "enum": [
+          "READ",
+          "CREATE",
+          "UPDATE",
+          "DELETE",
+          "WAIT"
+        ],
+        "title": "AtomEffect",
+        "type": "string"
+      },
+      "AtomPort": {
+        "additionalProperties": false,
+        "description": "A JSON-Schema-backed port with a domain semantic type.",
+        "properties": {
+          "classification": {
+            "$ref": "#/components/schemas/DataClassification",
+            "default": "INTERNAL"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/PortDirection"
+          },
+          "jsonSchema": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Jsonschema",
+            "type": "object"
+          },
+          "key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "semanticType": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){1,7}$",
+            "title": "Semantictype",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "direction",
+          "semanticType",
+          "jsonSchema"
+        ],
+        "title": "AtomPort",
+        "type": "object"
+      },
       "AuthenticationMethod": {
         "description": "平台 Session 的认证来源，不包含被测系统认证。",
         "enum": [
@@ -907,6 +986,139 @@
         ],
         "title": "AuthenticationMethod",
         "type": "string"
+      },
+      "BlueprintCompilationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/CompileIssue"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompiledFixturePlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid",
+          "issues"
+        ],
+        "title": "BlueprintCompilationResult",
+        "type": "object"
+      },
+      "BlueprintExport": {
+        "additionalProperties": false,
+        "description": "An explicitly named field visible to downstream test execution.",
+        "properties": {
+          "classification": {
+            "$ref": "#/components/schemas/DataClassification",
+            "default": "INTERNAL"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Name",
+            "type": "string"
+          },
+          "sourceNodeId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Sourcenodeid",
+            "type": "string"
+          },
+          "sourcePort": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Sourceport",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "sourceNodeId",
+          "sourcePort"
+        ],
+        "title": "BlueprintExport",
+        "type": "object"
+      },
+      "BlueprintNode": {
+        "additionalProperties": false,
+        "description": "One exact atom version and its structured inputs inside a static DAG.",
+        "properties": {
+          "actorSlot": {
+            "maxLength": 80,
+            "minLength": 2,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Actorslot",
+            "type": "string"
+          },
+          "atomVersionId": {
+            "format": "uuid",
+            "title": "Atomversionid",
+            "type": "string"
+          },
+          "bindings": {
+            "default": [],
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "EXECUTION_CONTEXT": "#/components/schemas/ExecutionContextBinding",
+                  "LITERAL": "#/components/schemas/LiteralBinding",
+                  "NODE_OUTPUT": "#/components/schemas/NodeOutputBinding",
+                  "RUN_INPUT": "#/components/schemas/RunInputBinding"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/LiteralBinding"
+                },
+                {
+                  "$ref": "#/components/schemas/RunInputBinding"
+                },
+                {
+                  "$ref": "#/components/schemas/NodeOutputBinding"
+                },
+                {
+                  "$ref": "#/components/schemas/ExecutionContextBinding"
+                }
+              ]
+            },
+            "maxItems": 64,
+            "title": "Bindings",
+            "type": "array"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "atomVersionId",
+          "actorSlot"
+        ],
+        "title": "BlueprintNode",
+        "type": "object"
       },
       "BootstrapPrincipal": {
         "additionalProperties": false,
@@ -991,6 +1203,273 @@
           "mode"
         ],
         "title": "CapabilityDescriptor",
+        "type": "object"
+      },
+      "CleanupContract": {
+        "additionalProperties": false,
+        "description": "A reviewed operation that cleans one ledger-owned resource.",
+        "properties": {
+          "operation": {
+            "$ref": "#/components/schemas/ConnectorOperationRef"
+          },
+          "resourceRefInput": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Resourcerefinput",
+            "type": "string"
+          },
+          "verifyOperation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectorOperationRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "operation",
+          "resourceRefInput"
+        ],
+        "title": "CleanupContract",
+        "type": "object"
+      },
+      "CleanupPolicy": {
+        "description": "Fixture cleanup policy frozen into a blueprint version.",
+        "enum": [
+          "ALWAYS",
+          "RETAIN_ON_FAILURE"
+        ],
+        "title": "CleanupPolicy",
+        "type": "string"
+      },
+      "CompileBlueprintResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "compilation": {
+            "$ref": "#/components/schemas/BlueprintCompilationResult"
+          },
+          "version": {
+            "$ref": "#/components/schemas/DataBlueprintVersion"
+          }
+        },
+        "required": [
+          "version",
+          "compilation"
+        ],
+        "title": "CompileBlueprintResponse",
+        "type": "object"
+      },
+      "CompileIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/CompileIssueCode"
+          },
+          "exportName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exportname"
+          },
+          "message": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "nodeId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nodeid"
+          },
+          "portKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Portkey"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "CompileIssue",
+        "type": "object"
+      },
+      "CompileIssueCode": {
+        "description": "Stable compiler failures safe for API and UI consumption.",
+        "enum": [
+          "ATOM_VERSION_NOT_FOUND",
+          "ATOM_VERSION_NOT_VALIDATED",
+          "TARGET_PORT_NOT_FOUND",
+          "SOURCE_NODE_NOT_FOUND",
+          "SOURCE_PORT_NOT_FOUND",
+          "PORT_TYPE_MISMATCH",
+          "REQUIRED_INPUT_MISSING",
+          "LITERAL_SCHEMA_MISMATCH",
+          "GRAPH_CYCLE_DETECTED",
+          "EXPORT_SOURCE_NOT_FOUND",
+          "EXPORT_CLASSIFICATION_MISMATCH",
+          "CLEANUP_CONTRACT_MISSING",
+          "FORBIDDEN_SECRET_FLOW"
+        ],
+        "title": "CompileIssueCode",
+        "type": "string"
+      },
+      "CompiledFixturePlan": {
+        "additionalProperties": false,
+        "description": "Immutable, digest-addressed plan consumed by the future Fixture Worker.",
+        "properties": {
+          "blueprintDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Blueprintdigest",
+            "type": "string"
+          },
+          "blueprintVersionId": {
+            "format": "uuid",
+            "title": "Blueprintversionid",
+            "type": "string"
+          },
+          "cleanupOrder": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cleanuporder",
+            "type": "array"
+          },
+          "executionLevels": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Executionlevels",
+            "type": "array"
+          },
+          "exports": {
+            "items": {
+              "$ref": "#/components/schemas/BlueprintExport"
+            },
+            "title": "Exports",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/CompiledNode"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "planDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Plandigest",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": "atlas.compiled-fixture-plan/0.1",
+            "default": "atlas.compiled-fixture-plan/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "blueprintVersionId",
+          "blueprintDigest",
+          "nodes",
+          "executionLevels",
+          "cleanupOrder",
+          "exports",
+          "planDigest"
+        ],
+        "title": "CompiledFixturePlan",
+        "type": "object"
+      },
+      "CompiledNode": {
+        "additionalProperties": false,
+        "properties": {
+          "actorSlot": {
+            "title": "Actorslot",
+            "type": "string"
+          },
+          "atomDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Atomdigest",
+            "type": "string"
+          },
+          "atomVersionId": {
+            "format": "uuid",
+            "title": "Atomversionid",
+            "type": "string"
+          },
+          "bindings": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "EXECUTION_CONTEXT": "#/components/schemas/ExecutionContextBinding",
+                  "LITERAL": "#/components/schemas/LiteralBinding",
+                  "NODE_OUTPUT": "#/components/schemas/NodeOutputBinding",
+                  "RUN_INPUT": "#/components/schemas/RunInputBinding"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/LiteralBinding"
+                },
+                {
+                  "$ref": "#/components/schemas/RunInputBinding"
+                },
+                {
+                  "$ref": "#/components/schemas/NodeOutputBinding"
+                },
+                {
+                  "$ref": "#/components/schemas/ExecutionContextBinding"
+                }
+              ]
+            },
+            "title": "Bindings",
+            "type": "array"
+          },
+          "executionLevel": {
+            "minimum": 0.0,
+            "title": "Executionlevel",
+            "type": "integer"
+          },
+          "nodeId": {
+            "title": "Nodeid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nodeId",
+          "atomVersionId",
+          "atomDigest",
+          "actorSlot",
+          "bindings",
+          "executionLevel"
+        ],
+        "title": "CompiledNode",
         "type": "object"
       },
       "ConnectorInstallation": {
@@ -1198,6 +1677,52 @@
         "title": "ConnectorMode",
         "type": "string"
       },
+      "ConnectorOperationRef": {
+        "additionalProperties": false,
+        "description": "A deployment-registered operation; never a URL, module, or callable.",
+        "properties": {
+          "operationKey": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){1,7}$",
+            "title": "Operationkey",
+            "type": "string"
+          },
+          "operationVersion": {
+            "maxLength": 80,
+            "minLength": 5,
+            "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+            "title": "Operationversion",
+            "type": "string"
+          },
+          "requiredCapabilities": {
+            "items": {
+              "maxLength": 160,
+              "minLength": 3,
+              "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){1,7}$",
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Requiredcapabilities",
+            "type": "array"
+          },
+          "timeoutSeconds": {
+            "default": 30,
+            "maximum": 300.0,
+            "minimum": 1.0,
+            "title": "Timeoutseconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "operationKey",
+          "operationVersion",
+          "requiredCapabilities"
+        ],
+        "title": "ConnectorOperationRef",
+        "type": "object"
+      },
       "ConnectorStatus": {
         "description": "Connector 当前是否可供控制面和 Worker 使用。",
         "enum": [
@@ -1341,6 +1866,122 @@
           "requiredCapabilities"
         ],
         "title": "CreateConnectorInstallation",
+        "type": "object"
+      },
+      "CreateDataAtom": {
+        "additionalProperties": false,
+        "description": "Create a stable atom identity inside a project.",
+        "properties": {
+          "atomKey": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){1,7}$",
+            "title": "Atomkey",
+            "type": "string"
+          },
+          "businessDomain": {
+            "maxLength": 80,
+            "minLength": 2,
+            "pattern": "^[a-z][a-z0-9-]{1,79}$",
+            "title": "Businessdomain",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "atomKey",
+          "businessDomain",
+          "name",
+          "description"
+        ],
+        "title": "CreateDataAtom",
+        "type": "object"
+      },
+      "CreateDataAtomVersion": {
+        "additionalProperties": false,
+        "description": "Create a mutable draft of one exact atom version.",
+        "properties": {
+          "contract": {
+            "$ref": "#/components/schemas/DataAtomContract"
+          },
+          "version": {
+            "maxLength": 80,
+            "minLength": 5,
+            "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "contract"
+        ],
+        "title": "CreateDataAtomVersion",
+        "type": "object"
+      },
+      "CreateDataBlueprint": {
+        "additionalProperties": false,
+        "description": "Create a stable data blueprint identity.",
+        "properties": {
+          "blueprintKey": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){1,7}$",
+            "title": "Blueprintkey",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "blueprintKey",
+          "name",
+          "description"
+        ],
+        "title": "CreateDataBlueprint",
+        "type": "object"
+      },
+      "CreateDataBlueprintVersion": {
+        "additionalProperties": false,
+        "description": "Create a mutable draft of one exact blueprint version.",
+        "properties": {
+          "contract": {
+            "$ref": "#/components/schemas/DataBlueprintContract"
+          },
+          "version": {
+            "maxLength": 80,
+            "minLength": 5,
+            "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "contract"
+        ],
+        "title": "CreateDataBlueprintVersion",
         "type": "object"
       },
       "CreateEnvironment": {
@@ -1604,6 +2245,958 @@
         "title": "CredentialPurpose",
         "type": "string"
       },
+      "DataAtomCatalogItem": {
+        "additionalProperties": false,
+        "description": "Atom definition plus the most advanced visible version projection.",
+        "properties": {
+          "atomKey": {
+            "title": "Atomkey",
+            "type": "string"
+          },
+          "businessDomain": {
+            "title": "Businessdomain",
+            "type": "string"
+          },
+          "cleanupCapable": {
+            "default": false,
+            "title": "Cleanupcapable",
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inputPorts": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Inputports",
+            "type": "array"
+          },
+          "latestEffect": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AtomEffect"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latestVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latestversion"
+          },
+          "latestVersionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latestversionid"
+          },
+          "latestVersionStatus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssetVersionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "outputPorts": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Outputports",
+            "type": "array"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssetDefinitionStatus"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "atomKey",
+          "businessDomain",
+          "name",
+          "description",
+          "status",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "DataAtomCatalogItem",
+        "type": "object"
+      },
+      "DataAtomContract": {
+        "additionalProperties": false,
+        "description": "Immutable atom behavior and safety contract exported as atlas.atom/0.1.",
+        "properties": {
+          "allowedEnvironmentKinds": {
+            "default": [
+              "TEST",
+              "STAGING"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentKind"
+            },
+            "title": "Allowedenvironmentkinds",
+            "type": "array"
+          },
+          "cleanupContract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CleanupContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effect": {
+            "$ref": "#/components/schemas/AtomEffect"
+          },
+          "idempotencyPolicy": {
+            "$ref": "#/components/schemas/IdempotencyPolicy"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/ConnectorOperationRef"
+          },
+          "ports": {
+            "items": {
+              "$ref": "#/components/schemas/AtomPort"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Ports",
+            "type": "array"
+          },
+          "postconditions": {
+            "items": {
+              "$ref": "#/components/schemas/Postcondition"
+            },
+            "maxItems": 16,
+            "minItems": 1,
+            "title": "Postconditions",
+            "type": "array"
+          },
+          "reconcileContract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReconcileContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resourcePolicy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResourcePolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retryPolicy": {
+            "$ref": "#/components/schemas/RetryPolicy",
+            "default": {
+              "initialBackoffMs": 250,
+              "maxAttempts": 3,
+              "maximumBackoffMs": 5000,
+              "retryableCategories": [
+                "RATE_LIMIT",
+                "TRANSIENT"
+              ]
+            }
+          },
+          "schemaVersion": {
+            "const": "atlas.atom/0.1",
+            "default": "atlas.atom/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "effect",
+          "ports",
+          "operation",
+          "idempotencyPolicy",
+          "postconditions"
+        ],
+        "title": "DataAtomContract",
+        "type": "object"
+      },
+      "DataAtomDefinition": {
+        "additionalProperties": false,
+        "description": "Stable atom identity independent of any version.",
+        "properties": {
+          "atomKey": {
+            "title": "Atomkey",
+            "type": "string"
+          },
+          "businessDomain": {
+            "title": "Businessdomain",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssetDefinitionStatus"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "atomKey",
+          "businessDomain",
+          "name",
+          "description",
+          "status",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "DataAtomDefinition",
+        "type": "object"
+      },
+      "DataAtomPage": {
+        "additionalProperties": false,
+        "description": "Cursor page for the atom catalog.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DataAtomCatalogItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DataAtomPage",
+        "type": "object"
+      },
+      "DataAtomVersion": {
+        "additionalProperties": false,
+        "description": "One contract version with three independent publication evidence states.",
+        "properties": {
+          "atomId": {
+            "format": "uuid",
+            "title": "Atomid",
+            "type": "string"
+          },
+          "cleanupValidationState": {
+            "$ref": "#/components/schemas/ValidationState"
+          },
+          "contentDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Contentdigest",
+            "type": "string"
+          },
+          "contract": {
+            "$ref": "#/components/schemas/DataAtomContract"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
+          },
+          "publishedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedby"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "runtimeValidationState": {
+            "$ref": "#/components/schemas/ValidationState"
+          },
+          "staticValidationState": {
+            "$ref": "#/components/schemas/ValidationState"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssetVersionStatus"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "validatedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validatedat"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "atomId",
+          "version",
+          "status",
+          "contract",
+          "contentDigest",
+          "staticValidationState",
+          "runtimeValidationState",
+          "cleanupValidationState",
+          "validatedAt",
+          "publishedAt",
+          "publishedBy",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "DataAtomVersion",
+        "type": "object"
+      },
+      "DataAtomVersionPage": {
+        "additionalProperties": false,
+        "description": "Cursor page for versions of one atom definition.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DataAtomVersion"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DataAtomVersionPage",
+        "type": "object"
+      },
+      "DataBlueprintCatalogItem": {
+        "additionalProperties": false,
+        "description": "Blueprint definition plus the most advanced visible version projection.",
+        "properties": {
+          "blueprintKey": {
+            "title": "Blueprintkey",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "exportCount": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Exportcount",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "latestVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latestversion"
+          },
+          "latestVersionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latestversionid"
+          },
+          "latestVersionStatus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssetVersionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "nodeCount": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Nodecount",
+            "type": "integer"
+          },
+          "planDigest": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plandigest"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssetDefinitionStatus"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "blueprintKey",
+          "name",
+          "description",
+          "status",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "DataBlueprintCatalogItem",
+        "type": "object"
+      },
+      "DataBlueprintContract": {
+        "additionalProperties": false,
+        "description": "Static fixture DAG exported as atlas.fixture-blueprint/0.1.",
+        "properties": {
+          "cleanupPolicy": {
+            "$ref": "#/components/schemas/CleanupPolicy",
+            "default": "ALWAYS"
+          },
+          "exports": {
+            "items": {
+              "$ref": "#/components/schemas/BlueprintExport"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Exports",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/BlueprintNode"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Nodes",
+            "type": "array"
+          },
+          "runInputSchema": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Runinputschema",
+            "type": "object"
+          },
+          "schemaVersion": {
+            "const": "atlas.fixture-blueprint/0.1",
+            "default": "atlas.fixture-blueprint/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "runInputSchema",
+          "nodes",
+          "exports"
+        ],
+        "title": "DataBlueprintContract",
+        "type": "object"
+      },
+      "DataBlueprintDefinition": {
+        "additionalProperties": false,
+        "description": "Stable blueprint identity independent of any version.",
+        "properties": {
+          "blueprintKey": {
+            "title": "Blueprintkey",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssetDefinitionStatus"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "blueprintKey",
+          "name",
+          "description",
+          "status",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "DataBlueprintDefinition",
+        "type": "object"
+      },
+      "DataBlueprintPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DataBlueprintCatalogItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DataBlueprintPage",
+        "type": "object"
+      },
+      "DataBlueprintVersion": {
+        "additionalProperties": false,
+        "description": "One blueprint contract and its latest deterministic compilation.",
+        "properties": {
+          "blueprintId": {
+            "format": "uuid",
+            "title": "Blueprintid",
+            "type": "string"
+          },
+          "cleanupValidationState": {
+            "$ref": "#/components/schemas/ValidationState"
+          },
+          "compileIssues": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CompileIssue"
+            },
+            "title": "Compileissues",
+            "type": "array"
+          },
+          "compiledAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compiledat"
+          },
+          "compiledPlan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompiledFixturePlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contentDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Contentdigest",
+            "type": "string"
+          },
+          "contract": {
+            "$ref": "#/components/schemas/DataBlueprintContract"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "planDigest": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plandigest"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
+          },
+          "publishedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedby"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "runtimeValidationState": {
+            "$ref": "#/components/schemas/ValidationState"
+          },
+          "staticValidationState": {
+            "$ref": "#/components/schemas/ValidationState"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssetVersionStatus"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "validatedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validatedat"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "blueprintId",
+          "version",
+          "status",
+          "contract",
+          "contentDigest",
+          "staticValidationState",
+          "runtimeValidationState",
+          "cleanupValidationState",
+          "validatedAt",
+          "compiledAt",
+          "publishedAt",
+          "publishedBy",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "DataBlueprintVersion",
+        "type": "object"
+      },
+      "DataBlueprintVersionPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DataBlueprintVersion"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DataBlueprintVersionPage",
+        "type": "object"
+      },
+      "DataClassification": {
+        "description": "Data exposure class used by compilation and manifest gates.",
+        "enum": [
+          "PUBLIC",
+          "INTERNAL",
+          "CONFIDENTIAL",
+          "SENSITIVE"
+        ],
+        "title": "DataClassification",
+        "type": "string"
+      },
       "DependencyCheck": {
         "additionalProperties": false,
         "description": "单个依赖的 readiness 结果。",
@@ -1825,10 +3418,41 @@
           "SESSION_INTEGRITY_FAILED",
           "PROVIDER_UNAVAILABLE",
           "DEPENDENCY_UNAVAILABLE",
+          "ASSET_IMMUTABLE",
+          "PUBLICATION_EVIDENCE_REQUIRED",
           "INTERNAL_ERROR"
         ],
         "title": "ErrorCode",
         "type": "string"
+      },
+      "ExecutionContextBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "const": "executionId",
+            "default": "executionId",
+            "title": "Field",
+            "type": "string"
+          },
+          "kind": {
+            "const": "EXECUTION_CONTEXT",
+            "default": "EXECUTION_CONTEXT",
+            "title": "Kind",
+            "type": "string"
+          },
+          "targetPort": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Targetport",
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetPort"
+        ],
+        "title": "ExecutionContextBinding",
+        "type": "object"
       },
       "FieldViolation": {
         "additionalProperties": false,
@@ -1926,6 +3550,44 @@
         "title": "HeartbeatAccountLease",
         "type": "object"
       },
+      "IdempotencyMode": {
+        "description": "Supported provider idempotency and reconciliation strategies.",
+        "enum": [
+          "PROVIDER_NATIVE",
+          "BUSINESS_MARKER",
+          "RECONCILE"
+        ],
+        "title": "IdempotencyMode",
+        "type": "string"
+      },
+      "IdempotencyPolicy": {
+        "additionalProperties": false,
+        "description": "Stable provider-side deduplication and reconciliation contract.",
+        "properties": {
+          "markerInput": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markerinput"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/IdempotencyMode"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "title": "IdempotencyPolicy",
+        "type": "object"
+      },
       "IssueSecretGrant": {
         "additionalProperties": false,
         "description": "为有效 Lease 签发单次、短期、Origin 受限的凭证授权。",
@@ -1964,6 +3626,7 @@
         "title": "IssueSecretGrant",
         "type": "object"
       },
+      "JsonValue": {},
       "LeaseReleaseReason": {
         "description": "释放、回收和撤销只能使用结构化原因。",
         "enum": [
@@ -2019,6 +3682,33 @@
           }
         },
         "title": "LeaseRequirements",
+        "type": "object"
+      },
+      "LiteralBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "LITERAL",
+            "default": "LITERAL",
+            "title": "Kind",
+            "type": "string"
+          },
+          "targetPort": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Targetport",
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        },
+        "required": [
+          "targetPort",
+          "value"
+        ],
+        "title": "LiteralBinding",
         "type": "object"
       },
       "LoginCommand": {
@@ -2133,6 +3823,45 @@
         ],
         "title": "MembershipStatus",
         "type": "string"
+      },
+      "NodeOutputBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "NODE_OUTPUT",
+            "default": "NODE_OUTPUT",
+            "title": "Kind",
+            "type": "string"
+          },
+          "sourceNodeId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Sourcenodeid",
+            "type": "string"
+          },
+          "sourcePort": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Sourceport",
+            "type": "string"
+          },
+          "targetPort": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Targetport",
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetPort",
+          "sourceNodeId",
+          "sourcePort"
+        ],
+        "title": "NodeOutputBinding",
+        "type": "object"
       },
       "PlatformMembership": {
         "additionalProperties": false,
@@ -2310,6 +4039,63 @@
           "DISABLED"
         ],
         "title": "PlatformUserStatus",
+        "type": "string"
+      },
+      "PortDirection": {
+        "description": "Direction of a strongly typed atom port.",
+        "enum": [
+          "INPUT",
+          "OUTPUT"
+        ],
+        "title": "PortDirection",
+        "type": "string"
+      },
+      "Postcondition": {
+        "additionalProperties": false,
+        "description": "A bounded read-after-write or output verification declaration.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/PostconditionKind"
+          },
+          "operation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectorOperationRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outputPort": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outputport"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "Postcondition",
+        "type": "object"
+      },
+      "PostconditionKind": {
+        "description": "Structured postconditions that never execute arbitrary expressions.",
+        "enum": [
+          "OUTPUT_SCHEMA",
+          "RESOURCE_VISIBLE",
+          "RESOURCE_RELATION"
+        ],
+        "title": "PostconditionKind",
         "type": "string"
       },
       "ProblemDetails": {
@@ -2503,6 +4289,36 @@
         "title": "ReapedLeaseBatch",
         "type": "object"
       },
+      "ReconcileContract": {
+        "additionalProperties": false,
+        "description": "A reviewed lookup used after an uncertain provider outcome.",
+        "properties": {
+          "markerInput": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Markerinput",
+            "type": "string"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/ConnectorOperationRef"
+          },
+          "resourceRefOutput": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Resourcerefoutput",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation",
+          "markerInput",
+          "resourceRefOutput"
+        ],
+        "title": "ReconcileContract",
+        "type": "object"
+      },
       "ReleaseAccountLease": {
         "additionalProperties": false,
         "description": "幂等结束 Lease；原因不接受自由文本。",
@@ -2521,6 +4337,142 @@
           "reason"
         ],
         "title": "ReleaseAccountLease",
+        "type": "object"
+      },
+      "ResourceOwnership": {
+        "description": "Ownership determines whether automatic cleanup may delete a resource.",
+        "enum": [
+          "CREATED",
+          "ADOPTED",
+          "LEASED",
+          "SHARED"
+        ],
+        "title": "ResourceOwnership",
+        "type": "string"
+      },
+      "ResourcePolicy": {
+        "additionalProperties": false,
+        "description": "How an external resource is registered and later cleaned up.",
+        "properties": {
+          "ownership": {
+            "$ref": "#/components/schemas/ResourceOwnership",
+            "default": "CREATED"
+          },
+          "parentRefInputs": {
+            "default": [],
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Parentrefinputs",
+            "type": "array"
+          },
+          "resourceRefOutput": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Resourcerefoutput",
+            "type": "string"
+          },
+          "resourceType": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){1,7}$",
+            "title": "Resourcetype",
+            "type": "string"
+          },
+          "ttlSeconds": {
+            "default": 3600,
+            "maximum": 604800.0,
+            "minimum": 60.0,
+            "title": "Ttlseconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "resourceType",
+          "resourceRefOutput"
+        ],
+        "title": "ResourcePolicy",
+        "type": "object"
+      },
+      "RetryPolicy": {
+        "additionalProperties": false,
+        "description": "Bounded retry budget for transient connector outcomes.",
+        "properties": {
+          "initialBackoffMs": {
+            "default": 250,
+            "maximum": 30000.0,
+            "minimum": 50.0,
+            "title": "Initialbackoffms",
+            "type": "integer"
+          },
+          "maxAttempts": {
+            "default": 3,
+            "maximum": 6.0,
+            "minimum": 1.0,
+            "title": "Maxattempts",
+            "type": "integer"
+          },
+          "maximumBackoffMs": {
+            "default": 5000,
+            "maximum": 120000.0,
+            "minimum": 50.0,
+            "title": "Maximumbackoffms",
+            "type": "integer"
+          },
+          "retryableCategories": {
+            "default": [
+              "RATE_LIMIT",
+              "TRANSIENT"
+            ],
+            "items": {
+              "enum": [
+                "RATE_LIMIT",
+                "TRANSIENT",
+                "AUTH_REFRESH"
+              ],
+              "type": "string"
+            },
+            "title": "Retryablecategories",
+            "type": "array"
+          }
+        },
+        "title": "RetryPolicy",
+        "type": "object"
+      },
+      "RunInputBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "RUN_INPUT",
+            "default": "RUN_INPUT",
+            "title": "Kind",
+            "type": "string"
+          },
+          "pointer": {
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^(?:/(?:[^~/]|~[01])*)+$",
+            "title": "Pointer",
+            "type": "string"
+          },
+          "targetPort": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "title": "Targetport",
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetPort",
+          "pointer"
+        ],
+        "title": "RunInputBinding",
         "type": "object"
       },
       "SecretGrant": {
@@ -3125,6 +5077,122 @@
         "title": "UpdateConnectorInstallation",
         "type": "object"
       },
+      "UpdateDataAtom": {
+        "additionalProperties": false,
+        "description": "Update mutable atom definition metadata.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssetDefinitionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "UpdateDataAtom",
+        "type": "object"
+      },
+      "UpdateDataAtomVersion": {
+        "additionalProperties": false,
+        "description": "Replace the contract of a non-published atom version.",
+        "properties": {
+          "contract": {
+            "$ref": "#/components/schemas/DataAtomContract"
+          }
+        },
+        "required": [
+          "contract"
+        ],
+        "title": "UpdateDataAtomVersion",
+        "type": "object"
+      },
+      "UpdateDataBlueprint": {
+        "additionalProperties": false,
+        "description": "Update mutable blueprint definition metadata.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssetDefinitionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "UpdateDataBlueprint",
+        "type": "object"
+      },
+      "UpdateDataBlueprintVersion": {
+        "additionalProperties": false,
+        "description": "Replace the contract of a non-published blueprint version.",
+        "properties": {
+          "contract": {
+            "$ref": "#/components/schemas/DataBlueprintContract"
+          }
+        },
+        "required": [
+          "contract"
+        ],
+        "title": "UpdateDataBlueprintVersion",
+        "type": "object"
+      },
       "UpdateEnvironment": {
         "additionalProperties": false,
         "description": "Environment 可变属性补丁。",
@@ -3316,6 +5384,17 @@
         },
         "title": "UpdateTestRole",
         "type": "object"
+      },
+      "ValidationState": {
+        "description": "Independent static, runtime, and cleanup publication evidence.",
+        "enum": [
+          "PENDING",
+          "PASSED",
+          "FAILED",
+          "NOT_REQUIRED"
+        ],
+        "title": "ValidationState",
+        "type": "string"
       },
       "VerifyTestAccount": {
         "additionalProperties": false,
@@ -6116,6 +8195,2534 @@
         ]
       }
     },
+    "/v1/data-atom-versions/{versionId}": {
+      "get": {
+        "operationId": "get_data_atom_version_v1_data_atom_versions__versionId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Versionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataAtomVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 DataAtomVersion",
+        "tags": [
+          "fixture-assets"
+        ]
+      },
+      "patch": {
+        "operationId": "update_data_atom_version_v1_data_atom_versions__versionId__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Versionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDataAtomVersion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataAtomVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "更新 DataAtomVersion 草稿",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
+    "/v1/data-atom-versions/{versionId}:publish": {
+      "post": {
+        "operationId": "publish_data_atom_version_v1_data_atom_versions__versionId__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Versionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataAtomVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "发布 DataAtomVersion",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
+    "/v1/data-atom-versions/{versionId}:validate": {
+      "post": {
+        "operationId": "validate_data_atom_version_v1_data_atom_versions__versionId__validate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Versionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataAtomVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "静态验证 DataAtomVersion",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
+    "/v1/data-atoms/{atomId}": {
+      "get": {
+        "operationId": "get_data_atom_v1_data_atoms__atomId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "atomId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Atomid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataAtomDefinition"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 DataAtom 定义",
+        "tags": [
+          "fixture-assets"
+        ]
+      },
+      "patch": {
+        "operationId": "update_data_atom_v1_data_atoms__atomId__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "atomId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Atomid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDataAtom"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataAtomDefinition"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "更新 DataAtom 定义",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
+    "/v1/data-atoms/{atomId}/versions": {
+      "get": {
+        "operationId": "list_data_atom_versions_v1_data_atoms__atomId__versions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "atomId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Atomid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataAtomVersionPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "列出 DataAtomVersion",
+        "tags": [
+          "fixture-assets"
+        ]
+      },
+      "post": {
+        "operationId": "create_data_atom_version_v1_data_atoms__atomId__versions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "atomId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Atomid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDataAtomVersion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataAtomVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "创建 DataAtomVersion",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
+    "/v1/data-blueprint-versions/{versionId}": {
+      "get": {
+        "operationId": "get_data_blueprint_version_v1_data_blueprint_versions__versionId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Versionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlueprintVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 DataBlueprintVersion",
+        "tags": [
+          "fixture-assets"
+        ]
+      },
+      "patch": {
+        "operationId": "update_data_blueprint_version_v1_data_blueprint_versions__versionId__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Versionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDataBlueprintVersion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlueprintVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "更新 DataBlueprintVersion 草稿",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
+    "/v1/data-blueprint-versions/{versionId}:compile": {
+      "post": {
+        "operationId": "compile_data_blueprint_version_v1_data_blueprint_versions__versionId__compile_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Versionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompileBlueprintResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "静态编译 DataBlueprintVersion",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
+    "/v1/data-blueprint-versions/{versionId}:publish": {
+      "post": {
+        "operationId": "publish_data_blueprint_version_v1_data_blueprint_versions__versionId__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Versionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlueprintVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "发布 DataBlueprintVersion",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
+    "/v1/data-blueprints/{blueprintId}": {
+      "get": {
+        "operationId": "get_data_blueprint_v1_data_blueprints__blueprintId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprintId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Blueprintid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlueprintDefinition"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 DataBlueprint 定义",
+        "tags": [
+          "fixture-assets"
+        ]
+      },
+      "patch": {
+        "operationId": "update_data_blueprint_v1_data_blueprints__blueprintId__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprintId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Blueprintid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDataBlueprint"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlueprintDefinition"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "更新 DataBlueprint 定义",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
+    "/v1/data-blueprints/{blueprintId}/versions": {
+      "get": {
+        "operationId": "list_data_blueprint_versions_v1_data_blueprints__blueprintId__versions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprintId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Blueprintid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlueprintVersionPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "列出 DataBlueprintVersion",
+        "tags": [
+          "fixture-assets"
+        ]
+      },
+      "post": {
+        "operationId": "create_data_blueprint_version_v1_data_blueprints__blueprintId__versions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprintId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Blueprintid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDataBlueprintVersion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlueprintVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "创建 DataBlueprintVersion",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
     "/v1/environments/{environmentId}": {
       "get": {
         "description": "读取当前 Tenant 可见的 Environment。",
@@ -7662,6 +12269,682 @@
         "summary": "更新 Project",
         "tags": [
           "platform"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/data-atoms": {
+      "get": {
+        "operationId": "list_data_atoms_v1_projects__projectId__data_atoms_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataAtomPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "列出 DataAtom Catalog",
+        "tags": [
+          "fixture-assets"
+        ]
+      },
+      "post": {
+        "operationId": "create_data_atom_v1_projects__projectId__data_atoms_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDataAtom"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataAtomDefinition"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "创建 DataAtom 定义",
+        "tags": [
+          "fixture-assets"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/data-blueprints": {
+      "get": {
+        "operationId": "list_data_blueprints_v1_projects__projectId__data_blueprints_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlueprintPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "列出 DataBlueprint Catalog",
+        "tags": [
+          "fixture-assets"
+        ]
+      },
+      "post": {
+        "operationId": "create_data_blueprint_v1_projects__projectId__data_blueprints_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDataBlueprint"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlueprintDefinition"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或契约语义无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前 PlatformRole 无权执行"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "资产不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "状态、唯一键、幂等或发布门禁冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "创建 DataBlueprint 定义",
+        "tags": [
+          "fixture-assets"
         ]
       }
     },

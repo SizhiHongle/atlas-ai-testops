@@ -13,6 +13,7 @@ dependencies = [
   "argon2-cffi>=25.1,<26",
   "cryptography>=46,<49",
   "fastapi>=0.139,<0.140",
+  "jsonschema>=4.26,<5",
   "minio>=7.2.20,<8",
   "playwright>=1.55,<2",
   "pydantic-settings>=2.14,<3",
@@ -33,6 +34,7 @@ dev = [
   "pytest>=8.3,<10",
   "pytest-cov>=6,<8",
   "ruff>=0.11,<1",
+  "types-jsonschema>=4.26,<5",
 ]
 
 [tool.hatch.build.targets.wheel]

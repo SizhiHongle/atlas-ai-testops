@@ -52,3 +52,19 @@ def test_project_admin_can_manage_only_its_project() -> None:
 
     assert actor.can_manage_project(project_id)
     assert actor.can_manage_project(uuid7()) is False
+
+
+def test_component_maintainer_can_author_but_cannot_publish() -> None:
+    project_id = uuid7()
+    actor = actor_with(AccessGrant(role=PlatformRole.COMPONENT_MAINTAINER, project_id=project_id))
+
+    assert actor.can_maintain_components(project_id)
+    assert actor.can_publish_components(project_id) is False
+
+
+def test_case_reviewer_can_publish_but_cannot_author() -> None:
+    project_id = uuid7()
+    actor = actor_with(AccessGrant(role=PlatformRole.CASE_REVIEWER, project_id=project_id))
+
+    assert actor.can_maintain_components(project_id) is False
+    assert actor.can_publish_components(project_id)

@@ -91,6 +91,18 @@
 - Auth Session Audit / Outbox 只包含 Lease、Fence、状态、Expiry 和低基数失败分类；ObjectRef、BrowserContextRef 之外的存储元数据、Provider Subject、SecretRef 与任何秘密不得进入事件。
 - 当前前端原型没有 Auth Session 管理入口；本切片只生成 OpenAPI TypeScript 类型，不新增页面、不重排 DOM、不修改布局、CSS 或既有交互。
 
+## DataAtom、DataBlueprint 与发布门禁边界
+
+- `DataAtomDefinition` / `DataBlueprintDefinition` 是可修改目录实体，名称、摘要和归档状态通过 Revision CAS 更新；`DataAtomVersion` / `DataBlueprintVersion` 是版本化协议，进入 `PUBLISHED` 或 `DEPRECATED` 后由数据库保证不可修改且不可删除。
+- `DataAtom` 只描述数据依赖和部署登记的 `ConnectorOperationRef`。请求、数据库和 Worker 协议均不得携带动态 Module、Callable、URL、Header、Shell、SQL、JavaScript 或任意代码。
+- CREATE Atom 必须同时声明 Resource Descriptor、Cleanup Operation 与 Reconcile Operation；只创建数据而没有可追踪资源和补偿协议的 Atom 不能保存为有效版本。
+- 当前协议拒绝 password、secret、cookie、token、storage-state 等秘密语义类型，也拒绝 Production Environment。Fixture 需要秘密时必须经由 P2 的 Lease / SecretGrant / SessionArtifact 边界，不得把秘密编码进 Literal、Port 或 Manifest。
+- `DataBlueprint` 只能引用同一 Project 的 exact `DataAtomVersion`。静态 Compiler 验证 Node / Port / Edge、JSON Schema Literal、必填输入、SourceRef、Semantic Type、Classification 单向流、DAG 与 Export，不在编译时执行 Connector 或访问外部系统。
+- 编译结果按稳定 Node ID 生成确定性并行层级，Cleanup 使用逆拓扑顺序；`CompiledFixturePlan` Digest 覆盖 Blueprint、Atom Version 和完整执行计划，任何引用或输入变化都会产生新 Digest。
+- 发布固定要求 Static Validation、Runtime Validation 与 Cleanup Validation 三类独立 PASSED 证据并绑定当前 Version Revision；Blueprint 还必须有当前 Revision 的 Compiled Plan。P3-02/P3-03 未提供运行证据时系统保持 fail-closed，不允许用静态校验冒充可执行或可清理。
+- Audit / Outbox 只记录资产 ID、Version、Revision、状态、Digest 与低基数结果，不复制 Atom / Blueprint Contract 正文，避免把 Literal 或未来敏感元数据扩散到事件面。
+- 前端只把真实 Catalog 投影到既有两个 DataAtom 卡片和一个 Blueprint 资产槽位；目录为空或尚无可展示 Version 时保留原型占位，不新增卡片、不重排 DOM、不修改 CSS 或既有交互。
+
 ## 不可破坏的领域链
 
 ```text

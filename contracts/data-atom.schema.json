@@ -1,0 +1,501 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/data-atom/0.1/schema.json",
+  "$defs": {
+    "AtomEffect": {
+      "description": "Externally observable effect of an atom operation.",
+      "enum": [
+        "READ",
+        "CREATE",
+        "UPDATE",
+        "DELETE",
+        "WAIT"
+      ],
+      "title": "AtomEffect",
+      "type": "string"
+    },
+    "AtomPort": {
+      "additionalProperties": false,
+      "description": "A JSON-Schema-backed port with a domain semantic type.",
+      "properties": {
+        "key": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Key",
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/$defs/PortDirection"
+        },
+        "semanticType": {
+          "maxLength": 160,
+          "minLength": 3,
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){1,7}$",
+          "title": "Semantictype",
+          "type": "string"
+        },
+        "jsonSchema": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Jsonschema",
+          "type": "object"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "classification": {
+          "$ref": "#/$defs/DataClassification",
+          "default": "INTERNAL"
+        }
+      },
+      "required": [
+        "key",
+        "direction",
+        "semanticType",
+        "jsonSchema"
+      ],
+      "title": "AtomPort",
+      "type": "object"
+    },
+    "CleanupContract": {
+      "additionalProperties": false,
+      "description": "A reviewed operation that cleans one ledger-owned resource.",
+      "properties": {
+        "operation": {
+          "$ref": "#/$defs/ConnectorOperationRef"
+        },
+        "resourceRefInput": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Resourcerefinput",
+          "type": "string"
+        },
+        "verifyOperation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConnectorOperationRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "operation",
+        "resourceRefInput"
+      ],
+      "title": "CleanupContract",
+      "type": "object"
+    },
+    "ConnectorOperationRef": {
+      "additionalProperties": false,
+      "description": "A deployment-registered operation; never a URL, module, or callable.",
+      "properties": {
+        "operationKey": {
+          "maxLength": 160,
+          "minLength": 3,
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){1,7}$",
+          "title": "Operationkey",
+          "type": "string"
+        },
+        "operationVersion": {
+          "maxLength": 80,
+          "minLength": 5,
+          "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+          "title": "Operationversion",
+          "type": "string"
+        },
+        "requiredCapabilities": {
+          "items": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){1,7}$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Requiredcapabilities",
+          "type": "array"
+        },
+        "timeoutSeconds": {
+          "default": 30,
+          "maximum": 300,
+          "minimum": 1,
+          "title": "Timeoutseconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "operationKey",
+        "operationVersion",
+        "requiredCapabilities"
+      ],
+      "title": "ConnectorOperationRef",
+      "type": "object"
+    },
+    "DataClassification": {
+      "description": "Data exposure class used by compilation and manifest gates.",
+      "enum": [
+        "PUBLIC",
+        "INTERNAL",
+        "CONFIDENTIAL",
+        "SENSITIVE"
+      ],
+      "title": "DataClassification",
+      "type": "string"
+    },
+    "EnvironmentKind": {
+      "description": "Environment 安全等级。",
+      "enum": [
+        "TEST",
+        "STAGING",
+        "PRODUCTION"
+      ],
+      "title": "EnvironmentKind",
+      "type": "string"
+    },
+    "IdempotencyMode": {
+      "description": "Supported provider idempotency and reconciliation strategies.",
+      "enum": [
+        "PROVIDER_NATIVE",
+        "BUSINESS_MARKER",
+        "RECONCILE"
+      ],
+      "title": "IdempotencyMode",
+      "type": "string"
+    },
+    "IdempotencyPolicy": {
+      "additionalProperties": false,
+      "description": "Stable provider-side deduplication and reconciliation contract.",
+      "properties": {
+        "mode": {
+          "$ref": "#/$defs/IdempotencyMode"
+        },
+        "markerInput": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Markerinput"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "IdempotencyPolicy",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "PortDirection": {
+      "description": "Direction of a strongly typed atom port.",
+      "enum": [
+        "INPUT",
+        "OUTPUT"
+      ],
+      "title": "PortDirection",
+      "type": "string"
+    },
+    "Postcondition": {
+      "additionalProperties": false,
+      "description": "A bounded read-after-write or output verification declaration.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/PostconditionKind"
+        },
+        "operation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConnectorOperationRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "outputPort": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outputport"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "Postcondition",
+      "type": "object"
+    },
+    "PostconditionKind": {
+      "description": "Structured postconditions that never execute arbitrary expressions.",
+      "enum": [
+        "OUTPUT_SCHEMA",
+        "RESOURCE_VISIBLE",
+        "RESOURCE_RELATION"
+      ],
+      "title": "PostconditionKind",
+      "type": "string"
+    },
+    "ReconcileContract": {
+      "additionalProperties": false,
+      "description": "A reviewed lookup used after an uncertain provider outcome.",
+      "properties": {
+        "operation": {
+          "$ref": "#/$defs/ConnectorOperationRef"
+        },
+        "markerInput": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Markerinput",
+          "type": "string"
+        },
+        "resourceRefOutput": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Resourcerefoutput",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation",
+        "markerInput",
+        "resourceRefOutput"
+      ],
+      "title": "ReconcileContract",
+      "type": "object"
+    },
+    "ResourceOwnership": {
+      "description": "Ownership determines whether automatic cleanup may delete a resource.",
+      "enum": [
+        "CREATED",
+        "ADOPTED",
+        "LEASED",
+        "SHARED"
+      ],
+      "title": "ResourceOwnership",
+      "type": "string"
+    },
+    "ResourcePolicy": {
+      "additionalProperties": false,
+      "description": "How an external resource is registered and later cleaned up.",
+      "properties": {
+        "resourceType": {
+          "maxLength": 160,
+          "minLength": 3,
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){1,7}$",
+          "title": "Resourcetype",
+          "type": "string"
+        },
+        "ownership": {
+          "$ref": "#/$defs/ResourceOwnership",
+          "default": "CREATED"
+        },
+        "resourceRefOutput": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Resourcerefoutput",
+          "type": "string"
+        },
+        "parentRefInputs": {
+          "default": [],
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Parentrefinputs",
+          "type": "array"
+        },
+        "ttlSeconds": {
+          "default": 3600,
+          "maximum": 604800,
+          "minimum": 60,
+          "title": "Ttlseconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "resourceType",
+        "resourceRefOutput"
+      ],
+      "title": "ResourcePolicy",
+      "type": "object"
+    },
+    "RetryPolicy": {
+      "additionalProperties": false,
+      "description": "Bounded retry budget for transient connector outcomes.",
+      "properties": {
+        "maxAttempts": {
+          "default": 3,
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Maxattempts",
+          "type": "integer"
+        },
+        "initialBackoffMs": {
+          "default": 250,
+          "maximum": 30000,
+          "minimum": 50,
+          "title": "Initialbackoffms",
+          "type": "integer"
+        },
+        "maximumBackoffMs": {
+          "default": 5000,
+          "maximum": 120000,
+          "minimum": 50,
+          "title": "Maximumbackoffms",
+          "type": "integer"
+        },
+        "retryableCategories": {
+          "default": [
+            "RATE_LIMIT",
+            "TRANSIENT"
+          ],
+          "items": {
+            "enum": [
+              "RATE_LIMIT",
+              "TRANSIENT",
+              "AUTH_REFRESH"
+            ],
+            "type": "string"
+          },
+          "title": "Retryablecategories",
+          "type": "array"
+        }
+      },
+      "title": "RetryPolicy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable atom behavior and safety contract exported as atlas.atom/0.1.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.atom/0.1",
+      "default": "atlas.atom/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "effect": {
+      "$ref": "#/$defs/AtomEffect"
+    },
+    "ports": {
+      "items": {
+        "$ref": "#/$defs/AtomPort"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Ports",
+      "type": "array"
+    },
+    "operation": {
+      "$ref": "#/$defs/ConnectorOperationRef"
+    },
+    "retryPolicy": {
+      "$ref": "#/$defs/RetryPolicy",
+      "default": {
+        "maxAttempts": 3,
+        "initialBackoffMs": 250,
+        "maximumBackoffMs": 5000,
+        "retryableCategories": [
+          "RATE_LIMIT",
+          "TRANSIENT"
+        ]
+      }
+    },
+    "idempotencyPolicy": {
+      "$ref": "#/$defs/IdempotencyPolicy"
+    },
+    "postconditions": {
+      "items": {
+        "$ref": "#/$defs/Postcondition"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Postconditions",
+      "type": "array"
+    },
+    "resourcePolicy": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResourcePolicy"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "cleanupContract": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CleanupContract"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reconcileContract": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReconcileContract"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "allowedEnvironmentKinds": {
+      "default": [
+        "TEST",
+        "STAGING"
+      ],
+      "items": {
+        "$ref": "#/$defs/EnvironmentKind"
+      },
+      "title": "Allowedenvironmentkinds",
+      "type": "array"
+    }
+  },
+  "required": [
+    "effect",
+    "ports",
+    "operation",
+    "idempotencyPolicy",
+    "postconditions"
+  ],
+  "title": "DataAtomContract",
+  "type": "object"
+}
