@@ -4,6 +4,7 @@ from base64 import b64decode
 from binascii import Error as BinasciiError
 from functools import lru_cache
 from typing import Literal, Self
+from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -66,6 +67,31 @@ class Settings(BaseSettings):
     fixture_recovery_claim_ttl_seconds: int = Field(default=600, ge=30, le=3_600)
     fixture_retry_initial_seconds: int = Field(default=2, ge=1, le=300)
     fixture_retry_maximum_seconds: int = Field(default=300, ge=1, le=900)
+    browser_runtime_enabled: bool = False
+    browser_runtime_task_queue: str = Field(
+        default="atlas-browser",
+        min_length=1,
+        max_length=160,
+    )
+    browser_runtime_worker_identity: str = Field(
+        default="browser-worker",
+        min_length=3,
+        max_length=160,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,159}$",
+    )
+    browser_runtime_activity_timeout_seconds: int = Field(default=900, ge=30, le=3_600)
+    browser_runtime_heartbeat_timeout_seconds: int = Field(default=20, ge=5, le=120)
+    browser_runtime_permit_ttl_seconds: int = Field(default=1_020, ge=60, le=86_400)
+    browser_runtime_request_clock_skew_seconds: int = Field(default=30, ge=5, le=300)
+    browser_runtime_permit_key_base64: SecretStr | None = None
+    browser_runtime_request_hmac_key_base64: SecretStr | None = None
+    browser_context_envelope_key_base64: SecretStr | None = None
+    browser_context_envelope_key_version: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=100,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,99}$",
+    )
 
     @field_validator("api_v1_prefix")
     @classmethod
@@ -113,6 +139,43 @@ class Settings(BaseSettings):
         if self.fixture_retry_maximum_seconds < self.fixture_retry_initial_seconds:
             raise ValueError(
                 "fixture_retry_maximum_seconds must be >= fixture_retry_initial_seconds"
+            )
+        browser_runtime_secrets = (
+            self.browser_runtime_permit_key_base64,
+            self.browser_runtime_request_hmac_key_base64,
+            self.browser_context_envelope_key_base64,
+            self.browser_context_envelope_key_version,
+        )
+        configured_browser_runtime_secrets = [
+            value is not None for value in browser_runtime_secrets
+        ]
+        if any(configured_browser_runtime_secrets) and not all(
+            configured_browser_runtime_secrets
+        ):
+            raise ValueError("browser runtime security configuration must be complete")
+        if self.browser_runtime_enabled and not all(configured_browser_runtime_secrets):
+            raise ValueError("enabled browser runtime requires complete security configuration")
+        if (
+            self.browser_runtime_heartbeat_timeout_seconds
+            >= self.browser_runtime_activity_timeout_seconds
+        ):
+            raise ValueError("browser runtime heartbeat timeout must be below activity timeout")
+        if (
+            self.browser_runtime_permit_ttl_seconds
+            <= self.browser_runtime_activity_timeout_seconds
+        ):
+            raise ValueError("browser runtime permit TTL must exceed activity timeout")
+        for label, secret in (
+            ("browser runtime permit", self.browser_runtime_permit_key_base64),
+            ("browser runtime request", self.browser_runtime_request_hmac_key_base64),
+        ):
+            if secret is not None:
+                _decode_base64_key(secret, label=label, exact_length=None)
+        if self.browser_context_envelope_key_base64 is not None:
+            _decode_base64_key(
+                self.browser_context_envelope_key_base64,
+                label="browser context envelope",
+                exact_length=32,
             )
         return self
 
@@ -213,3 +276,153 @@ class AuthSessionWorkerSettings(BaseSettings):
         """Return whether the worker has a complete local S3/AES vault configuration."""
 
         return self.session_object_store_endpoint is not None
+
+
+class BrowserWorkerSettings(AuthSessionWorkerSettings):
+    """Database-free secrets and runtime limits loaded only by Browser Worker."""
+
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    temporal_address: str = "127.0.0.1:7233"
+    temporal_namespace: str = "default"
+    browser_runtime_task_queue: str = Field(
+        default="atlas-browser",
+        min_length=1,
+        max_length=160,
+    )
+    browser_runtime_http_timeout_seconds: int = Field(default=20, ge=1, le=120)
+    browser_runtime_api_base_url: str | None = Field(default=None, max_length=2_048)
+    browser_runtime_worker_identity: str = Field(
+        default="browser-worker",
+        min_length=3,
+        max_length=160,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,159}$",
+    )
+    browser_runtime_request_hmac_key_base64: SecretStr | None = None
+    browser_context_envelope_key_base64: SecretStr | None = None
+    browser_context_envelope_key_version: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=100,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,99}$",
+    )
+    browser_revision: str | None = Field(default=None, min_length=1, max_length=160)
+    browser_headless: bool = True
+    browser_worker_max_concurrency: int = Field(default=2, ge=1, le=16)
+    browser_action_timeout_seconds: int = Field(default=15, ge=1, le=300)
+    browser_tool_catalog_ref: str | None = Field(default=None, min_length=1, max_length=160)
+    browser_policy_bundle_ref: str | None = Field(default=None, min_length=1, max_length=160)
+    browser_mcp_server_manifest_digest: str | None = Field(
+        default=None,
+        pattern=r"^sha256:[0-9a-f]{64}$",
+    )
+    browser_tool_schema_digest: str | None = Field(
+        default=None,
+        pattern=r"^sha256:[0-9a-f]{64}$",
+    )
+    browser_policy_digest: str | None = Field(
+        default=None,
+        pattern=r"^sha256:[0-9a-f]{64}$",
+    )
+    browser_allowed_actions: tuple[
+        Literal[
+            "open_route",
+            "activate",
+            "enter_text",
+            "choose_option",
+            "keypress",
+            "scroll",
+            "capture_view",
+        ],
+        ...,
+    ] = (
+        "open_route",
+        "activate",
+        "enter_text",
+        "choose_option",
+        "keypress",
+        "scroll",
+    )
+
+    @model_validator(mode="after")
+    def validate_browser_worker_configuration(self) -> Self:
+        """Fail before startup when any execution-plane authority is partial."""
+
+        configured_values = (
+            self.browser_runtime_api_base_url,
+            self.browser_runtime_request_hmac_key_base64,
+            self.browser_context_envelope_key_base64,
+            self.browser_context_envelope_key_version,
+            self.browser_revision,
+            self.browser_tool_catalog_ref,
+            self.browser_policy_bundle_ref,
+            self.browser_mcp_server_manifest_digest,
+            self.browser_tool_schema_digest,
+            self.browser_policy_digest,
+        )
+        configured = [value is not None for value in configured_values]
+        if any(configured) and not all(configured):
+            raise ValueError("browser worker runtime configuration must be complete")
+        if not self.browser_allowed_actions or len(self.browser_allowed_actions) != len(
+            set(self.browser_allowed_actions)
+        ):
+            raise ValueError("browser allowed actions must be non-empty and unique")
+        if self.browser_runtime_api_base_url is not None:
+            normalized_url = self.browser_runtime_api_base_url.rstrip("/")
+            parsed = urlsplit(normalized_url)
+            if (
+                parsed.scheme not in {"http", "https"}
+                or parsed.hostname is None
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.path not in {"", "/"}
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError("browser runtime API base URL must be an HTTP(S) origin")
+            if parsed.scheme == "http" and not self.browser_runtime_allow_insecure_http:
+                raise ValueError(
+                    "browser runtime API requires HTTPS in staging and production"
+                )
+            object.__setattr__(self, "browser_runtime_api_base_url", normalized_url)
+        if self.browser_runtime_request_hmac_key_base64 is not None:
+            _decode_base64_key(
+                self.browser_runtime_request_hmac_key_base64,
+                label="browser runtime request",
+                exact_length=None,
+            )
+        if self.browser_context_envelope_key_base64 is not None:
+            _decode_base64_key(
+                self.browser_context_envelope_key_base64,
+                label="browser context envelope",
+                exact_length=32,
+            )
+        return self
+
+    @property
+    def browser_runtime_configured(self) -> bool:
+        """Return whether all database-free Browser Worker dependencies are configured."""
+
+        return self.browser_runtime_api_base_url is not None
+
+    @property
+    def browser_runtime_allow_insecure_http(self) -> bool:
+        """Allow plaintext control-plane traffic only in local development and tests."""
+
+        return self.environment in {"local", "test", "development"}
+
+
+def _decode_base64_key(
+    value: SecretStr,
+    *,
+    label: str,
+    exact_length: int | None,
+) -> bytes:
+    try:
+        key = b64decode(value.get_secret_value(), validate=True)
+    except (BinasciiError, ValueError) as error:
+        raise ValueError(f"{label} key must be valid base64") from error
+    if exact_length is not None and len(key) != exact_length:
+        raise ValueError(f"{label} key must decode to exactly {exact_length} bytes")
+    if exact_length is None and len(key) < 32:
+        raise ValueError(f"{label} key must decode to at least 32 bytes")
+    return key

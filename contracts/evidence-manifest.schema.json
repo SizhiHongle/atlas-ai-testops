@@ -1,0 +1,397 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/evidence-manifest/0.1/schema.json",
+  "$defs": {
+    "AssertionResult": {
+      "additionalProperties": false,
+      "description": "Oracle result validated against an immutable assertion specification.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.assertion-result/0.1",
+          "default": "atlas.assertion-result/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "assertionId": {
+          "maxLength": 160,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{1,255}$",
+          "title": "Assertionid",
+          "type": "string"
+        },
+        "nodeId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{1,255}$",
+          "title": "Nodeid",
+          "type": "string"
+        },
+        "strength": {
+          "$ref": "#/$defs/OracleStrength"
+        },
+        "status": {
+          "$ref": "#/$defs/AssertionStatus"
+        },
+        "expectedDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Expecteddigest",
+          "type": "string"
+        },
+        "actualSafeSummary": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Actualsafesummary",
+          "type": "string"
+        },
+        "evaluatorVersionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Evaluatorversionref",
+          "type": "string"
+        },
+        "evidenceRefs": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Evidencerefs",
+          "type": "array"
+        },
+        "observedAt": {
+          "format": "date-time",
+          "title": "Observedat",
+          "type": "string"
+        },
+        "durationMs": {
+          "maximum": 3600000,
+          "minimum": 0,
+          "title": "Durationms",
+          "type": "integer"
+        },
+        "resultDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Resultdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "assertionId",
+        "nodeId",
+        "strength",
+        "status",
+        "expectedDigest",
+        "actualSafeSummary",
+        "evaluatorVersionRef",
+        "observedAt",
+        "durationMs",
+        "resultDigest"
+      ],
+      "title": "AssertionResult",
+      "type": "object"
+    },
+    "AssertionStatus": {
+      "description": "Deterministic Oracle decision for one frozen assertion.",
+      "enum": [
+        "PASSED",
+        "FAILED",
+        "INCONCLUSIVE"
+      ],
+      "title": "AssertionStatus",
+      "type": "string"
+    },
+    "EvidenceArtifact": {
+      "additionalProperties": false,
+      "description": "Safe artifact manifest entry without storage location or signed URL.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/EvidenceArtifactKind"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        },
+        "sizeBytes": {
+          "maximum": 10737418240,
+          "minimum": 1,
+          "title": "Sizebytes",
+          "type": "integer"
+        },
+        "mimeType": {
+          "maxLength": 160,
+          "minLength": 3,
+          "title": "Mimetype",
+          "type": "string"
+        },
+        "redactionPolicyDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Redactionpolicydigest",
+          "type": "string"
+        },
+        "integrity": {
+          "$ref": "#/$defs/EvidenceIntegrity"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "capturedAt": {
+          "format": "date-time",
+          "title": "Capturedat",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "contentDigest",
+        "sizeBytes",
+        "mimeType",
+        "redactionPolicyDigest",
+        "integrity",
+        "required",
+        "capturedAt"
+      ],
+      "title": "EvidenceArtifact",
+      "type": "object"
+    },
+    "EvidenceArtifactKind": {
+      "description": "Bounded artifact classes accepted by the evidence service.",
+      "enum": [
+        "SCREENSHOT",
+        "TRACE",
+        "DOM_SUMMARY",
+        "ARIA_SNAPSHOT",
+        "NETWORK_SUMMARY",
+        "CONSOLE_SUMMARY",
+        "TOOL_INVOCATION"
+      ],
+      "title": "EvidenceArtifactKind",
+      "type": "string"
+    },
+    "EvidenceCompleteness": {
+      "description": "Whether every frozen Oracle has its required evidence.",
+      "enum": [
+        "COMPLETE",
+        "PARTIAL",
+        "MISSING"
+      ],
+      "title": "EvidenceCompleteness",
+      "type": "string"
+    },
+    "EvidenceIntegrity": {
+      "description": "Independent verification state for referenced artifact bytes.",
+      "enum": [
+        "VERIFIED",
+        "INVALID"
+      ],
+      "title": "EvidenceIntegrity",
+      "type": "string"
+    },
+    "OracleOutcome": {
+      "description": "Case-level outcome derived only from frozen assertion results.",
+      "enum": [
+        "PASSED",
+        "FAILED",
+        "INCONCLUSIVE"
+      ],
+      "title": "OracleOutcome",
+      "type": "string"
+    },
+    "OracleStrength": {
+      "description": "Oracle authority level.",
+      "enum": [
+        "hard",
+        "soft",
+        "diagnostic"
+      ],
+      "title": "OracleStrength",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable evidence root used to authorize a DebugRun result.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.evidence-manifest/0.1",
+      "default": "atlas.evidence-manifest/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "environmentId": {
+      "format": "uuid",
+      "title": "Environmentid",
+      "type": "string"
+    },
+    "debugRunId": {
+      "format": "uuid",
+      "title": "Debugrunid",
+      "type": "string"
+    },
+    "executionContractId": {
+      "format": "uuid",
+      "title": "Executioncontractid",
+      "type": "string"
+    },
+    "executionContractDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Executioncontractdigest",
+      "type": "string"
+    },
+    "testIrDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Testirdigest",
+      "type": "string"
+    },
+    "planDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plandigest",
+      "type": "string"
+    },
+    "fixtureRunId": {
+      "format": "uuid",
+      "title": "Fixturerunid",
+      "type": "string"
+    },
+    "fixtureManifestDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Fixturemanifestdigest",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/OracleOutcome"
+    },
+    "completeness": {
+      "$ref": "#/$defs/EvidenceCompleteness"
+    },
+    "integrity": {
+      "$ref": "#/$defs/EvidenceIntegrity"
+    },
+    "assertionResults": {
+      "items": {
+        "$ref": "#/$defs/AssertionResult"
+      },
+      "title": "Assertionresults",
+      "type": "array"
+    },
+    "missingAssertionIds": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missingassertionids",
+      "type": "array"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/EvidenceArtifact"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "oracleResultsDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Oracleresultsdigest",
+      "type": "string"
+    },
+    "artifactManifestDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Artifactmanifestdigest",
+      "type": "string"
+    },
+    "eventChainHeadDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Eventchainheaddigest",
+      "type": "string"
+    },
+    "eventCount": {
+      "maximum": 10000000,
+      "minimum": 1,
+      "title": "Eventcount",
+      "type": "integer"
+    },
+    "passedAssertions": {
+      "minimum": 0,
+      "title": "Passedassertions",
+      "type": "integer"
+    },
+    "failedAssertions": {
+      "minimum": 0,
+      "title": "Failedassertions",
+      "type": "integer"
+    },
+    "inconclusiveAssertions": {
+      "minimum": 0,
+      "title": "Inconclusiveassertions",
+      "type": "integer"
+    },
+    "finalizedAt": {
+      "format": "date-time",
+      "title": "Finalizedat",
+      "type": "string"
+    },
+    "contentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Contentdigest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "environmentId",
+    "debugRunId",
+    "executionContractId",
+    "executionContractDigest",
+    "testIrDigest",
+    "planDigest",
+    "fixtureRunId",
+    "fixtureManifestDigest",
+    "outcome",
+    "completeness",
+    "integrity",
+    "assertionResults",
+    "missingAssertionIds",
+    "artifacts",
+    "oracleResultsDigest",
+    "artifactManifestDigest",
+    "eventChainHeadDigest",
+    "eventCount",
+    "passedAssertions",
+    "failedAssertions",
+    "inconclusiveAssertions",
+    "finalizedAt",
+    "contentDigest"
+  ],
+  "title": "EvidenceManifest",
+  "type": "object"
+}

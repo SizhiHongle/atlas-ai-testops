@@ -6,12 +6,26 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from atlas_testops.domain.case import (
+    CaseVersion,
+    PlanTemplate,
+    TestIntent,
+    TestIR,
+    WorkflowPatch,
+)
 from atlas_testops.domain.events import DomainEvent
 from atlas_testops.domain.fixture import (
     CompiledFixturePlan,
     DataAtomContract,
     DataBlueprintContract,
     FixtureManifest,
+)
+from atlas_testops.domain.runtime import (
+    AppendBrowserRuntimeReport,
+    AssertionResult,
+    BrowserExecutionBundle,
+    EvidenceManifest,
+    ExecutionContract,
 )
 from atlas_testops.domain.workflow import WorkflowDraft, WorkflowGraph
 
@@ -23,6 +37,20 @@ DATA_ATOM_SCHEMA = REPOSITORY_ROOT / "contracts" / "data-atom.schema.json"
 DATA_BLUEPRINT_SCHEMA = REPOSITORY_ROOT / "contracts" / "fixture-blueprint.schema.json"
 COMPILED_FIXTURE_PLAN_SCHEMA = REPOSITORY_ROOT / "contracts" / "compiled-fixture-plan.schema.json"
 FIXTURE_MANIFEST_SCHEMA = REPOSITORY_ROOT / "contracts" / "fixture-manifest.schema.json"
+WORKFLOW_PATCH_SCHEMA = REPOSITORY_ROOT / "contracts" / "workflow-patch.schema.json"
+TEST_INTENT_SCHEMA = REPOSITORY_ROOT / "contracts" / "test-intent.schema.json"
+TEST_IR_SCHEMA = REPOSITORY_ROOT / "contracts" / "test-ir.schema.json"
+PLAN_TEMPLATE_SCHEMA = REPOSITORY_ROOT / "contracts" / "plan-template.schema.json"
+CASE_VERSION_SCHEMA = REPOSITORY_ROOT / "contracts" / "case-version.schema.json"
+EXECUTION_CONTRACT_SCHEMA = REPOSITORY_ROOT / "contracts" / "execution-contract.schema.json"
+ASSERTION_RESULT_SCHEMA = REPOSITORY_ROOT / "contracts" / "assertion-result.schema.json"
+EVIDENCE_MANIFEST_SCHEMA = REPOSITORY_ROOT / "contracts" / "evidence-manifest.schema.json"
+BROWSER_EXECUTION_BUNDLE_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "browser-execution-bundle.schema.json"
+)
+BROWSER_RUNTIME_REPORT_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "browser-runtime-report.schema.json"
+)
 
 
 def render_schema(model: type[BaseModel], schema_id: str) -> str:
@@ -71,6 +99,46 @@ def main() -> None:
         FIXTURE_MANIFEST_SCHEMA: render_schema(
             FixtureManifest,
             "https://atlas.test/contracts/fixture-manifest/0.1/schema.json",
+        ),
+        WORKFLOW_PATCH_SCHEMA: render_schema(
+            WorkflowPatch,
+            "https://atlas.test/contracts/workflow-patch/0.1/schema.json",
+        ),
+        TEST_INTENT_SCHEMA: render_schema(
+            TestIntent,
+            "https://atlas.test/contracts/test-intent/0.1/schema.json",
+        ),
+        TEST_IR_SCHEMA: render_schema(
+            TestIR,
+            "https://atlas.test/contracts/test-ir/0.2/schema.json",
+        ),
+        PLAN_TEMPLATE_SCHEMA: render_schema(
+            PlanTemplate,
+            "https://atlas.test/contracts/plan-template/0.1/schema.json",
+        ),
+        CASE_VERSION_SCHEMA: render_schema(
+            CaseVersion,
+            "https://atlas.test/contracts/case-version/0.1/schema.json",
+        ),
+        EXECUTION_CONTRACT_SCHEMA: render_schema(
+            ExecutionContract,
+            "https://atlas.test/contracts/execution-contract/0.1/schema.json",
+        ),
+        ASSERTION_RESULT_SCHEMA: render_schema(
+            AssertionResult,
+            "https://atlas.test/contracts/assertion-result/0.1/schema.json",
+        ),
+        EVIDENCE_MANIFEST_SCHEMA: render_schema(
+            EvidenceManifest,
+            "https://atlas.test/contracts/evidence-manifest/0.1/schema.json",
+        ),
+        BROWSER_EXECUTION_BUNDLE_SCHEMA: render_schema(
+            BrowserExecutionBundle,
+            "https://atlas.test/contracts/browser-execution-bundle/0.1/schema.json",
+        ),
+        BROWSER_RUNTIME_REPORT_SCHEMA: render_schema(
+            AppendBrowserRuntimeReport,
+            "https://atlas.test/contracts/browser-runtime-report/0.1/schema.json",
         ),
     }
 

@@ -1,6 +1,6 @@
 # Atlas 统一领域术语
 
-更新时间：2026-07-14
+更新时间：2026-07-15
 
 本文件是跨文档对象命名的规范来源。Word 设计稿负责解释产品和实现背景，机器可读 Schema 负责约束线协议。
 
@@ -75,6 +75,58 @@ TestCase
 - `DebugRun` 绑定 Draft snapshot，不进入正式质量统计。
 - `CaseVersion` 发布后不可变，TaskRun 只能引用 exact CaseVersion。
 - `PlanTemplate` 环境无关；运行时绑定后形成 `ExecutionContract`。
+
+## Debug 受信执行与证据链
+
+```text
+DebugRun
+  -> ExecutionContract
+    -> AssertionResult
+    -> EvidenceArtifact
+  -> EvidenceManifest
+```
+
+| 对象 | 定义 | 禁止混用或当前状态 |
+| --- | --- | --- |
+| `ExecutionContract` | DebugRun 第一次执行副作用前冻结的 Test IR、Plan、Fixture、Actor Lease / Fence / Session、Browser、Model / Prompt、Tool / MCP 与 Policy 精确版本合约 | P6-00 已落地且每个 DebugRun 唯一、不可变；P6-01 Browser Worker 只能消费 exact binding，不得临时改写配置 |
+| `AssertionResult` | 由冻结 Assertion Program 和 exact Evaluator 产生的单条确定性 Oracle 事实 | P6-00 已落地；Agent 不能传入或决定 Case 级 `PASSED` |
+| `EvidenceArtifact` | 截图、Trace、DOM / ARIA / Network 等对象内容的不可变元数据和完整性状态 | PostgreSQL 只保存安全元数据；对象地址不进入 EvidenceManifest 或公共投影；生产 Redaction / Writer 属于 P6-02 |
+| `EvidenceManifest` | 绑定 ExecutionContract、FixtureManifest、AssertionResult、Artifact 和事件链的不可变证据根 | P6-00 已落地；只有完整、已验证且所有 HARD Oracle 通过时才能得到 `PASSED` |
+
+- P6-01 Browser Worker 通过机器认证的内部 Runtime Gateway 调用 `DebugRuntimeService`，不是公共完成 API，且 Worker 不得直接访问主数据库。
+- `EvidenceManifest` 服务于 DebugRun 的发布试运行；正式任务的 `AttemptSeal` 必须等 P5 创建 `UnitAttempt` 后再落地，二者不得混为同一宿主对象。
+
+## Browser 执行平面对象链
+
+```text
+TemporalBrowserExecutionDispatcher
+  -> BrowserExecutionWorkflow
+    -> BrowserExecutionActivity
+      -> BrowserExecutionBundle
+        -> BrowserContextRestoreEnvelope
+      -> BrowserRuntimeReport*
+      -> EvidenceManifest
+```
+
+| 对象 | 定义 | 禁止混用或当前状态 |
+| --- | --- | --- |
+| `BrowserWorker` | 独立消费 `atlas-browser` Task Queue、恢复隔离 BrowserContext 并执行冻结 Plan 的无控制面数据库进程 | 不得获得主数据库 DSN，不得与 API 进程合并；Staging / Production Runtime API 必须使用 HTTPS；默认 Operation / Route Registry 为空 |
+| `BrowserExecutionPermit` | API 为 exact Tenant / DebugRun / Worker / Deadline 签发的短期 Runtime Authority | 不是用户 Session 或通用 Bearer Token；单独泄漏仍不能替代 HMAC Request Signature |
+| `BrowserExecutionBundle` | 内部网关投递的 ExecutionContract、Test IR、PlanTemplate、Fixture Export 与每 Actor 加密 Restore Envelope | `atlas.browser-execution-bundle/0.1`；不是 Agent 可修改的运行参数，也不得包含原始 Storage State |
+| `BrowserContextRestoreEnvelope` | 以 AES-256-GCM 封装 SessionArtifact Restore Descriptor 的 Worker-only 密文 | AAD 绑定 Contract / Worker / Actor / BrowserContextRef / Expiry；当前只支持单活动 Key Version，Key Ring Rotation 待后续 |
+| `BrowserObservation` | Playwright Adapter 从当前 Page Revision 捕获的目标候选、Semantic Fingerprint 与单次 Next-step Nonce | Page 变化后立即过期；不信任页面文本作为策略或成功结论 |
+| `BrowserActionProposal` | 引用 frozen Node、Actor、Observation / Target 与结构化 Risk 的候选浏览器动作 | 不能携带任意 Locator、Script、绝对 URL 或动态 Callable |
+| `BrowserPolicyDecision` | exact Policy Digest 对 Action、Risk、Semantic Role、Route、Origin 与 Observation Freshness 的确定性裁决 | Agent 不能自批；只有 `ALLOW` 才能生成短期单次 Grant |
+| `BrowserActionGrant` | Contract / Proposal / Page Revision 绑定的短期一次性执行授权 | Action ID 与 Grant 都只能消费一次；同一 `actionId` 在完整 Contract Report Chain 也只能提出一次 |
+| `BrowserExecutionReceipt` | Adapter 对一次 Grant 的客观 `SUCCEEDED / FAILED / OUTCOME_UNKNOWN` 回执 | 只要 Receipt 非 `SUCCEEDED`，所有终结 Assertion 和最终 Outcome 都必须为 `INCONCLUSIVE`，不能被 Operation 或后续证据覆盖 |
+| `BrowserRuntimeReport` | 按 Sequence、Previous Digest 与 Content Digest 形成的类型化追加事实 | `atlas.browser-runtime-report/0.1`；Action Proposal / Policy / Receipt 必须连续且同 Actor / Action，完成后不可追加或修改 |
+| `BrowserArtifactWriter` | 接收原始浏览器字节并执行 Redaction、对象存储、独立 Hash 与 Integrity Verification 的受信端口 | 是 `EvidenceArtifactInput` 的唯一生产边界；Operation 不得直接构造或返回 Artifact 元数据 |
+| `BrowserOperationRegistry` | 部署代码登记 frozen Plan Node exact version 到受审 Operation 的映射 | 不从数据库、HTTP、资产或 Agent 动态导入 Module / Script / Callable；Operation 只能经 Browser Tool 触发 Artifact Writer |
+| `BrowserRouteRegistry` | Published Surface / Route Key 到 exact HTTP(S) URL 的部署映射 | URL Origin 必须落在 Session Scope；不是任意导航代理，也不替代容器 Egress Policy |
+
+- P6-01 仅支持单 Actor；Multi-actor、控制权仲裁和并行 Context 延后。
+- Playwright Request / WebSocket Route 只能限制浏览器协议层的精确 Origin。生产容器仍必须另外限制 Egress、DNS、UDP 与 WebRTC。
+- Evidence Finalization 使用完整 `AssertionResultInput` / `EvidenceArtifactInput` 的 Canonical Digest 与 Report Chain 对账，不以 ID、Count、Content Digest 或部分字段替代完整输入绑定；出现 `execution.blocked` 时同样只能终结为 `INCONCLUSIVE`。
 
 ## Fixture 执行对象链
 

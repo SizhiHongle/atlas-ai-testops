@@ -45,6 +45,19 @@ USER atlas
 
 CMD ["atlas-auth-session-worker"]
 
+FROM runtime AS browser-worker
+
+USER root
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+RUN playwright install --with-deps chromium \
+    && chown -R atlas:atlas /ms-playwright
+
+USER atlas
+
+CMD ["atlas-browser-worker"]
+
 FROM runtime AS migrations
 
 COPY --chown=atlas:atlas alembic.ini ./

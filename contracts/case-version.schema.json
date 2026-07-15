@@ -1,0 +1,1156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/case-version/0.1/schema.json",
+  "$defs": {
+    "ActorContract": {
+      "additionalProperties": false,
+      "description": "Non-secret business-role binding used by one case.",
+      "properties": {
+        "actorSlot": {
+          "maxLength": 80,
+          "minLength": 2,
+          "pattern": "^[A-Za-z][A-Za-z0-9._:-]{1,159}$",
+          "title": "Actorslot",
+          "type": "string"
+        },
+        "roleId": {
+          "format": "uuid",
+          "title": "Roleid",
+          "type": "string"
+        },
+        "roleKey": {
+          "maxLength": 80,
+          "minLength": 2,
+          "pattern": "^[a-z][a-z0-9._-]{1,79}$",
+          "title": "Rolekey",
+          "type": "string"
+        },
+        "roleRevision": {
+          "minimum": 1,
+          "title": "Rolerevision",
+          "type": "integer"
+        },
+        "capabilities": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Capabilities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "actorSlot",
+        "roleId",
+        "roleKey",
+        "roleRevision"
+      ],
+      "title": "ActorContract",
+      "type": "object"
+    },
+    "AssertionSpec": {
+      "additionalProperties": false,
+      "description": "Immutable Oracle reference derived from an assertion graph node.",
+      "properties": {
+        "assertionId": {
+          "title": "Assertionid",
+          "type": "string"
+        },
+        "nodeId": {
+          "title": "Nodeid",
+          "type": "string"
+        },
+        "evaluatorVersionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Evaluatorversionref",
+          "type": "string"
+        },
+        "strength": {
+          "$ref": "#/$defs/OracleStrength"
+        }
+      },
+      "required": [
+        "assertionId",
+        "nodeId",
+        "evaluatorVersionRef",
+        "strength"
+      ],
+      "title": "AssertionSpec",
+      "type": "object"
+    },
+    "CaseVersionStatus": {
+      "description": "Lifecycle of one immutable published case snapshot.",
+      "enum": [
+        "PUBLISHED",
+        "RETIRED"
+      ],
+      "title": "CaseVersionStatus",
+      "type": "string"
+    },
+    "EdgeMapping": {
+      "description": "Supported edge mapping operations for the v0.1 contract.",
+      "enum": [
+        "direct"
+      ],
+      "title": "EdgeMapping",
+      "type": "string"
+    },
+    "EvidencePolicy": {
+      "additionalProperties": false,
+      "description": "Environment-independent evidence requirements.",
+      "properties": {
+        "trace": {
+          "default": true,
+          "title": "Trace",
+          "type": "boolean"
+        },
+        "screenshots": {
+          "default": "critical-actions",
+          "enum": [
+            "critical-actions",
+            "assertions",
+            "all"
+          ],
+          "title": "Screenshots",
+          "type": "string"
+        },
+        "retainSuccessDays": {
+          "default": 7,
+          "maximum": 90,
+          "minimum": 1,
+          "title": "Retainsuccessdays",
+          "type": "integer"
+        },
+        "retainFailureDays": {
+          "default": 30,
+          "maximum": 365,
+          "minimum": 1,
+          "title": "Retainfailuredays",
+          "type": "integer"
+        }
+      },
+      "title": "EvidencePolicy",
+      "type": "object"
+    },
+    "FixtureContract": {
+      "additionalProperties": false,
+      "description": "Exact published fixture blueprint consumed by the case.",
+      "properties": {
+        "blueprintVersionId": {
+          "format": "uuid",
+          "title": "Blueprintversionid",
+          "type": "string"
+        },
+        "blueprintVersionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Blueprintversionref",
+          "type": "string"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        },
+        "requiredExports": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 64,
+          "title": "Requiredexports",
+          "type": "object"
+        }
+      },
+      "required": [
+        "blueprintVersionId",
+        "blueprintVersionRef",
+        "contentDigest"
+      ],
+      "title": "FixtureContract",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "OracleStrength": {
+      "description": "Oracle authority level.",
+      "enum": [
+        "hard",
+        "soft",
+        "diagnostic"
+      ],
+      "title": "OracleStrength",
+      "type": "string"
+    },
+    "OutcomePolicy": {
+      "additionalProperties": false,
+      "description": "Independent Oracle authority requirements.",
+      "properties": {
+        "requireHardOracle": {
+          "default": true,
+          "title": "Requirehardoracle",
+          "type": "boolean"
+        },
+        "evidenceIncompleteBlocksPass": {
+          "default": true,
+          "title": "Evidenceincompleteblockspass",
+          "type": "boolean"
+        },
+        "agentMayDecidePass": {
+          "const": false,
+          "default": false,
+          "title": "Agentmaydecidepass",
+          "type": "boolean"
+        }
+      },
+      "title": "OutcomePolicy",
+      "type": "object"
+    },
+    "PlanNodeRef": {
+      "additionalProperties": false,
+      "properties": {
+        "nodeId": {
+          "title": "Nodeid",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "versionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Versionref",
+          "type": "string"
+        },
+        "executionLevel": {
+          "minimum": 0,
+          "title": "Executionlevel",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "nodeId",
+        "kind",
+        "versionRef",
+        "executionLevel"
+      ],
+      "title": "PlanNodeRef",
+      "type": "object"
+    },
+    "PlanTemplate": {
+      "additionalProperties": false,
+      "description": "Environment-independent plan compiled from one exact Test IR.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.plan-template/0.1",
+          "default": "atlas.plan-template/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "testCaseId": {
+          "format": "uuid",
+          "title": "Testcaseid",
+          "type": "string"
+        },
+        "semanticRevision": {
+          "minimum": 0,
+          "title": "Semanticrevision",
+          "type": "integer"
+        },
+        "testIrDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Testirdigest",
+          "type": "string"
+        },
+        "graphDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Graphdigest",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/PlanNodeRef"
+          },
+          "title": "Nodes",
+          "type": "array"
+        },
+        "executionLevels": {
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Executionlevels",
+          "type": "array"
+        },
+        "requiredFeatures": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Requiredfeatures",
+          "type": "array"
+        },
+        "planDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Plandigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "testCaseId",
+        "semanticRevision",
+        "testIrDigest",
+        "graphDigest",
+        "nodes",
+        "executionLevels",
+        "requiredFeatures",
+        "planDigest"
+      ],
+      "title": "PlanTemplate",
+      "type": "object"
+    },
+    "PortKind": {
+      "description": "Port trust and scheduling category.",
+      "enum": [
+        "data",
+        "control"
+      ],
+      "title": "PortKind",
+      "type": "string"
+    },
+    "PortSpec": {
+      "additionalProperties": false,
+      "description": "A strongly typed node port.",
+      "properties": {
+        "key": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Key",
+          "type": "string"
+        },
+        "semanticType": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Semantictype",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PortKind",
+          "default": "data"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "sensitive": {
+          "default": false,
+          "title": "Sensitive",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "semanticType"
+      ],
+      "title": "PortSpec",
+      "type": "object"
+    },
+    "RecoveryPolicy": {
+      "additionalProperties": false,
+      "description": "Bounded retry and recovery policy compiled into a plan.",
+      "properties": {
+        "maxUnitAttempts": {
+          "default": 1,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Maxunitattempts",
+          "type": "integer"
+        },
+        "retryBrowserCrash": {
+          "default": false,
+          "title": "Retrybrowsercrash",
+          "type": "boolean"
+        },
+        "retryUnknownSideEffect": {
+          "default": false,
+          "title": "Retryunknownsideeffect",
+          "type": "boolean"
+        }
+      },
+      "title": "RecoveryPolicy",
+      "type": "object"
+    },
+    "SourceRequirementRef": {
+      "additionalProperties": false,
+      "description": "Digest-only link to one untrusted requirement source anchor.",
+      "properties": {
+        "documentId": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Documentid",
+          "type": "string"
+        },
+        "documentVersion": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Documentversion",
+          "type": "string"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        },
+        "anchor": {
+          "maxLength": 320,
+          "minLength": 1,
+          "title": "Anchor",
+          "type": "string"
+        },
+        "excerptDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Excerptdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "documentId",
+        "documentVersion",
+        "contentDigest",
+        "anchor",
+        "excerptDigest"
+      ],
+      "title": "SourceRequirementRef",
+      "type": "object"
+    },
+    "SurfaceRef": {
+      "additionalProperties": false,
+      "description": "Exact published semantic page contract reference.",
+      "properties": {
+        "surfaceKey": {
+          "maxLength": 160,
+          "minLength": 3,
+          "pattern": "^[A-Za-z][A-Za-z0-9._:-]{1,159}$",
+          "title": "Surfacekey",
+          "type": "string"
+        },
+        "versionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Versionref",
+          "type": "string"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "surfaceKey",
+        "versionRef",
+        "contentDigest"
+      ],
+      "title": "SurfaceRef",
+      "type": "object"
+    },
+    "TestIR": {
+      "additionalProperties": false,
+      "description": "Strongly typed, environment-independent Test IR v0.2.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.test-ir/0.2",
+          "default": "atlas.test-ir/0.2",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "testCaseId": {
+          "format": "uuid",
+          "title": "Testcaseid",
+          "type": "string"
+        },
+        "semanticRevision": {
+          "minimum": 0,
+          "title": "Semanticrevision",
+          "type": "integer"
+        },
+        "intentVersionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Intentversionref",
+          "type": "string"
+        },
+        "requirementRefs": {
+          "items": {
+            "$ref": "#/$defs/SourceRequirementRef"
+          },
+          "title": "Requirementrefs",
+          "type": "array"
+        },
+        "actors": {
+          "items": {
+            "$ref": "#/$defs/ActorContract"
+          },
+          "title": "Actors",
+          "type": "array"
+        },
+        "fixture": {
+          "$ref": "#/$defs/FixtureContract"
+        },
+        "workflow": {
+          "$ref": "#/$defs/WorkflowGraph"
+        },
+        "surfaces": {
+          "items": {
+            "$ref": "#/$defs/SurfaceRef"
+          },
+          "title": "Surfaces",
+          "type": "array"
+        },
+        "variables": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ValueSource"
+          },
+          "title": "Variables",
+          "type": "object"
+        },
+        "assertions": {
+          "items": {
+            "$ref": "#/$defs/AssertionSpec"
+          },
+          "title": "Assertions",
+          "type": "array"
+        },
+        "evidencePolicy": {
+          "$ref": "#/$defs/EvidencePolicy"
+        },
+        "recoveryPolicy": {
+          "$ref": "#/$defs/RecoveryPolicy"
+        },
+        "outcomePolicy": {
+          "$ref": "#/$defs/OutcomePolicy"
+        },
+        "requiredFeatures": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Requiredfeatures",
+          "type": "array"
+        },
+        "executionLevels": {
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Executionlevels",
+          "type": "array"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "testCaseId",
+        "semanticRevision",
+        "intentVersionRef",
+        "requirementRefs",
+        "actors",
+        "fixture",
+        "workflow",
+        "surfaces",
+        "variables",
+        "assertions",
+        "evidencePolicy",
+        "recoveryPolicy",
+        "outcomePolicy",
+        "requiredFeatures",
+        "executionLevels",
+        "contentDigest"
+      ],
+      "title": "TestIR",
+      "type": "object"
+    },
+    "TestIntent": {
+      "additionalProperties": false,
+      "description": "Versioned author intent referenced by one WorkflowDraft.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.test-intent/0.1",
+          "default": "atlas.test-intent/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "requirementRefs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SourceRequirementRef"
+          },
+          "maxItems": 64,
+          "title": "Requirementrefs",
+          "type": "array"
+        },
+        "actors": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ActorContract"
+          },
+          "maxItems": 8,
+          "title": "Actors",
+          "type": "array"
+        },
+        "fixture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FixtureContract"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "surfaces": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SurfaceRef"
+          },
+          "maxItems": 32,
+          "title": "Surfaces",
+          "type": "array"
+        },
+        "variables": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ValueSource"
+          },
+          "maxProperties": 128,
+          "title": "Variables",
+          "type": "object"
+        },
+        "evidencePolicy": {
+          "$ref": "#/$defs/EvidencePolicy",
+          "default": {
+            "trace": true,
+            "screenshots": "critical-actions",
+            "retainSuccessDays": 7,
+            "retainFailureDays": 30
+          }
+        },
+        "recoveryPolicy": {
+          "$ref": "#/$defs/RecoveryPolicy",
+          "default": {
+            "maxUnitAttempts": 1,
+            "retryBrowserCrash": false,
+            "retryUnknownSideEffect": false
+          }
+        },
+        "outcomePolicy": {
+          "$ref": "#/$defs/OutcomePolicy",
+          "default": {
+            "requireHardOracle": true,
+            "evidenceIncompleteBlocksPass": true,
+            "agentMayDecidePass": false
+          }
+        },
+        "requiredFeatures": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Requiredfeatures",
+          "type": "array"
+        }
+      },
+      "required": [
+        "summary"
+      ],
+      "title": "TestIntent",
+      "type": "object"
+    },
+    "ValueSource": {
+      "additionalProperties": false,
+      "description": "Structured value source without expressions or dynamic evaluation.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ValueSourceKind"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "maxLength": 320,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JsonValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ValueSource",
+      "type": "object"
+    },
+    "ValueSourceKind": {
+      "description": "Only four deterministic value sources are accepted by Test IR.",
+      "enum": [
+        "FIXTURE",
+        "ACTOR",
+        "RUN",
+        "LITERAL"
+      ],
+      "title": "ValueSourceKind",
+      "type": "string"
+    },
+    "WorkflowEdge": {
+      "additionalProperties": false,
+      "description": "A direct typed mapping between two node ports.",
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "sourceNodeId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$",
+          "title": "Sourcenodeid",
+          "type": "string"
+        },
+        "sourcePort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Sourceport",
+          "type": "string"
+        },
+        "targetNodeId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$",
+          "title": "Targetnodeid",
+          "type": "string"
+        },
+        "targetPort": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$",
+          "title": "Targetport",
+          "type": "string"
+        },
+        "semanticType": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Semantictype",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PortKind",
+          "default": "data"
+        },
+        "mapping": {
+          "$ref": "#/$defs/EdgeMapping",
+          "default": "direct"
+        }
+      },
+      "required": [
+        "id",
+        "sourceNodeId",
+        "sourcePort",
+        "targetNodeId",
+        "targetPort",
+        "semanticType"
+      ],
+      "title": "WorkflowEdge",
+      "type": "object"
+    },
+    "WorkflowGraph": {
+      "additionalProperties": false,
+      "description": "The semantic graph owned by a WorkflowDraft revision.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.workflow-graph/0.1",
+          "default": "atlas.workflow-graph/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/WorkflowNode"
+          },
+          "title": "Nodes",
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/WorkflowEdge"
+          },
+          "title": "Edges",
+          "type": "array"
+        }
+      },
+      "required": [
+        "nodes",
+        "edges"
+      ],
+      "title": "WorkflowGraph",
+      "type": "object"
+    },
+    "WorkflowNode": {
+      "additionalProperties": false,
+      "description": "A published node reference inside an authoring graph.",
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "versionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Versionref",
+          "type": "string"
+        },
+        "phase": {
+          "$ref": "#/$defs/WorkflowPhase"
+        },
+        "inputPorts": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PortSpec"
+          },
+          "title": "Inputports",
+          "type": "array"
+        },
+        "outputPorts": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PortSpec"
+          },
+          "title": "Outputports",
+          "type": "array"
+        },
+        "params": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Params",
+          "type": "object"
+        },
+        "terminal": {
+          "default": false,
+          "title": "Terminal",
+          "type": "boolean"
+        },
+        "oracleStrength": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OracleStrength"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "versionRef",
+        "phase"
+      ],
+      "title": "WorkflowNode",
+      "type": "object"
+    },
+    "WorkflowPhase": {
+      "description": "Supported deterministic workflow phases.",
+      "enum": [
+        "setup",
+        "identity",
+        "execute",
+        "assert",
+        "cleanup"
+      ],
+      "title": "WorkflowPhase",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Published TestCase snapshot consumed later only by exact ID.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.case-version/0.1",
+      "default": "atlas.case-version/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "testCaseId": {
+      "format": "uuid",
+      "title": "Testcaseid",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 80,
+      "minLength": 5,
+      "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+      "title": "Version",
+      "type": "string"
+    },
+    "versionRef": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "title": "Versionref",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/CaseVersionStatus"
+    },
+    "sourceDraftId": {
+      "format": "uuid",
+      "title": "Sourcedraftid",
+      "type": "string"
+    },
+    "semanticRevision": {
+      "minimum": 1,
+      "title": "Semanticrevision",
+      "type": "integer"
+    },
+    "semanticDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Semanticdigest",
+      "type": "string"
+    },
+    "intentVersionRef": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "title": "Intentversionref",
+      "type": "string"
+    },
+    "intentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intentdigest",
+      "type": "string"
+    },
+    "intent": {
+      "$ref": "#/$defs/TestIntent"
+    },
+    "graph": {
+      "$ref": "#/$defs/WorkflowGraph"
+    },
+    "testIr": {
+      "$ref": "#/$defs/TestIR"
+    },
+    "testIrDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Testirdigest",
+      "type": "string"
+    },
+    "planTemplate": {
+      "$ref": "#/$defs/PlanTemplate"
+    },
+    "planDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plandigest",
+      "type": "string"
+    },
+    "compiledDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Compileddigest",
+      "type": "string"
+    },
+    "contentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Contentdigest",
+      "type": "string"
+    },
+    "debugRunId": {
+      "format": "uuid",
+      "title": "Debugrunid",
+      "type": "string"
+    },
+    "evidenceManifestId": {
+      "format": "uuid",
+      "title": "Evidencemanifestid",
+      "type": "string"
+    },
+    "evidenceManifestDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Evidencemanifestdigest",
+      "type": "string"
+    },
+    "authoredBy": {
+      "format": "uuid",
+      "title": "Authoredby",
+      "type": "string"
+    },
+    "publishedBy": {
+      "format": "uuid",
+      "title": "Publishedby",
+      "type": "string"
+    },
+    "reviewSummary": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Reviewsummary",
+      "type": "string"
+    },
+    "publishedAt": {
+      "format": "date-time",
+      "title": "Publishedat",
+      "type": "string"
+    },
+    "retiredAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retiredat"
+    },
+    "retiredBy": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retiredby"
+    },
+    "retirementReason": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retirementreason"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "title": "Updatedat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "testCaseId",
+    "version",
+    "versionRef",
+    "status",
+    "sourceDraftId",
+    "semanticRevision",
+    "semanticDigest",
+    "intentVersionRef",
+    "intentDigest",
+    "intent",
+    "graph",
+    "testIr",
+    "testIrDigest",
+    "planTemplate",
+    "planDigest",
+    "compiledDigest",
+    "contentDigest",
+    "debugRunId",
+    "evidenceManifestId",
+    "evidenceManifestDigest",
+    "authoredBy",
+    "publishedBy",
+    "reviewSummary",
+    "publishedAt",
+    "revision",
+    "createdAt",
+    "updatedAt"
+  ],
+  "title": "CaseVersion",
+  "type": "object"
+}

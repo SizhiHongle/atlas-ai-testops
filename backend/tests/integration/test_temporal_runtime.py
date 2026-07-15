@@ -1,5 +1,6 @@
 """真实 Temporal Server 与 Worker 集成测试。"""
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from os import environ
 from typing import cast
@@ -144,9 +145,11 @@ class FakeFixtureWorkerService:
         self.execute_calls = 0
         self.canceled = False
         self.calls: list[str] = []
+        self.plan_loaded = asyncio.Event()
 
     async def load_plan(self, tenant_id: UUID, run_id: UUID) -> FixtureWorkerPlan:
         self.calls.append("load")
+        self.plan_loaded.set()
         return FixtureWorkerPlan(
             fixture_run_id=run_id,
             execution_levels=(("createCustomer",),),
@@ -392,6 +395,7 @@ async def test_real_fixture_workflow_cancel_signal_runs_cleanup(cancel_mode: str
     ):
         await dispatcher.start(run)
         handle = client.get_workflow_handle(run.temporal_workflow_id)
+        await asyncio.wait_for(fake.plan_loaded.wait(), timeout=5)
         if cancel_mode == "signal":
             await dispatcher.cancel(run)
         else:

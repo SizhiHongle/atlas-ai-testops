@@ -1,6 +1,6 @@
 # Atlas AI 测试平台实施要点
 
-更新时间：2026-07-14
+更新时间：2026-07-15
 
 ## 文档优先级
 
@@ -111,6 +111,32 @@
 - Resource Ledger 必须先于 Postcondition 保存；只有 `CREATED` Ownership 可进入自动 Cleanup，`ADOPTED / LEASED / SHARED` 即使具有资源引用也不得被平台自动删除。
 - 正常 Release、节点失败和取消都按 Compiled Plan 的逆拓扑顺序清理已创建资源并释放绑定 Lease；Temporal Workflow 在业务信号和原生 Cancellation 下都通过 `finally` 进入补偿。Cleanup 前再次复核实时 Lease / Connector / Fence，旧 Fence、过期或已撤销 Lease 不得继续调用 Provider，而是把资源标记为 `LEAKED`。Transient Failure 通过 Generation Attempt、显式 Retry 或 Tenant Sweeper 继续处理，Sweeper 同时恢复 stale claim 并扫描到期孤儿；Permanent Failure 或重试耗尽保持隔离且不产生 Cleanup Evidence。
 - FixtureManifest 只包含 Blueprint 显式 Export 的非敏感值，不复制全部 Node Output、秘密、Connector 配置引用或 Provider 原始响应。当前前端只更新生成 API 类型，不修改原型页面、DOM、布局、CSS 或交互。
+
+## ExecutionContract、Oracle 与 EvidenceManifest 边界
+
+- DebugRun 只能从 `CREATED` 绑定一次不可变 ExecutionContract；合约必须与冻结 Test IR / Plan、`READY EXECUTION` FixtureRun / FixtureManifest、Role Revision、AccountLease / Fence、READY SessionArtifact 和 execution deadline 精确一致。
+- FixtureRun 与 AccountLease 的 `executionId` 都必须是 `debug-run:{debugRunId}`。Session、Lease 与 Fixture deadline 必须覆盖整个 DebugRun，Actor slot 必须完整且与 Test IR 一一对应。
+- Browser Agent 只提交 Assertion observation 与 Artifact metadata，不提交 Case outcome。AssertionResult 必须匹配冻结 Assertion ID、Node、Strength、Evaluator Version 和 expected program digest。
+- Oracle 推导规则固定为：任一 HARD `FAILED` 得到 `FAILED`；缺 HARD 结果、HARD `INCONCLUSIVE`、证据不完整或 integrity 非 `VERIFIED` 得到 `INCONCLUSIVE`；只有完整证据下所有 HARD 均 `PASSED` 才得到 `PASSED`。
+- Assertion observation、Artifact capture 与 Evidence finalization 必须位于 ExecutionContract 时间窗内。EvidenceManifest 不携带对象存储地址，只保存安全 Artifact 摘要、事件链头和可验证 Digest。
+- P6 Runtime 事实表启用强制 RLS、Scope FK、不可变 Trigger 和 `SELECT/INSERT` 最小权限；PostgreSQL 再次推导 completeness、integrity 与 outcome。CaseVersion 发布必须加载实际 Manifest 复核，不能只相信 DebugRun 引用。
+- P6-01 的独立 Browser Worker 已通过受信内部协议读取执行包、推进状态、追加报告和终结证据；没有公共 Runtime 完成接口，Worker 不能直接访问主数据库。
+- AttemptSeal 归属于正式 UnitAttempt；P5 尚未创建 UnitAttempt 时不提前创建无宿主 Seal。
+
+## Browser Worker、内部网关与 Playwright 边界
+
+- `atlas-browser-worker` 是独立的 Temporal Worker。其 `BrowserWorkerSettings` 不包含 `database_url`，不构造控制面 `Database`；API 只在 DebugRun 已绑定 exact ExecutionContract 后向专用 Task Queue Dispatch。
+- 一个 Browser Workflow 使用一个有 Heartbeat 的长时 Activity 执行浏览器副作用，Activity 不自动重试。导航、点击、输入或连接中断无法证明结果时记录 `OUTCOME_UNKNOWN`，本次执行只能 fail-closed，不能盲重放或推导 `PASSED`。
+- 内部 Runtime Gateway 同时要求 Tenant / Run / Worker / Deadline 绑定的短期 Execution Permit 和独立 HMAC Request Signature。Signature 覆盖 Method、Path、Scope、Timestamp、Nonce、Body Digest 与 Permit Digest；响应使用 `no-store`，请求体有界，精确签名请求仅做有界幂等重试。Local / Test / Development 可以使用 HTTP 调试；Staging / Production 的 `BrowserWorkerSettings` 必须把 Runtime API 配置为 HTTPS Origin，否则 Worker 在启动前 fail-closed。
+- `BrowserContextRestoreEnvelope` 使用 AES-256-GCM，AAD 绑定 ExecutionContract ID / Digest、Worker、Actor Slot、BrowserContextRef 与 Expiry；密文内 Descriptor 继续绑定 Tenant / Project / Environment、Lease / Fence 与 SessionArtifact Vault 元数据。Worker 只在内存解密，Scope、Key Version、Deadline 或 Integrity 不一致立即拒绝。
+- `BrowserRuntimeReport` 是单调、类型化、不可变 Hash-chain：首条只能是 `execution.started`，每个 `actionId` 在整条 Contract Chain 只能提出一次；Proposal → 同 Actor Policy → ALLOW 后同 Proposal Receipt 必须连续，唯一例外是 Policy 后用 `execution.blocked` 明确终止无法形成可信 Receipt 的 Action。Action Report 中间不能插入其他普通 Report，Denied / Blocked Action 只能进入 Blocked 路径，完整链末条只能是 `execution.completed`。
+- Playwright 只允许 frozen Tool Catalog 中真正实现的 Action，并复核 Tool / Policy / MCP Digest、Action Risk、Semantic Role、Route / Origin 与单次 Grant。Operation 和 Route 必须由部署时 exact-version Registry 注册，资产、Agent 与 HTTP 请求不能注入绝对 URL、Locator、Module、Script 或 Callable。
+- DOM Action 必须引用当前 Observation 的 retained `ElementHandle`、Page Revision 与单次 Nonce；执行前重新核对 Visible、Element Key、Accessible Name 与 Semantic Fingerprint，页面变化使旧 Target 失效。普通 Request 与 WebSocket 都限制在 Session / Published Route 的精确 Origin。
+- `CAPTURE_VIEW` 只能把原始字节交给生产 `BrowserArtifactWriter` 做 Redaction、持久化、独立 Hash 与 Verification。`BrowserPlanOperation` 不得直接构造或返回 `EvidenceArtifactInput`；即使元数据字段和 Digest 形状合法，也不能绕过 Writer 进入 Execution Output。P6-01 默认不提供该 Writer，也不把内存 Hash 或 Operation 自报冒充 `VERIFIED` Evidence；生产 Writer 属于 P6-02。
+- Evidence Finalization 必须精确匹配 Chain Head / Count，并对 Report 中的每个 `assertionInputDigest` / `artifactInputDigest` 与 Finalize Command 中完整 `AssertionResultInput` / `EvidenceArtifactInput` 的 Canonical Digest 重新比对；只匹配 ID、Count、Content Digest 或部分字段不足以终结。Finalization Command Digest 只允许同一完整命令 exact replay。
+- Report Chain 出现 `execution.blocked`，或任一 Action Receipt 为 `FAILED / OUTCOME_UNKNOWN` 时，Finalize Command 中全部 Assertion Result 必须是 `INCONCLUSIVE`，最终 Outcome 也只能是 `INCONCLUSIVE`；后续 Assertion、Artifact 或 Operation 不能覆盖该安全结论。
+- 当前只支持单 Actor。生产 Evidence / Redaction Writer、首个真实 SaaS Operation / Route Registry、容器级 Egress / DNS / UDP / WebRTC 约束、Envelope Key Ring Rotation、公共 Start 到 Preparation / Bind / Dispatch 的自动串联和 Multi-actor 均未完成；缺少任一所需部署能力时继续 fail-closed。
+- 本切片没有修改任何前端页面、组件、DOM、布局、CSS 或既有交互；前端原型继续是唯一视觉与交互权威。
 
 ## 不可破坏的领域链
 

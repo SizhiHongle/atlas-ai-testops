@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/plan-template/0.1/schema.json",
+  "$defs": {
+    "PlanNodeRef": {
+      "additionalProperties": false,
+      "properties": {
+        "nodeId": {
+          "title": "Nodeid",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "versionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Versionref",
+          "type": "string"
+        },
+        "executionLevel": {
+          "minimum": 0,
+          "title": "Executionlevel",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "nodeId",
+        "kind",
+        "versionRef",
+        "executionLevel"
+      ],
+      "title": "PlanNodeRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Environment-independent plan compiled from one exact Test IR.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.plan-template/0.1",
+      "default": "atlas.plan-template/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "testCaseId": {
+      "format": "uuid",
+      "title": "Testcaseid",
+      "type": "string"
+    },
+    "semanticRevision": {
+      "minimum": 0,
+      "title": "Semanticrevision",
+      "type": "integer"
+    },
+    "testIrDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Testirdigest",
+      "type": "string"
+    },
+    "graphDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Graphdigest",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/PlanNodeRef"
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "executionLevels": {
+      "items": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Executionlevels",
+      "type": "array"
+    },
+    "requiredFeatures": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Requiredfeatures",
+      "type": "array"
+    },
+    "planDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plandigest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "testCaseId",
+    "semanticRevision",
+    "testIrDigest",
+    "graphDigest",
+    "nodes",
+    "executionLevels",
+    "requiredFeatures",
+    "planDigest"
+  ],
+  "title": "PlanTemplate",
+  "type": "object"
+}

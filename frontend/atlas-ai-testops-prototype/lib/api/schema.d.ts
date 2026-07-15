@@ -144,6 +144,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/internal/v1/debug-runs/{runId}/browser-execution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取已绑定 DebugRun 的受信 Browser 执行包 */
+        get: operations["get_browser_execution_bundle_internal_v1_debug_runs__runId__browser_execution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/debug-runs/{runId}/browser-execution:finalize-evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 用报告链、Oracle 输入和 Artifact receipt 完成证据封存 */
+        post: operations["finalize_browser_evidence_internal_v1_debug_runs__runId__browser_execution_finalize_evidence_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/debug-runs/{runId}/browser-execution:ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 确认 Browser Worker 已取得完整执行包 */
+        post: operations["mark_browser_execution_ready_internal_v1_debug_runs__runId__browser_execution_ready_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/debug-runs/{runId}/browser-execution:start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 在任何 Browser 副作用前推进 DebugRun 到 RUNNING */
+        post: operations["start_browser_execution_internal_v1_debug_runs__runId__browser_execution_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/debug-runs/{runId}/browser-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 单调追加一个 Browser Runtime 事实 */
+        post: operations["append_browser_runtime_report_internal_v1_debug_runs__runId__browser_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/internal/v1/fixture-cleanup:sweep": {
         parameters: {
             query?: never;
@@ -277,6 +362,23 @@ export interface paths {
          * @description 服务端撤销 Session，并始终清除客户端 Cookie。
          */
         post: operations["logout_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/case-versions/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 按 ID 读取精确 CaseVersion */
+        get: operations["get_case_version_v1_case_versions__versionId__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -511,6 +613,57 @@ export interface paths {
         put?: never;
         /** 创建 DataBlueprintVersion */
         post: operations["create_data_blueprint_version_v1_data_blueprints__blueprintId__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/debug-runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取冻结的 DebugRun 快照 */
+        get: operations["get_debug_run_v1_debug_runs__runId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/debug-runs/{runId}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 增量读取 DebugRun 单调事件 */
+        get: operations["list_debug_run_events_v1_debug_runs__runId__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/debug-runs/{runId}:cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 请求取消 DebugRun */
+        post: operations["cancel_debug_run_v1_debug_runs__runId__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -852,6 +1005,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/{projectId}/test-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 TestCase Catalog */
+        get: operations["list_test_cases_v1_projects__projectId__test_cases_get"];
+        put?: never;
+        /** 创建 TestCase 与初始 WorkflowDraft */
+        post: operations["create_test_case_v1_projects__projectId__test_cases_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{projectId}/test-roles": {
         parameters: {
             query?: never;
@@ -1042,6 +1213,159 @@ export interface paths {
          * @description Run an out-of-transaction Provider probe and apply it with revision CAS.
          */
         post: operations["verify_test_account_v1_test_accounts__accountId__verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test-cases/{caseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 TestCase */
+        get: operations["get_test_case_v1_test_cases__caseId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test-cases/{caseId}/debug-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 TestCase 的 DebugRun 快照 */
+        get: operations["list_debug_runs_v1_test_cases__caseId__debug_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test-cases/{caseId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 TestCase 的不可变版本历史 */
+        get: operations["list_case_versions_v1_test_cases__caseId__versions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test-cases/{caseId}/workflow-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取当前 WorkflowDraft */
+        get: operations["get_workflow_draft_v1_test_cases__caseId__workflow_draft_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test-cases/{caseId}/workflow-draft/debug-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 冻结 WorkflowDraft 并启动 DebugRun */
+        post: operations["start_debug_run_v1_test_cases__caseId__workflow_draft_debug_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test-cases/{caseId}/workflow-draft/layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新 WorkflowDraft 布局 */
+        patch: operations["update_workflow_layout_v1_test_cases__caseId__workflow_draft_layout_patch"];
+        trace?: never;
+    };
+    "/v1/test-cases/{caseId}/workflow-draft/patches:apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 原子应用 WorkflowPatch */
+        post: operations["apply_workflow_patch_v1_test_cases__caseId__workflow_draft_patches_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test-cases/{caseId}/workflow-draft/patches:validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 预检 WorkflowPatch */
+        post: operations["validate_workflow_patch_v1_test_cases__caseId__workflow_draft_patches_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test-cases/{caseId}:publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 评审并发布不可变 CaseVersion */
+        post: operations["publish_case_version_v1_test_cases__caseId__publish_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1462,11 +1786,186 @@ export interface components {
             workerId: string;
         };
         /**
+         * ActorContract
+         * @description Non-secret business-role binding used by one case.
+         */
+        ActorContract: {
+            /** Actorslot */
+            actorSlot: string;
+            /**
+             * Capabilities
+             * @default []
+             */
+            capabilities: string[];
+            /**
+             * Roleid
+             * Format: uuid
+             */
+            roleId: string;
+            /** Rolekey */
+            roleKey: string;
+            /** Rolerevision */
+            roleRevision: number;
+        };
+        /**
          * AdapterMode
          * @description Capability 的确定性执行模式。
          * @enum {string}
          */
         AdapterMode: "native_api" | "browser" | "webhook" | "polling" | "manual";
+        /** AddEdgeOperation */
+        AddEdgeOperation: {
+            edge: components["schemas"]["WorkflowEdge"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "ADD_EDGE";
+        };
+        /** AddNodeOperation */
+        AddNodeOperation: {
+            node: components["schemas"]["WorkflowNode"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "ADD_NODE";
+        };
+        /**
+         * AppendBrowserRuntimeReport
+         * @description Worker report whose canonical chain is independently verified by control plane.
+         */
+        AppendBrowserRuntimeReport: {
+            /** Actionid */
+            actionId?: string | null;
+            /** Actorslot */
+            actorSlot?: string | null;
+            /** Chaindigest */
+            chainDigest: string;
+            /** Executioncontractdigest */
+            executionContractDigest: string;
+            /**
+             * Executioncontractid
+             * Format: uuid
+             */
+            executionContractId: string;
+            kind: components["schemas"]["BrowserRuntimeReportKind"];
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt: string;
+            /** Payload */
+            payload?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Payloaddigest */
+            payloadDigest: string;
+            /** Previouschaindigest */
+            previousChainDigest: string;
+            /**
+             * Reportid
+             * Format: uuid
+             */
+            reportId: string;
+            /**
+             * Schemaversion
+             * @default atlas.browser-runtime-report/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.browser-runtime-report/0.1";
+            /** Sequence */
+            sequence: number;
+        };
+        /**
+         * AssertionResult
+         * @description Oracle result validated against an immutable assertion specification.
+         */
+        AssertionResult: {
+            /** Actualsafesummary */
+            actualSafeSummary: string;
+            /** Assertionid */
+            assertionId: string;
+            /** Durationms */
+            durationMs: number;
+            /** Evaluatorversionref */
+            evaluatorVersionRef: string;
+            /**
+             * Evidencerefs
+             * @default []
+             */
+            evidenceRefs: string[];
+            /** Expecteddigest */
+            expectedDigest: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Nodeid */
+            nodeId: string;
+            /**
+             * Observedat
+             * Format: date-time
+             */
+            observedAt: string;
+            /** Resultdigest */
+            resultDigest: string;
+            /**
+             * Schemaversion
+             * @default atlas.assertion-result/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.assertion-result/0.1";
+            status: components["schemas"]["AssertionStatus"];
+            strength: components["schemas"]["OracleStrength"];
+        };
+        /**
+         * AssertionResultInput
+         * @description Untrusted wire input checked against one frozen Test IR assertion.
+         */
+        AssertionResultInput: {
+            /** Actualsafesummary */
+            actualSafeSummary: string;
+            /** Assertionid */
+            assertionId: string;
+            /** Durationms */
+            durationMs: number;
+            /** Evaluatorversionref */
+            evaluatorVersionRef: string;
+            /**
+             * Evidencerefs
+             * @default []
+             */
+            evidenceRefs: string[];
+            /** Expecteddigest */
+            expectedDigest: string;
+            /**
+             * Observedat
+             * Format: date-time
+             */
+            observedAt: string;
+            status: components["schemas"]["AssertionStatus"];
+        };
+        /**
+         * AssertionSpec
+         * @description Immutable Oracle reference derived from an assertion graph node.
+         */
+        AssertionSpec: {
+            /** Assertionid */
+            assertionId: string;
+            /** Evaluatorversionref */
+            evaluatorVersionRef: string;
+            /** Nodeid */
+            nodeId: string;
+            strength: components["schemas"]["OracleStrength"];
+        };
+        /**
+         * AssertionStatus
+         * @description Deterministic Oracle decision for one frozen assertion.
+         * @enum {string}
+         */
+        AssertionStatus: "PASSED" | "FAILED" | "INCONCLUSIVE";
         /**
          * AssetDefinitionStatus
          * @description Lifecycle of a stable asset identity.
@@ -1589,6 +2088,150 @@ export interface components {
             tenantId: string;
         };
         /**
+         * BrowserContextRestoreEnvelope
+         * @description Encrypted session descriptor safe to carry through Temporal history.
+         */
+        BrowserContextRestoreEnvelope: {
+            /** Actorslot */
+            actorSlot: string;
+            /**
+             * Algorithm
+             * @default AES-256-GCM
+             * @constant
+             */
+            algorithm: "AES-256-GCM";
+            /** Browsercontextref */
+            browserContextRef: string;
+            /** Ciphertext */
+            ciphertext: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /** Keyversion */
+            keyVersion: string;
+            /** Nonce */
+            nonce: string;
+            /**
+             * Schemaversion
+             * @default atlas.browser-context-restore-envelope/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.browser-context-restore-envelope/0.1";
+        };
+        /**
+         * BrowserEvidenceFinalization
+         * @description Safe combined response after deterministic DebugRun finalization.
+         */
+        BrowserEvidenceFinalization: {
+            evidenceManifest: components["schemas"]["EvidenceManifest"];
+            run: components["schemas"]["DebugRun"];
+        };
+        /**
+         * BrowserExecutionBundle
+         * @description Complete trusted, secret-free execution view consumed by the Worker.
+         */
+        BrowserExecutionBundle: {
+            executionContract: components["schemas"]["ExecutionContract"];
+            /** Fixtureexports */
+            fixtureExports: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Issuedat
+             * Format: date-time
+             */
+            issuedAt: string;
+            planTemplate: components["schemas"]["PlanTemplate"];
+            /** Restoreenvelopes */
+            restoreEnvelopes: components["schemas"]["BrowserContextRestoreEnvelope"][];
+            /**
+             * Schemaversion
+             * @default atlas.browser-execution-bundle/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.browser-execution-bundle/0.1";
+            testIr: components["schemas"]["TestIR"];
+        };
+        /**
+         * BrowserExecutionProfile
+         * @description Reviewed browser binary and deterministic locale settings.
+         */
+        BrowserExecutionProfile: {
+            /**
+             * Engine
+             * @default chromium
+             * @constant
+             */
+            engine: "chromium";
+            /** Locale */
+            locale: string;
+            /** Revision */
+            revision: string;
+            /** Timezone */
+            timezone: string;
+            viewport: components["schemas"]["Viewport"];
+        };
+        /**
+         * BrowserFinalizeCommand
+         * @description Internal wrapper that keeps the trusted finalization body explicit.
+         */
+        BrowserFinalizeCommand: {
+            command: components["schemas"]["FinalizeDebugEvidence"];
+        };
+        /**
+         * BrowserRuntimeReport
+         * @description Persisted tenant-scoped report returned on idempotent replay.
+         */
+        BrowserRuntimeReport: {
+            /**
+             * Debugrunid
+             * Format: uuid
+             */
+            debugRunId: string;
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Recordedat
+             * Format: date-time
+             */
+            recordedAt: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            value: components["schemas"]["AppendBrowserRuntimeReport"];
+        };
+        /**
+         * BrowserRuntimeReportKind
+         * @description Append-only execution-plane facts reported by the Browser Worker.
+         * @enum {string}
+         */
+        BrowserRuntimeReportKind: "execution.started" | "node.started" | "observation.captured" | "action.proposed" | "policy.decided" | "action.executed" | "artifact.captured" | "assertion.evaluated" | "node.completed" | "execution.blocked" | "execution.completed";
+        /**
+         * BrowserRuntimeTransition
+         * @description Exact contract reference required for READY and RUNNING transitions.
+         */
+        BrowserRuntimeTransition: {
+            /** Executioncontractdigest */
+            executionContractDigest: string;
+            /**
+             * Executioncontractid
+             * Format: uuid
+             */
+            executionContractId: string;
+        };
+        /**
          * CapabilityDescriptor
          * @description Adapter 代码理论支持的单个版本化能力。
          */
@@ -1598,6 +2241,131 @@ export interface components {
             /** Version */
             version: string;
         };
+        /**
+         * CaseVersion
+         * @description Published TestCase snapshot consumed later only by exact ID.
+         */
+        CaseVersion: {
+            /**
+             * Authoredby
+             * Format: uuid
+             */
+            authoredBy: string;
+            /** Compileddigest */
+            compiledDigest: string;
+            /** Contentdigest */
+            contentDigest: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Debugrunid
+             * Format: uuid
+             */
+            debugRunId: string;
+            /** Evidencemanifestdigest */
+            evidenceManifestDigest: string;
+            /**
+             * Evidencemanifestid
+             * Format: uuid
+             */
+            evidenceManifestId: string;
+            graph: components["schemas"]["WorkflowGraph"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            intent: components["schemas"]["TestIntent"];
+            /** Intentdigest */
+            intentDigest: string;
+            /** Intentversionref */
+            intentVersionRef: string;
+            /** Plandigest */
+            planDigest: string;
+            planTemplate: components["schemas"]["PlanTemplate"];
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Publishedat
+             * Format: date-time
+             */
+            publishedAt: string;
+            /**
+             * Publishedby
+             * Format: uuid
+             */
+            publishedBy: string;
+            /** Retiredat */
+            retiredAt?: string | null;
+            /** Retiredby */
+            retiredBy?: string | null;
+            /** Retirementreason */
+            retirementReason?: string | null;
+            /** Reviewsummary */
+            reviewSummary: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Schemaversion
+             * @default atlas.case-version/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.case-version/0.1";
+            /** Semanticdigest */
+            semanticDigest: string;
+            /** Semanticrevision */
+            semanticRevision: number;
+            /**
+             * Sourcedraftid
+             * Format: uuid
+             */
+            sourceDraftId: string;
+            status: components["schemas"]["CaseVersionStatus"];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Testcaseid
+             * Format: uuid
+             */
+            testCaseId: string;
+            testIr: components["schemas"]["TestIR"];
+            /** Testirdigest */
+            testIrDigest: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            /** Version */
+            version: string;
+            /** Versionref */
+            versionRef: string;
+        };
+        /**
+         * CaseVersionPage
+         * @description Cursor page of immutable CaseVersion history.
+         */
+        CaseVersionPage: {
+            /** Items */
+            items: components["schemas"]["CaseVersion"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * CaseVersionStatus
+         * @description Lifecycle of one immutable published case snapshot.
+         * @enum {string}
+         */
+        CaseVersionStatus: "PUBLISHED" | "RETIRED";
         /**
          * CleanupContract
          * @description A reviewed operation that cleans one ledger-owned resource.
@@ -1959,6 +2727,34 @@ export interface components {
             loginHintMasked: string;
             /** @default ATLAS_MANAGED */
             source: components["schemas"]["AccountSource"];
+        };
+        /**
+         * CreateTestCase
+         * @description Create a TestCase and its unique current WorkflowDraft atomically.
+         */
+        CreateTestCase: {
+            /** Casekey */
+            caseKey: string;
+            /**
+             * @default {
+             *       "edges": [],
+             *       "nodes": [],
+             *       "schemaVersion": "atlas.workflow-graph/0.1"
+             *     }
+             */
+            graph: components["schemas"]["WorkflowGraph"];
+            intent: components["schemas"]["TestIntent"];
+            /**
+             * Intentversion
+             * @default 0.1.0
+             */
+            intentVersion: string;
+            /** Layout */
+            layout?: {
+                [key: string]: components["schemas"]["NodeLayout"];
+            };
+            /** Name */
+            name: string;
         };
         /**
          * CreateTestRole
@@ -2591,6 +3387,190 @@ export interface components {
          */
         DataNodeRunStatus: "PENDING" | "READY" | "RUNNING" | "VERIFYING" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNCERTAIN";
         /**
+         * DebugRun
+         * @description Safe projection containing one immutable compiled Draft snapshot.
+         */
+        DebugRun: {
+            /** Cancelrequestedat */
+            cancelRequestedAt?: string | null;
+            /** Cancelrequestedby */
+            cancelRequestedBy?: string | null;
+            /** Compileddigest */
+            compiledDigest: string;
+            /** Completedat */
+            completedAt?: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Draftid
+             * Format: uuid
+             */
+            draftId: string;
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /** Evidencemanifestdigest */
+            evidenceManifestDigest?: string | null;
+            /** Evidencemanifestid */
+            evidenceManifestId?: string | null;
+            /** Executioncontractdigest */
+            executionContractDigest?: string | null;
+            /** Executioncontractid */
+            executionContractId?: string | null;
+            /**
+             * Executiondeadline
+             * Format: date-time
+             */
+            executionDeadline: string;
+            /** Failurecode */
+            failureCode?: string | null;
+            /** Failuredetail */
+            failureDetail?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            lifecycle: components["schemas"]["DebugRunLifecycle"];
+            outcome: components["schemas"]["DebugRunOutcome"];
+            /** Outdatedat */
+            outdatedAt?: string | null;
+            /** Plandigest */
+            planDigest: string;
+            planTemplate: components["schemas"]["PlanTemplate"];
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Requestedat
+             * Format: date-time
+             */
+            requestedAt: string;
+            /** Requestedby */
+            requestedBy: string | null;
+            /** Revision */
+            revision: number;
+            /** Semanticdigest */
+            semanticDigest: string;
+            /** Semanticrevision */
+            semanticRevision: number;
+            snapshotStatus: components["schemas"]["DebugRunSnapshotStatus"];
+            /** Startedat */
+            startedAt?: string | null;
+            /** Temporalworkflowid */
+            temporalWorkflowId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Testcaseid
+             * Format: uuid
+             */
+            testCaseId: string;
+            testIr: components["schemas"]["TestIR"];
+            /** Testirdigest */
+            testIrDigest: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * DebugRunEvent
+         * @description Append-only, monotonic event projection for reliable UI replay.
+         */
+        DebugRunEvent: {
+            /**
+             * Debugrunid
+             * Format: uuid
+             */
+            debugRunId: string;
+            /** Eventtype */
+            eventType: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            lifecycle: components["schemas"]["DebugRunLifecycle"];
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt: string;
+            outcome: components["schemas"]["DebugRunOutcome"];
+            /** Payload */
+            payload?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Seq */
+            seq: number;
+            snapshotStatus: components["schemas"]["DebugRunSnapshotStatus"];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Testcaseid
+             * Format: uuid
+             */
+            testCaseId: string;
+        };
+        /**
+         * DebugRunEventPage
+         * @description Monotonic event page resumed with afterSeq.
+         */
+        DebugRunEventPage: {
+            /** Items */
+            items: components["schemas"]["DebugRunEvent"][];
+            /** Nextafterseq */
+            nextAfterSeq?: number | null;
+        };
+        /**
+         * DebugRunLifecycle
+         * @description Durable runtime lifecycle kept separate from the test outcome.
+         * @enum {string}
+         */
+        DebugRunLifecycle: "CREATED" | "BINDING" | "READY" | "RUNNING" | "FINALIZING" | "TERMINATED";
+        /**
+         * DebugRunOutcome
+         * @description Independent Oracle-owned result classification.
+         * @enum {string}
+         */
+        DebugRunOutcome: "NOT_SET" | "PASSED" | "FAILED" | "BLOCKED" | "INCONCLUSIVE" | "INFRA_ERROR" | "CANCELED";
+        /**
+         * DebugRunPage
+         * @description Cursor page of DebugRuns for one TestCase.
+         */
+        DebugRunPage: {
+            /** Items */
+            items: components["schemas"]["DebugRun"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * DebugRunSnapshotStatus
+         * @description Whether the frozen run still matches the current draft semantics.
+         * @enum {string}
+         */
+        DebugRunSnapshotStatus: "CURRENT" | "OUTDATED";
+        /**
          * DependencyCheck
          * @description 单个依赖的 readiness 结果。
          */
@@ -2603,6 +3583,18 @@ export interface components {
              */
             status: "ready" | "disabled" | "not_ready";
         };
+        /**
+         * DraftAuthor
+         * @description Actor that last changed a Workflow Draft.
+         * @enum {string}
+         */
+        DraftAuthor: "ai" | "human";
+        /**
+         * EdgeMapping
+         * @description Supported edge mapping operations for the v0.1 contract.
+         * @enum {string}
+         */
+        EdgeMapping: "direct";
         /**
          * EnsureLoginSession
          * @description Request an origin-bound session for the latest account lease fence.
@@ -2687,7 +3679,226 @@ export interface components {
          * @description 可以安全暴露给调用方的稳定错误码。
          * @enum {string}
          */
-        ErrorCode: "INVALID_REQUEST" | "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "AUTHENTICATION_FAILED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "POOL_EXHAUSTED" | "CONSTRAINT_UNSATISFIED" | "LEASE_EXPIRED" | "LEASE_FENCED" | "CREDENTIAL_EXPIRED" | "ORIGIN_NOT_ALLOWED" | "SECRET_GRANT_EXPIRED" | "SECRET_GRANT_REPLAYED" | "SECRET_GRANT_REVOKED" | "SESSION_CREATION_IN_PROGRESS" | "SESSION_UNAVAILABLE" | "SESSION_INTEGRITY_FAILED" | "PROVIDER_UNAVAILABLE" | "DEPENDENCY_UNAVAILABLE" | "ASSET_IMMUTABLE" | "PUBLICATION_EVIDENCE_REQUIRED" | "INTERNAL_ERROR";
+        ErrorCode: "INVALID_REQUEST" | "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "AUTHENTICATION_FAILED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "POOL_EXHAUSTED" | "CONSTRAINT_UNSATISFIED" | "LEASE_EXPIRED" | "LEASE_FENCED" | "CREDENTIAL_EXPIRED" | "ORIGIN_NOT_ALLOWED" | "SECRET_GRANT_EXPIRED" | "SECRET_GRANT_REPLAYED" | "SECRET_GRANT_REVOKED" | "SESSION_CREATION_IN_PROGRESS" | "SESSION_UNAVAILABLE" | "SESSION_INTEGRITY_FAILED" | "PROVIDER_UNAVAILABLE" | "DEPENDENCY_UNAVAILABLE" | "ASSET_IMMUTABLE" | "PUBLICATION_EVIDENCE_REQUIRED" | "DRAFT_REVISION_CONFLICT" | "TRIAL_RUN_REQUIRED" | "DEBUG_RUN_OUTDATED" | "DEBUG_RUNTIME_UNAVAILABLE" | "INTERNAL_ERROR";
+        /**
+         * EvidenceArtifact
+         * @description Safe artifact manifest entry without storage location or signed URL.
+         */
+        EvidenceArtifact: {
+            /**
+             * Capturedat
+             * Format: date-time
+             */
+            capturedAt: string;
+            /** Contentdigest */
+            contentDigest: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            integrity: components["schemas"]["EvidenceIntegrity"];
+            kind: components["schemas"]["EvidenceArtifactKind"];
+            /** Mimetype */
+            mimeType: string;
+            /** Redactionpolicydigest */
+            redactionPolicyDigest: string;
+            /** Required */
+            required: boolean;
+            /** Sizebytes */
+            sizeBytes: number;
+        };
+        /**
+         * EvidenceArtifactInput
+         * @description Evidence Service metadata after capture-time redaction and hashing.
+         */
+        EvidenceArtifactInput: {
+            /**
+             * Capturedat
+             * Format: date-time
+             */
+            capturedAt: string;
+            /** Contentdigest */
+            contentDigest: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            integrity: components["schemas"]["EvidenceIntegrity"];
+            kind: components["schemas"]["EvidenceArtifactKind"];
+            /** Mimetype */
+            mimeType: string;
+            /** Objectref */
+            objectRef: string;
+            /** Redactionpolicydigest */
+            redactionPolicyDigest: string;
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            /** Sizebytes */
+            sizeBytes: number;
+        };
+        /**
+         * EvidenceArtifactKind
+         * @description Bounded artifact classes accepted by the evidence service.
+         * @enum {string}
+         */
+        EvidenceArtifactKind: "SCREENSHOT" | "TRACE" | "DOM_SUMMARY" | "ARIA_SNAPSHOT" | "NETWORK_SUMMARY" | "CONSOLE_SUMMARY" | "TOOL_INVOCATION";
+        /**
+         * EvidenceCompleteness
+         * @description Whether every frozen Oracle has its required evidence.
+         * @enum {string}
+         */
+        EvidenceCompleteness: "COMPLETE" | "PARTIAL" | "MISSING";
+        /**
+         * EvidenceIntegrity
+         * @description Independent verification state for referenced artifact bytes.
+         * @enum {string}
+         */
+        EvidenceIntegrity: "VERIFIED" | "INVALID";
+        /**
+         * EvidenceManifest
+         * @description Immutable evidence root used to authorize a DebugRun result.
+         */
+        EvidenceManifest: {
+            /** Artifactmanifestdigest */
+            artifactManifestDigest: string;
+            /** Artifacts */
+            artifacts: components["schemas"]["EvidenceArtifact"][];
+            /** Assertionresults */
+            assertionResults: components["schemas"]["AssertionResult"][];
+            completeness: components["schemas"]["EvidenceCompleteness"];
+            /** Contentdigest */
+            contentDigest: string;
+            /**
+             * Debugrunid
+             * Format: uuid
+             */
+            debugRunId: string;
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /** Eventchainheaddigest */
+            eventChainHeadDigest: string;
+            /** Eventcount */
+            eventCount: number;
+            /** Executioncontractdigest */
+            executionContractDigest: string;
+            /**
+             * Executioncontractid
+             * Format: uuid
+             */
+            executionContractId: string;
+            /** Failedassertions */
+            failedAssertions: number;
+            /**
+             * Finalizedat
+             * Format: date-time
+             */
+            finalizedAt: string;
+            /** Fixturemanifestdigest */
+            fixtureManifestDigest: string;
+            /**
+             * Fixturerunid
+             * Format: uuid
+             */
+            fixtureRunId: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Inconclusiveassertions */
+            inconclusiveAssertions: number;
+            integrity: components["schemas"]["EvidenceIntegrity"];
+            /** Missingassertionids */
+            missingAssertionIds: string[];
+            /** Oracleresultsdigest */
+            oracleResultsDigest: string;
+            outcome: components["schemas"]["OracleOutcome"];
+            /** Passedassertions */
+            passedAssertions: number;
+            /** Plandigest */
+            planDigest: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Schemaversion
+             * @default atlas.evidence-manifest/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.evidence-manifest/0.1";
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Testirdigest */
+            testIrDigest: string;
+        };
+        /**
+         * EvidencePolicy
+         * @description Environment-independent evidence requirements.
+         */
+        EvidencePolicy: {
+            /**
+             * Retainfailuredays
+             * @default 30
+             */
+            retainFailureDays: number;
+            /**
+             * Retainsuccessdays
+             * @default 7
+             */
+            retainSuccessDays: number;
+            /**
+             * Screenshots
+             * @default critical-actions
+             * @enum {string}
+             */
+            screenshots: "critical-actions" | "assertions" | "all";
+            /**
+             * Trace
+             * @default true
+             */
+            trace: boolean;
+        };
+        /**
+         * ExecutionActorBinding
+         * @description Exact role, lease fence, and opaque login session for one actor slot.
+         */
+        ExecutionActorBinding: {
+            /** Accounthandle */
+            accountHandle: string;
+            /**
+             * Accountleaseid
+             * Format: uuid
+             */
+            accountLeaseId: string;
+            /** Actorslot */
+            actorSlot: string;
+            /** Browsercontextref */
+            browserContextRef: string;
+            /** Fencingtoken */
+            fencingToken: number;
+            /**
+             * Roleid
+             * Format: uuid
+             */
+            roleId: string;
+            /** Rolekey */
+            roleKey: string;
+            /** Rolerevision */
+            roleRevision: number;
+        };
         /** ExecutionContextBinding */
         ExecutionContextBinding: {
             /**
@@ -2705,6 +3916,76 @@ export interface components {
             targetPort: string;
         };
         /**
+         * ExecutionContract
+         * @description Complete immutable binding consumed by one DebugRun browser execution.
+         */
+        ExecutionContract: {
+            /** Actors */
+            actors: components["schemas"]["ExecutionActorBinding"][];
+            browser: components["schemas"]["BrowserExecutionProfile"];
+            /** Compileddigest */
+            compiledDigest: string;
+            /** Contentdigest */
+            contentDigest: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Debugrunid
+             * Format: uuid
+             */
+            debugRunId: string;
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /**
+             * Executiondeadline
+             * Format: date-time
+             */
+            executionDeadline: string;
+            fixture: components["schemas"]["FixtureExecutionBinding"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            model: components["schemas"]["ModelExecutionProfile"];
+            /** Plandigest */
+            planDigest: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Schemaversion
+             * @default atlas.execution-contract/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.execution-contract/0.1";
+            /** Semanticrevision */
+            semanticRevision: number;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Testcaseid
+             * Format: uuid
+             */
+            testCaseId: string;
+            /** Testirdigest */
+            testIrDigest: string;
+            tools: components["schemas"]["ToolExecutionProfile"];
+            /** Workeridentity */
+            workerIdentity: string;
+        };
+        /**
          * FieldViolation
          * @description 请求字段的单个校验问题。
          */
@@ -2715,6 +3996,38 @@ export interface components {
             field: string;
             /** Message */
             message: string;
+        };
+        /**
+         * FinalizeDebugEvidence
+         * @description Trusted finalization command containing only reviewed evidence metadata.
+         */
+        FinalizeDebugEvidence: {
+            /**
+             * Artifacts
+             * @default []
+             */
+            artifacts: components["schemas"]["EvidenceArtifactInput"][];
+            /**
+             * Assertionresults
+             * @default []
+             */
+            assertionResults: components["schemas"]["AssertionResultInput"][];
+            /** Eventchainheaddigest */
+            eventChainHeadDigest: string;
+            /** Eventcount */
+            eventCount: number;
+            /** Executioncontractdigest */
+            executionContractDigest: string;
+            /**
+             * Executioncontractid
+             * Format: uuid
+             */
+            executionContractId: string;
+            /**
+             * Finalizedat
+             * Format: date-time
+             */
+            finalizedAt: string;
         };
         /**
          * FixtureActorBinding
@@ -2793,6 +4106,49 @@ export interface components {
             reconciledInconclusive: number;
             /** Retryscheduled */
             retryScheduled: number;
+        };
+        /**
+         * FixtureContract
+         * @description Exact published fixture blueprint consumed by the case.
+         */
+        FixtureContract: {
+            /**
+             * Blueprintversionid
+             * Format: uuid
+             */
+            blueprintVersionId: string;
+            /** Blueprintversionref */
+            blueprintVersionRef: string;
+            /** Contentdigest */
+            contentDigest: string;
+            /** Requiredexports */
+            requiredExports?: {
+                [key: string]: string;
+            };
+        };
+        /**
+         * FixtureExecutionBinding
+         * @description Exact ready FixtureRun and immutable export manifest binding.
+         */
+        FixtureExecutionBinding: {
+            /** Blueprintcontentdigest */
+            blueprintContentDigest: string;
+            /**
+             * Blueprintversionid
+             * Format: uuid
+             */
+            blueprintVersionId: string;
+            /** Blueprintversionref */
+            blueprintVersionRef: string;
+            /** Fixturemanifestdigest */
+            fixtureManifestDigest: string;
+            /** Fixtureplandigest */
+            fixturePlanDigest: string;
+            /**
+             * Fixturerunid
+             * Format: uuid
+             */
+            fixtureRunId: string;
         };
         /**
          * FixtureFailureCategory
@@ -2981,6 +4337,41 @@ export interface components {
          */
         FixtureRunTerminalIntent: "RELEASED" | "FAILED" | "CANCELED";
         /**
+         * GraphIssue
+         * @description One graph validation failure.
+         */
+        GraphIssue: {
+            code: components["schemas"]["GraphIssueCode"];
+            /** Edgeid */
+            edgeId?: string | null;
+            /** Message */
+            message: string;
+            /** Nodeid */
+            nodeId?: string | null;
+        };
+        /**
+         * GraphIssueCode
+         * @description Stable machine-readable graph validation failures.
+         * @enum {string}
+         */
+        GraphIssueCode: "EMPTY_GRAPH" | "DUPLICATE_NODE_ID" | "DUPLICATE_EDGE_ID" | "DUPLICATE_PORT" | "DANGLING_EDGE" | "SOURCE_PORT_MISSING" | "TARGET_PORT_MISSING" | "PORT_KIND_MISMATCH" | "PORT_TYPE_MISMATCH" | "EDGE_TYPE_DECLARATION_MISMATCH" | "REQUIRED_INPUT_MISSING" | "INPUT_MULTIPLE_WRITERS" | "GRAPH_CYCLE" | "ORPHAN_NODE" | "MISSING_SUCCESSOR" | "INVALID_TERMINAL" | "ASSERTION_COVERAGE_MISSING";
+        /**
+         * GraphValidationResult
+         * @description Validation result and deterministic execution levels.
+         */
+        GraphValidationResult: {
+            /** Executionlevels */
+            executionLevels: string[][];
+            /** Issues */
+            issues: components["schemas"]["GraphIssue"][];
+            /** Matchedrequiredinputs */
+            matchedRequiredInputs: number;
+            /** Totalrequiredinputs */
+            totalRequiredInputs: number;
+            /** Valid */
+            valid: boolean;
+        };
+        /**
          * HealthResponse
          * @description 稳定的健康检查协议。
          */
@@ -3038,6 +4429,21 @@ export interface components {
             workerIdentity: string;
         };
         JsonValue: unknown;
+        /**
+         * LayoutPatch
+         * @description Layout-only mutation that cannot invalidate semantic debug evidence.
+         */
+        LayoutPatch: {
+            /** Baselayoutrevision */
+            baseLayoutRevision: number;
+            /** Clientmutationid */
+            clientMutationId: string;
+            /** Positions */
+            positions: {
+                [key: string]: components["schemas"]["NodeLayout"];
+            };
+            source: components["schemas"]["DraftAuthor"];
+        };
         /**
          * LeaseReleaseReason
          * @description 释放、回收和撤销只能使用结构化原因。
@@ -3151,6 +4557,28 @@ export interface components {
          * @enum {string}
          */
         MembershipStatus: "ACTIVE" | "REVOKED";
+        /**
+         * ModelExecutionProfile
+         * @description Frozen model and Prompt identities without provider secrets.
+         */
+        ModelExecutionProfile: {
+            /** Modelprofileref */
+            modelProfileRef: string;
+            /** Promptbundleref */
+            promptBundleRef: string;
+            /** Reasoningpolicyref */
+            reasoningPolicyRef: string;
+        };
+        /**
+         * NodeLayout
+         * @description Authoring-only node position excluded from semantic graph revisions.
+         */
+        NodeLayout: {
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+        };
         /** NodeOutputBinding */
         NodeOutputBinding: {
             /**
@@ -3164,6 +4592,99 @@ export interface components {
             sourcePort: string;
             /** Targetport */
             targetPort: string;
+        };
+        /**
+         * OracleOutcome
+         * @description Case-level outcome derived only from frozen assertion results.
+         * @enum {string}
+         */
+        OracleOutcome: "PASSED" | "FAILED" | "INCONCLUSIVE";
+        /**
+         * OracleStrength
+         * @description Oracle authority level.
+         * @enum {string}
+         */
+        OracleStrength: "hard" | "soft" | "diagnostic";
+        /**
+         * OutcomePolicy
+         * @description Independent Oracle authority requirements.
+         */
+        OutcomePolicy: {
+            /**
+             * Agentmaydecidepass
+             * @default false
+             * @constant
+             */
+            agentMayDecidePass: false;
+            /**
+             * Evidenceincompleteblockspass
+             * @default true
+             */
+            evidenceIncompleteBlocksPass: boolean;
+            /**
+             * Requirehardoracle
+             * @default true
+             */
+            requireHardOracle: boolean;
+        };
+        /** PatchIssue */
+        PatchIssue: {
+            code: components["schemas"]["PatchIssueCode"];
+            /** Edgeid */
+            edgeId?: string | null;
+            /** Message */
+            message: string;
+            /** Nodeid */
+            nodeId?: string | null;
+            /** Operationindex */
+            operationIndex?: number | null;
+        };
+        /**
+         * PatchIssueCode
+         * @enum {string}
+         */
+        PatchIssueCode: "NODE_ALREADY_EXISTS" | "NODE_NOT_FOUND" | "EDGE_ALREADY_EXISTS" | "EDGE_NOT_FOUND" | "DANGLING_EDGE" | "LAYOUT_NODE_NOT_FOUND";
+        /** PlanNodeRef */
+        PlanNodeRef: {
+            /** Executionlevel */
+            executionLevel: number;
+            /** Kind */
+            kind: string;
+            /** Nodeid */
+            nodeId: string;
+            /** Versionref */
+            versionRef: string;
+        };
+        /**
+         * PlanTemplate
+         * @description Environment-independent plan compiled from one exact Test IR.
+         */
+        PlanTemplate: {
+            /** Executionlevels */
+            executionLevels: string[][];
+            /** Graphdigest */
+            graphDigest: string;
+            /** Nodes */
+            nodes: components["schemas"]["PlanNodeRef"][];
+            /** Plandigest */
+            planDigest: string;
+            /** Requiredfeatures */
+            requiredFeatures: string[];
+            /**
+             * Schemaversion
+             * @default atlas.plan-template/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.plan-template/0.1";
+            /** Semanticrevision */
+            semanticRevision: number;
+            /**
+             * Testcaseid
+             * Format: uuid
+             */
+            testCaseId: string;
+            /** Testirdigest */
+            testIrDigest: string;
         };
         /**
          * PlatformMembership
@@ -3266,6 +4787,34 @@ export interface components {
          */
         PortDirection: "INPUT" | "OUTPUT";
         /**
+         * PortKind
+         * @description Port trust and scheduling category.
+         * @enum {string}
+         */
+        PortKind: "data" | "control";
+        /**
+         * PortSpec
+         * @description A strongly typed node port.
+         */
+        PortSpec: {
+            /** Key */
+            key: string;
+            /** @default data */
+            kind: components["schemas"]["PortKind"];
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+            /** Semantictype */
+            semanticType: string;
+            /**
+             * Sensitive
+             * @default false
+             */
+            sensitive: boolean;
+        };
+        /**
          * Postcondition
          * @description A bounded read-after-write or output verification declaration.
          */
@@ -3364,6 +4913,25 @@ export interface components {
          */
         ProviderHealthState: "HEALTHY" | "DEGRADED" | "UNAVAILABLE";
         /**
+         * PublishCaseVersion
+         * @description Reviewer command that publishes one exact current Draft snapshot.
+         */
+        PublishCaseVersion: {
+            /** Basesemanticrevision */
+            baseSemanticRevision: number;
+            /** Clientmutationid */
+            clientMutationId: string;
+            /**
+             * Debugrunid
+             * Format: uuid
+             */
+            debugRunId: string;
+            /** Reviewsummary */
+            reviewSummary: string;
+            /** Version */
+            version: string;
+        };
+        /**
          * ReapedLeaseBatch
          * @description 单次过期回收批次的安全摘要。
          */
@@ -3388,6 +4956,27 @@ export interface components {
             resourceRefOutput: string;
         };
         /**
+         * RecoveryPolicy
+         * @description Bounded retry and recovery policy compiled into a plan.
+         */
+        RecoveryPolicy: {
+            /**
+             * Maxunitattempts
+             * @default 1
+             */
+            maxUnitAttempts: number;
+            /**
+             * Retrybrowsercrash
+             * @default false
+             */
+            retryBrowserCrash: boolean;
+            /**
+             * Retryunknownsideeffect
+             * @default false
+             */
+            retryUnknownSideEffect: boolean;
+        };
+        /**
          * ReleaseAccountLease
          * @description 幂等结束 Lease；原因不接受自由文本。
          */
@@ -3395,6 +4984,58 @@ export interface components {
             /** Fencingtoken */
             fencingToken: number;
             reason: components["schemas"]["LeaseReleaseReason"];
+        };
+        /** RemoveEdgeOperation */
+        RemoveEdgeOperation: {
+            /** Edgeid */
+            edgeId: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "REMOVE_EDGE";
+        };
+        /** RemoveNodeOperation */
+        RemoveNodeOperation: {
+            /** Nodeid */
+            nodeId: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "REMOVE_NODE";
+        };
+        /** ReplaceEdgeOperation */
+        ReplaceEdgeOperation: {
+            edge: components["schemas"]["WorkflowEdge"];
+            /** Edgeid */
+            edgeId: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "REPLACE_EDGE";
+        };
+        /** ReplaceNodeOperation */
+        ReplaceNodeOperation: {
+            node: components["schemas"]["WorkflowNode"];
+            /** Nodeid */
+            nodeId: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "REPLACE_NODE";
+        };
+        /**
+         * RequestDebugRunCancel
+         * @description Idempotent, auditable request to stop one durable DebugRun.
+         */
+        RequestDebugRunCancel: {
+            /** Clientmutationid */
+            clientMutationId: string;
+            /** Reason */
+            reason: string;
         };
         /**
          * ResourceCleanupAttempt
@@ -3597,6 +5238,40 @@ export interface components {
             maxRedemptions: 1;
         };
         /**
+         * SourceRequirementRef
+         * @description Digest-only link to one untrusted requirement source anchor.
+         */
+        SourceRequirementRef: {
+            /** Anchor */
+            anchor: string;
+            /** Contentdigest */
+            contentDigest: string;
+            /** Documentid */
+            documentId: string;
+            /** Documentversion */
+            documentVersion: string;
+            /** Excerptdigest */
+            excerptDigest: string;
+        };
+        /**
+         * StartDebugRun
+         * @description Request one bounded run of an exact WorkflowDraft semantic revision.
+         */
+        StartDebugRun: {
+            /** Basesemanticrevision */
+            baseSemanticRevision: number;
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /**
+             * Executiondeadline
+             * Format: date-time
+             */
+            executionDeadline: string;
+        };
+        /**
          * StartFixtureRun
          * @description Create one exact, input-frozen fixture execution.
          */
@@ -3626,6 +5301,18 @@ export interface components {
             };
             /** @default VALIDATION */
             runKind: components["schemas"]["FixtureRunKind"];
+        };
+        /**
+         * SurfaceRef
+         * @description Exact published semantic page contract reference.
+         */
+        SurfaceRef: {
+            /** Contentdigest */
+            contentDigest: string;
+            /** Surfacekey */
+            surfaceKey: string;
+            /** Versionref */
+            versionRef: string;
         };
         /**
          * Tenant
@@ -3751,6 +5438,232 @@ export interface components {
             nextCursor?: string | null;
         };
         /**
+         * TestCase
+         * @description Stable TestCase aggregate identity and current intent.
+         */
+        TestCase: {
+            /** Casekey */
+            caseKey: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            intent: components["schemas"]["TestIntent"];
+            /** Intentdigest */
+            intentDigest: string;
+            /** Intentversion */
+            intentVersion: string;
+            /** Intentversionref */
+            intentVersionRef: string;
+            /** Name */
+            name: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Revision */
+            revision: number;
+            status: components["schemas"]["TestCaseStatus"];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * TestCaseCatalogItem
+         * @description TestCase list projection with its current draft state.
+         */
+        TestCaseCatalogItem: {
+            /** Casekey */
+            caseKey: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Draftid
+             * Format: uuid
+             */
+            draftId: string;
+            /** Graphvalid */
+            graphValid: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            intent: components["schemas"]["TestIntent"];
+            /** Intentdigest */
+            intentDigest: string;
+            /** Intentversion */
+            intentVersion: string;
+            /** Intentversionref */
+            intentVersionRef: string;
+            /** Layoutrevision */
+            layoutRevision: number;
+            /** Name */
+            name: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Revision */
+            revision: number;
+            /** Semanticrevision */
+            semanticRevision: number;
+            status: components["schemas"]["TestCaseStatus"];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            updatedBy: components["schemas"]["DraftAuthor"];
+        };
+        /**
+         * TestCasePage
+         * @description Cursor page of TestCase catalog entries.
+         */
+        TestCasePage: {
+            /** Items */
+            items: components["schemas"]["TestCaseCatalogItem"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * TestCaseStatus
+         * @description Lifecycle of a stable TestCase identity.
+         * @enum {string}
+         */
+        TestCaseStatus: "ACTIVE" | "ARCHIVED";
+        /**
+         * TestIR
+         * @description Strongly typed, environment-independent Test IR v0.2.
+         */
+        TestIR: {
+            /** Actors */
+            actors: components["schemas"]["ActorContract"][];
+            /** Assertions */
+            assertions: components["schemas"]["AssertionSpec"][];
+            /** Contentdigest */
+            contentDigest: string;
+            evidencePolicy: components["schemas"]["EvidencePolicy"];
+            /** Executionlevels */
+            executionLevels: string[][];
+            fixture: components["schemas"]["FixtureContract"];
+            /** Intentversionref */
+            intentVersionRef: string;
+            outcomePolicy: components["schemas"]["OutcomePolicy"];
+            recoveryPolicy: components["schemas"]["RecoveryPolicy"];
+            /** Requiredfeatures */
+            requiredFeatures: string[];
+            /** Requirementrefs */
+            requirementRefs: components["schemas"]["SourceRequirementRef"][];
+            /**
+             * Schemaversion
+             * @default atlas.test-ir/0.2
+             * @constant
+             */
+            schemaVersion: "atlas.test-ir/0.2";
+            /** Semanticrevision */
+            semanticRevision: number;
+            /** Surfaces */
+            surfaces: components["schemas"]["SurfaceRef"][];
+            /**
+             * Testcaseid
+             * Format: uuid
+             */
+            testCaseId: string;
+            /** Variables */
+            variables: {
+                [key: string]: components["schemas"]["ValueSource"];
+            };
+            workflow: components["schemas"]["WorkflowGraph"];
+        };
+        /**
+         * TestIntent
+         * @description Versioned author intent referenced by one WorkflowDraft.
+         */
+        TestIntent: {
+            /**
+             * Actors
+             * @default []
+             */
+            actors: components["schemas"]["ActorContract"][];
+            /**
+             * @default {
+             *       "retainFailureDays": 30,
+             *       "retainSuccessDays": 7,
+             *       "screenshots": "critical-actions",
+             *       "trace": true
+             *     }
+             */
+            evidencePolicy: components["schemas"]["EvidencePolicy"];
+            fixture?: components["schemas"]["FixtureContract"] | null;
+            /**
+             * @default {
+             *       "agentMayDecidePass": false,
+             *       "evidenceIncompleteBlocksPass": true,
+             *       "requireHardOracle": true
+             *     }
+             */
+            outcomePolicy: components["schemas"]["OutcomePolicy"];
+            /**
+             * @default {
+             *       "maxUnitAttempts": 1,
+             *       "retryBrowserCrash": false,
+             *       "retryUnknownSideEffect": false
+             *     }
+             */
+            recoveryPolicy: components["schemas"]["RecoveryPolicy"];
+            /**
+             * Requiredfeatures
+             * @default []
+             */
+            requiredFeatures: string[];
+            /**
+             * Requirementrefs
+             * @default []
+             */
+            requirementRefs: components["schemas"]["SourceRequirementRef"][];
+            /**
+             * Schemaversion
+             * @default atlas.test-intent/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.test-intent/0.1";
+            /** Summary */
+            summary: string;
+            /**
+             * Surfaces
+             * @default []
+             */
+            surfaces: components["schemas"]["SurfaceRef"][];
+            /** Variables */
+            variables?: {
+                [key: string]: components["schemas"]["ValueSource"];
+            };
+        };
+        /**
          * TestRole
          * @description 用例引用的稳定业务角色，不授予 Atlas 管理权限。
          */
@@ -3808,6 +5721,22 @@ export interface components {
          * @enum {string}
          */
         TestRoleStatus: "ACTIVE" | "DISABLED";
+        /**
+         * ToolExecutionProfile
+         * @description Frozen tool catalog, MCP manifests, and policy bundle digests.
+         */
+        ToolExecutionProfile: {
+            /** Mcpservermanifestdigest */
+            mcpServerManifestDigest: string;
+            /** Policybundleref */
+            policyBundleRef: string;
+            /** Policydigest */
+            policyDigest: string;
+            /** Toolcatalogref */
+            toolCatalogRef: string;
+            /** Toolschemadigest */
+            toolSchemaDigest: string;
+        };
         /**
          * UpdateAccountPool
          * @description 更新账号池策略。
@@ -3932,6 +5861,22 @@ export interface components {
          */
         ValidationState: "PENDING" | "PASSED" | "FAILED" | "NOT_REQUIRED";
         /**
+         * ValueSource
+         * @description Structured value source without expressions or dynamic evaluation.
+         */
+        ValueSource: {
+            kind: components["schemas"]["ValueSourceKind"];
+            /** Reference */
+            reference?: string | null;
+            value?: components["schemas"]["JsonValue"] | null;
+        };
+        /**
+         * ValueSourceKind
+         * @description Only four deterministic value sources are accepted by Test IR.
+         * @enum {string}
+         */
+        ValueSourceKind: "FIXTURE" | "ACTOR" | "RUN" | "LITERAL";
+        /**
          * VerifyTestAccount
          * @description Request a login and role health check on one exact Origin.
          */
@@ -3939,6 +5884,183 @@ export interface components {
             /** Origin */
             origin: string;
         };
+        /**
+         * Viewport
+         * @description Frozen browser viewport used by one execution.
+         */
+        Viewport: {
+            /**
+             * Devicescalefactor
+             * @default 1
+             */
+            deviceScaleFactor: number;
+            /** Height */
+            height: number;
+            /** Width */
+            width: number;
+        };
+        /**
+         * WorkflowDraftSnapshot
+         * @description Authoritative current WorkflowDraft projection.
+         */
+        WorkflowDraftSnapshot: {
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            graph: components["schemas"]["WorkflowGraph"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Intentversionref */
+            intentVersionRef: string;
+            /** Layout */
+            layout: {
+                [key: string]: components["schemas"]["NodeLayout"];
+            };
+            /** Layoutrevision */
+            layoutRevision: number;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Semanticdigest */
+            semanticDigest: string;
+            /** Semanticrevision */
+            semanticRevision: number;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Testcaseid
+             * Format: uuid
+             */
+            testCaseId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            updatedBy: components["schemas"]["DraftAuthor"];
+            validation: components["schemas"]["GraphValidationResult"];
+        };
+        /**
+         * WorkflowEdge
+         * @description A direct typed mapping between two node ports.
+         */
+        WorkflowEdge: {
+            /** Id */
+            id: string;
+            /** @default data */
+            kind: components["schemas"]["PortKind"];
+            /** @default direct */
+            mapping: components["schemas"]["EdgeMapping"];
+            /** Semantictype */
+            semanticType: string;
+            /** Sourcenodeid */
+            sourceNodeId: string;
+            /** Sourceport */
+            sourcePort: string;
+            /** Targetnodeid */
+            targetNodeId: string;
+            /** Targetport */
+            targetPort: string;
+        };
+        /**
+         * WorkflowGraph
+         * @description The semantic graph owned by a WorkflowDraft revision.
+         */
+        WorkflowGraph: {
+            /** Edges */
+            edges: components["schemas"]["WorkflowEdge"][];
+            /** Nodes */
+            nodes: components["schemas"]["WorkflowNode"][];
+            /**
+             * Schemaversion
+             * @default atlas.workflow-graph/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.workflow-graph/0.1";
+        };
+        /**
+         * WorkflowNode
+         * @description A published node reference inside an authoring graph.
+         */
+        WorkflowNode: {
+            /** Id */
+            id: string;
+            /**
+             * Inputports
+             * @default []
+             */
+            inputPorts: components["schemas"]["PortSpec"][];
+            /** Kind */
+            kind: string;
+            oracleStrength?: components["schemas"]["OracleStrength"] | null;
+            /**
+             * Outputports
+             * @default []
+             */
+            outputPorts: components["schemas"]["PortSpec"][];
+            /** Params */
+            params?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            phase: components["schemas"]["WorkflowPhase"];
+            /**
+             * Terminal
+             * @default false
+             */
+            terminal: boolean;
+            /** Versionref */
+            versionRef: string;
+        };
+        /**
+         * WorkflowPatch
+         * @description Atomic semantic edit shared by AI and human authoring.
+         */
+        WorkflowPatch: {
+            /** Basesemanticrevision */
+            baseSemanticRevision: number;
+            /** Clientmutationid */
+            clientMutationId: string;
+            /** Operations */
+            operations: (components["schemas"]["AddNodeOperation"] | components["schemas"]["ReplaceNodeOperation"] | components["schemas"]["RemoveNodeOperation"] | components["schemas"]["AddEdgeOperation"] | components["schemas"]["ReplaceEdgeOperation"] | components["schemas"]["RemoveEdgeOperation"])[];
+            /**
+             * Patchid
+             * Format: uuid
+             */
+            patchId: string;
+            /** Rationalesummary */
+            rationaleSummary?: string | null;
+            source: components["schemas"]["DraftAuthor"];
+        };
+        /**
+         * WorkflowPatchPreview
+         * @description Pure patch preview; graph validity and patch applicability are separate.
+         */
+        WorkflowPatchPreview: {
+            /** Applicable */
+            applicable: boolean;
+            graph: components["schemas"]["WorkflowGraph"];
+            /** Issues */
+            issues: components["schemas"]["PatchIssue"][];
+            /** Semanticdigest */
+            semanticDigest: string;
+            validation: components["schemas"]["GraphValidationResult"];
+        };
+        /**
+         * WorkflowPhase
+         * @description Supported deterministic workflow phases.
+         * @enum {string}
+         */
+        WorkflowPhase: "setup" | "identity" | "execute" | "assert" | "cleanup";
     };
     responses: never;
     parameters: never;
@@ -4583,6 +6705,357 @@ export interface operations {
             };
             /** @description 服务内部错误 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_browser_execution_bundle_internal_v1_debug_runs__runId__browser_execution_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrowserExecutionBundle"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Runtime lifecycle 或 report chain 冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    finalize_browser_evidence_internal_v1_debug_runs__runId__browser_execution_finalize_evidence_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrowserFinalizeCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrowserEvidenceFinalization"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Runtime lifecycle 或 report chain 冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    mark_browser_execution_ready_internal_v1_debug_runs__runId__browser_execution_ready_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrowserRuntimeTransition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugRun"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Runtime lifecycle 或 report chain 冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    start_browser_execution_internal_v1_debug_runs__runId__browser_execution_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrowserRuntimeTransition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugRun"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Runtime lifecycle 或 report chain 冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    append_browser_runtime_report_internal_v1_debug_runs__runId__browser_reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppendBrowserRuntimeReport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrowserRuntimeReport"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Runtime lifecycle 或 report chain 冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5370,6 +7843,103 @@ export interface operations {
                 };
             };
             /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_case_version_v1_case_versions__versionId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseVersion"];
+                };
+            };
+            /** @description 发布请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Reviewer 权限或职责分离校验失败 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase、Draft、DebugRun 或 CaseVersion 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 发布证据、精确绑定、版本号或状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 WorkflowDraft 编译门禁未通过 */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -7405,6 +9975,333 @@ export interface operations {
             };
             /** @description 服务内部错误 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_debug_run_v1_debug_runs__runId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugRun"];
+                };
+            };
+            /** @description DebugRun 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 角色或环境策略拒绝执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase、Draft、Environment 或 DebugRun 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Draft 或 DebugRun Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft 编译门禁未通过 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 受信任的 Browser Runtime 未配置或不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_debug_run_events_v1_debug_runs__runId__events_get: {
+        parameters: {
+            query?: {
+                afterSeq?: number;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugRunEventPage"];
+                };
+            };
+            /** @description DebugRun 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 角色或环境策略拒绝执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase、Draft、Environment 或 DebugRun 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Draft 或 DebugRun Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft 编译门禁未通过 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 受信任的 Browser Runtime 未配置或不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    cancel_debug_run_v1_debug_runs__runId__cancel_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestDebugRunCancel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugRun"];
+                };
+            };
+            /** @description DebugRun 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 角色或环境策略拒绝执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase、Draft、Environment 或 DebugRun 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Draft 或 DebugRun Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft 编译门禁未通过 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 受信任的 Browser Runtime 未配置或不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9687,6 +12584,208 @@ export interface operations {
             };
         };
     };
+    list_test_cases_v1_projects__projectId__test_cases_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestCasePage"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase 或 WorkflowDraft 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Patch 或 WorkflowGraph 结构无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_test_case_v1_projects__projectId__test_cases_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTestCase"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestCase"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase 或 WorkflowDraft 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Patch 或 WorkflowGraph 结构无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     list_test_roles_v1_projects__projectId__test_roles_get: {
         parameters: {
             query?: {
@@ -10889,6 +13988,931 @@ export interface operations {
             };
             /** @description Secret Provider、Adapter 或能力不可用 */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_test_case_v1_test_cases__caseId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestCase"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase 或 WorkflowDraft 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Patch 或 WorkflowGraph 结构无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_debug_runs_v1_test_cases__caseId__debug_runs_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugRunPage"];
+                };
+            };
+            /** @description DebugRun 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 角色或环境策略拒绝执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase、Draft、Environment 或 DebugRun 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Draft 或 DebugRun Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft 编译门禁未通过 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 受信任的 Browser Runtime 未配置或不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_case_versions_v1_test_cases__caseId__versions_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseVersionPage"];
+                };
+            };
+            /** @description 发布请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Reviewer 权限或职责分离校验失败 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase、Draft、DebugRun 或 CaseVersion 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 发布证据、精确绑定、版本号或状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 WorkflowDraft 编译门禁未通过 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_workflow_draft_v1_test_cases__caseId__workflow_draft_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowDraftSnapshot"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase 或 WorkflowDraft 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Patch 或 WorkflowGraph 结构无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    start_debug_run_v1_test_cases__caseId__workflow_draft_debug_runs_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartDebugRun"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugRun"];
+                };
+            };
+            /** @description DebugRun 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 角色或环境策略拒绝执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase、Draft、Environment 或 DebugRun 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Draft 或 DebugRun Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft 编译门禁未通过 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 受信任的 Browser Runtime 未配置或不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_workflow_layout_v1_test_cases__caseId__workflow_draft_layout_patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LayoutPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowDraftSnapshot"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase 或 WorkflowDraft 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Patch 或 WorkflowGraph 结构无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    apply_workflow_patch_v1_test_cases__caseId__workflow_draft_patches_apply_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowDraftSnapshot"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase 或 WorkflowDraft 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Patch 或 WorkflowGraph 结构无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    validate_workflow_patch_v1_test_cases__caseId__workflow_draft_patches_validate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowPatchPreview"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 PlatformRole 无权执行 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase 或 WorkflowDraft 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Patch 或 WorkflowGraph 结构无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    publish_case_version_v1_test_cases__caseId__publish_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishCaseVersion"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseVersion"];
+                };
+            };
+            /** @description 发布请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Reviewer 权限或职责分离校验失败 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TestCase、Draft、DebugRun 或 CaseVersion 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 发布证据、精确绑定、版本号或状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description WorkflowDraft Revision 冲突 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前 WorkflowDraft 编译门禁未通过 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

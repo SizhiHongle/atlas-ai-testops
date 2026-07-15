@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/browser-runtime-report/0.1/schema.json",
+  "$defs": {
+    "BrowserRuntimeReportKind": {
+      "description": "Append-only execution-plane facts reported by the Browser Worker.",
+      "enum": [
+        "execution.started",
+        "node.started",
+        "observation.captured",
+        "action.proposed",
+        "policy.decided",
+        "action.executed",
+        "artifact.captured",
+        "assertion.evaluated",
+        "node.completed",
+        "execution.blocked",
+        "execution.completed"
+      ],
+      "title": "BrowserRuntimeReportKind",
+      "type": "string"
+    },
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "description": "Worker report whose canonical chain is independently verified by control plane.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.browser-runtime-report/0.1",
+      "default": "atlas.browser-runtime-report/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "executionContractId": {
+      "format": "uuid",
+      "title": "Executioncontractid",
+      "type": "string"
+    },
+    "executionContractDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Executioncontractdigest",
+      "type": "string"
+    },
+    "reportId": {
+      "format": "uuid",
+      "title": "Reportid",
+      "type": "string"
+    },
+    "sequence": {
+      "maximum": 10000000,
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "kind": {
+      "$ref": "#/$defs/BrowserRuntimeReportKind"
+    },
+    "actorSlot": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,159}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Actorslot"
+    },
+    "actionId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Actionid"
+    },
+    "payload": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Payload",
+      "type": "object"
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "title": "Occurredat",
+      "type": "string"
+    },
+    "previousChainDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Previouschaindigest",
+      "type": "string"
+    },
+    "payloadDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Payloaddigest",
+      "type": "string"
+    },
+    "chainDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Chaindigest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "executionContractId",
+    "executionContractDigest",
+    "reportId",
+    "sequence",
+    "kind",
+    "occurredAt",
+    "previousChainDigest",
+    "payloadDigest",
+    "chainDigest"
+  ],
+  "title": "AppendBrowserRuntimeReport",
+  "type": "object"
+}

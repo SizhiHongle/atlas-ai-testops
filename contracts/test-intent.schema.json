@@ -1,0 +1,404 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/test-intent/0.1/schema.json",
+  "$defs": {
+    "ActorContract": {
+      "additionalProperties": false,
+      "description": "Non-secret business-role binding used by one case.",
+      "properties": {
+        "actorSlot": {
+          "maxLength": 80,
+          "minLength": 2,
+          "pattern": "^[A-Za-z][A-Za-z0-9._:-]{1,159}$",
+          "title": "Actorslot",
+          "type": "string"
+        },
+        "roleId": {
+          "format": "uuid",
+          "title": "Roleid",
+          "type": "string"
+        },
+        "roleKey": {
+          "maxLength": 80,
+          "minLength": 2,
+          "pattern": "^[a-z][a-z0-9._-]{1,79}$",
+          "title": "Rolekey",
+          "type": "string"
+        },
+        "roleRevision": {
+          "minimum": 1,
+          "title": "Rolerevision",
+          "type": "integer"
+        },
+        "capabilities": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Capabilities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "actorSlot",
+        "roleId",
+        "roleKey",
+        "roleRevision"
+      ],
+      "title": "ActorContract",
+      "type": "object"
+    },
+    "EvidencePolicy": {
+      "additionalProperties": false,
+      "description": "Environment-independent evidence requirements.",
+      "properties": {
+        "trace": {
+          "default": true,
+          "title": "Trace",
+          "type": "boolean"
+        },
+        "screenshots": {
+          "default": "critical-actions",
+          "enum": [
+            "critical-actions",
+            "assertions",
+            "all"
+          ],
+          "title": "Screenshots",
+          "type": "string"
+        },
+        "retainSuccessDays": {
+          "default": 7,
+          "maximum": 90,
+          "minimum": 1,
+          "title": "Retainsuccessdays",
+          "type": "integer"
+        },
+        "retainFailureDays": {
+          "default": 30,
+          "maximum": 365,
+          "minimum": 1,
+          "title": "Retainfailuredays",
+          "type": "integer"
+        }
+      },
+      "title": "EvidencePolicy",
+      "type": "object"
+    },
+    "FixtureContract": {
+      "additionalProperties": false,
+      "description": "Exact published fixture blueprint consumed by the case.",
+      "properties": {
+        "blueprintVersionId": {
+          "format": "uuid",
+          "title": "Blueprintversionid",
+          "type": "string"
+        },
+        "blueprintVersionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Blueprintversionref",
+          "type": "string"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        },
+        "requiredExports": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 64,
+          "title": "Requiredexports",
+          "type": "object"
+        }
+      },
+      "required": [
+        "blueprintVersionId",
+        "blueprintVersionRef",
+        "contentDigest"
+      ],
+      "title": "FixtureContract",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "OutcomePolicy": {
+      "additionalProperties": false,
+      "description": "Independent Oracle authority requirements.",
+      "properties": {
+        "requireHardOracle": {
+          "default": true,
+          "title": "Requirehardoracle",
+          "type": "boolean"
+        },
+        "evidenceIncompleteBlocksPass": {
+          "default": true,
+          "title": "Evidenceincompleteblockspass",
+          "type": "boolean"
+        },
+        "agentMayDecidePass": {
+          "const": false,
+          "default": false,
+          "title": "Agentmaydecidepass",
+          "type": "boolean"
+        }
+      },
+      "title": "OutcomePolicy",
+      "type": "object"
+    },
+    "RecoveryPolicy": {
+      "additionalProperties": false,
+      "description": "Bounded retry and recovery policy compiled into a plan.",
+      "properties": {
+        "maxUnitAttempts": {
+          "default": 1,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Maxunitattempts",
+          "type": "integer"
+        },
+        "retryBrowserCrash": {
+          "default": false,
+          "title": "Retrybrowsercrash",
+          "type": "boolean"
+        },
+        "retryUnknownSideEffect": {
+          "default": false,
+          "title": "Retryunknownsideeffect",
+          "type": "boolean"
+        }
+      },
+      "title": "RecoveryPolicy",
+      "type": "object"
+    },
+    "SourceRequirementRef": {
+      "additionalProperties": false,
+      "description": "Digest-only link to one untrusted requirement source anchor.",
+      "properties": {
+        "documentId": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Documentid",
+          "type": "string"
+        },
+        "documentVersion": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Documentversion",
+          "type": "string"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        },
+        "anchor": {
+          "maxLength": 320,
+          "minLength": 1,
+          "title": "Anchor",
+          "type": "string"
+        },
+        "excerptDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Excerptdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "documentId",
+        "documentVersion",
+        "contentDigest",
+        "anchor",
+        "excerptDigest"
+      ],
+      "title": "SourceRequirementRef",
+      "type": "object"
+    },
+    "SurfaceRef": {
+      "additionalProperties": false,
+      "description": "Exact published semantic page contract reference.",
+      "properties": {
+        "surfaceKey": {
+          "maxLength": 160,
+          "minLength": 3,
+          "pattern": "^[A-Za-z][A-Za-z0-9._:-]{1,159}$",
+          "title": "Surfacekey",
+          "type": "string"
+        },
+        "versionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Versionref",
+          "type": "string"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "surfaceKey",
+        "versionRef",
+        "contentDigest"
+      ],
+      "title": "SurfaceRef",
+      "type": "object"
+    },
+    "ValueSource": {
+      "additionalProperties": false,
+      "description": "Structured value source without expressions or dynamic evaluation.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ValueSourceKind"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "maxLength": 320,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JsonValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ValueSource",
+      "type": "object"
+    },
+    "ValueSourceKind": {
+      "description": "Only four deterministic value sources are accepted by Test IR.",
+      "enum": [
+        "FIXTURE",
+        "ACTOR",
+        "RUN",
+        "LITERAL"
+      ],
+      "title": "ValueSourceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Versioned author intent referenced by one WorkflowDraft.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.test-intent/0.1",
+      "default": "atlas.test-intent/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "summary": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "requirementRefs": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SourceRequirementRef"
+      },
+      "maxItems": 64,
+      "title": "Requirementrefs",
+      "type": "array"
+    },
+    "actors": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ActorContract"
+      },
+      "maxItems": 8,
+      "title": "Actors",
+      "type": "array"
+    },
+    "fixture": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FixtureContract"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "surfaces": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SurfaceRef"
+      },
+      "maxItems": 32,
+      "title": "Surfaces",
+      "type": "array"
+    },
+    "variables": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ValueSource"
+      },
+      "maxProperties": 128,
+      "title": "Variables",
+      "type": "object"
+    },
+    "evidencePolicy": {
+      "$ref": "#/$defs/EvidencePolicy",
+      "default": {
+        "trace": true,
+        "screenshots": "critical-actions",
+        "retainSuccessDays": 7,
+        "retainFailureDays": 30
+      }
+    },
+    "recoveryPolicy": {
+      "$ref": "#/$defs/RecoveryPolicy",
+      "default": {
+        "maxUnitAttempts": 1,
+        "retryBrowserCrash": false,
+        "retryUnknownSideEffect": false
+      }
+    },
+    "outcomePolicy": {
+      "$ref": "#/$defs/OutcomePolicy",
+      "default": {
+        "requireHardOracle": true,
+        "evidenceIncompleteBlocksPass": true,
+        "agentMayDecidePass": false
+      }
+    },
+    "requiredFeatures": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Requiredfeatures",
+      "type": "array"
+    }
+  },
+  "required": [
+    "summary"
+  ],
+  "title": "TestIntent",
+  "type": "object"
+}

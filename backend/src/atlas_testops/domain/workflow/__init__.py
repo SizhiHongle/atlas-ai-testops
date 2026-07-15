@@ -3,6 +3,7 @@
 from atlas_testops.domain.workflow.models import (
     DraftAuthor,
     EdgeMapping,
+    ExactVersionRef,
     GraphIssue,
     GraphIssueCode,
     GraphValidationResult,
@@ -21,6 +22,7 @@ from atlas_testops.domain.workflow.validator import validate_workflow_graph
 __all__ = [
     "DraftAuthor",
     "EdgeMapping",
+    "ExactVersionRef",
     "GraphIssue",
     "GraphIssueCode",
     "GraphValidationResult",

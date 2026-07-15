@@ -7,8 +7,12 @@ from fastapi import Depends, Request
 
 from atlas_testops.application.account_health import AccountHealthService
 from atlas_testops.application.auth import AuthService
+from atlas_testops.application.case_versions import CaseVersionService
+from atlas_testops.application.cases import CaseService
 from atlas_testops.application.connectors import ConnectorService
 from atlas_testops.application.credentials import CredentialBrokerService
+from atlas_testops.application.debug_run_dispatcher import DebugRunDispatcher
+from atlas_testops.application.debug_runs import DebugRunService
 from atlas_testops.application.fixture_assets import FixtureAssetService
 from atlas_testops.application.fixture_dispatcher import FixtureRunDispatcher
 from atlas_testops.application.fixture_runs import FixtureRunService
@@ -103,6 +107,15 @@ def get_fixture_run_dispatcher(request: Request) -> FixtureRunDispatcher:
     return dispatcher
 
 
+def get_optional_debug_run_dispatcher(request: Request) -> DebugRunDispatcher | None:
+    """Return the Browser Runtime dispatcher without blocking read-only APIs."""
+
+    return cast(
+        DebugRunDispatcher | None,
+        request.app.state.debug_run_dispatcher,
+    )
+
+
 SettingsDependency = Annotated[Settings, Depends(get_app_settings)]
 DatabaseDependency = Annotated[Database, Depends(get_database)]
 OptionalDatabaseDependency = Annotated[Database | None, Depends(get_optional_database)]
@@ -124,6 +137,10 @@ FixtureRunDispatcherDependency = Annotated[
     FixtureRunDispatcher,
     Depends(get_fixture_run_dispatcher),
 ]
+OptionalDebugRunDispatcherDependency = Annotated[
+    DebugRunDispatcher | None,
+    Depends(get_optional_debug_run_dispatcher),
+]
 
 
 def get_platform_service(database: DatabaseDependency) -> PlatformService:
@@ -133,6 +150,42 @@ def get_platform_service(database: DatabaseDependency) -> PlatformService:
 
 
 PlatformServiceDependency = Annotated[PlatformService, Depends(get_platform_service)]
+
+
+def get_case_service(database: DatabaseDependency) -> CaseService:
+    """Create a stateless TestCase authoring service."""
+
+    return CaseService(database)
+
+
+CaseServiceDependency = Annotated[CaseService, Depends(get_case_service)]
+
+
+def get_case_version_service(database: DatabaseDependency) -> CaseVersionService:
+    """Create a stateless reviewed CaseVersion publication service."""
+
+    return CaseVersionService(database)
+
+
+CaseVersionServiceDependency = Annotated[
+    CaseVersionService,
+    Depends(get_case_version_service),
+]
+
+
+def get_debug_run_service(
+    database: DatabaseDependency,
+    dispatcher: OptionalDebugRunDispatcherDependency,
+) -> DebugRunService:
+    """Create a DebugRun service that keeps reads available and writes fail closed."""
+
+    return DebugRunService(database, dispatcher)
+
+
+DebugRunServiceDependency = Annotated[
+    DebugRunService,
+    Depends(get_debug_run_service),
+]
 
 
 def get_fixture_asset_service(database: DatabaseDependency) -> FixtureAssetService:

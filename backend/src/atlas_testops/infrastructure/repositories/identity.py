@@ -89,11 +89,14 @@ class IdentityRepository:
         self,
         connection: AsyncConnection[DictRow],
         role_id: UUID,
+        *,
+        for_share: bool = False,
     ) -> TestRole | None:
         """读取当前 Tenant 可见的 TestRole。"""
 
+        lock_clause = "for share" if for_share else ""
         cursor = await connection.execute(
-            f"select {ROLE_COLUMNS} from atlas.test_role where id = %s",
+            f"select {ROLE_COLUMNS} from atlas.test_role where id = %s {lock_clause}",
             (role_id,),
         )
         row = await cursor.fetchone()

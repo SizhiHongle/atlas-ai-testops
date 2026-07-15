@@ -387,10 +387,13 @@ class FixtureAssetRepository:
         self,
         connection: AsyncConnection[DictRow],
         blueprint_id: UUID,
+        *,
+        for_share: bool = False,
     ) -> DataBlueprintDefinition | None:
+        lock_clause = "for share" if for_share else ""
         cursor = await connection.execute(
             f"select {BLUEPRINT_DEFINITION_COLUMNS} "
-            "from atlas.data_blueprint_definition where id = %s",
+            f"from atlas.data_blueprint_definition where id = %s {lock_clause}",
             (blueprint_id,),
         )
         row = await cursor.fetchone()
@@ -506,9 +509,13 @@ class FixtureAssetRepository:
         self,
         connection: AsyncConnection[DictRow],
         version_id: UUID,
+        *,
+        for_share: bool = False,
     ) -> DataBlueprintVersion | None:
+        lock_clause = "for share" if for_share else ""
         cursor = await connection.execute(
-            f"select {BLUEPRINT_VERSION_COLUMNS} from atlas.data_blueprint_version where id = %s",
+            f"select {BLUEPRINT_VERSION_COLUMNS} from atlas.data_blueprint_version "
+            f"where id = %s {lock_clause}",
             (version_id,),
         )
         row = await cursor.fetchone()

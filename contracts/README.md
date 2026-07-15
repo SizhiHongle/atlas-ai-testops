@@ -18,6 +18,16 @@
 - `fixture-blueprint.schema.json`：`atlas.fixture-blueprint/0.1`，定义只引用精确 Atom 版本的静态数据 DAG。
 - `compiled-fixture-plan.schema.json`：`atlas.compiled-fixture-plan/0.1`，保存确定性的执行层级、摘要与反向清理顺序。
 - `fixture-manifest.schema.json`：`atlas.fixture-manifest/0.1`，限制 FixtureRun 只向测试执行暴露显式 exports。
+- `workflow-patch.schema.json`：`atlas.workflow-patch/0.1`，定义 AI 与人工共用的原子语义编辑协议。
+- `test-intent.schema.json`：`atlas.test-intent/0.1`，定义需求锚点、角色、Fixture、Surface 与证据策略。
+- `test-ir.schema.json`：`atlas.test-ir/0.2`，定义环境无关、只引用精确版本的确定性测试中间表示。
+- `plan-template.schema.json`：`atlas.plan-template/0.1`，定义由 Test IR 纯编译得到的执行层级与摘要。
+- `case-version.schema.json`：`atlas.case-version/0.1`，冻结已评审 Draft 的 Intent、Graph、Test IR、PlanTemplate 与可信 DebugRun 证据引用。
+- `execution-contract.schema.json`：`atlas.execution-contract/0.1`，冻结 Runtime 的账号 Lease/Fence、Fixture Manifest、浏览器、模型、Prompt、Tool/MCP 与 Policy 版本。
+- `assertion-result.schema.json`：`atlas.assertion-result/0.1`，记录由冻结 Assertion Program 产生的确定性 Oracle 结果。
+- `evidence-manifest.schema.json`：`atlas.evidence-manifest/0.1`，封存 Oracle、Artifact、事件链与完整性根，且 `PASSED` 必须完整并已验证。
+- `browser-execution-bundle.schema.json`：`atlas.browser-execution-bundle/0.1`，把已验证 ExecutionContract、Plan、Fixture Export 与加密 BrowserContext Restore Envelope 交付给 exact Worker。
+- `browser-runtime-report.schema.json`：`atlas.browser-runtime-report/0.1`，定义类型化、单调、Digest-linked 的 Browser Observation / Action / Policy / Receipt / Assertion / Artifact 报告事实；Action Report 必须连续，同一 `actionId` 不能跨 Action 链复用。
 - `openapi.json`：当前 FastAPI 公共 HTTP API，由前端生成 TypeScript 类型。
 
 ## 生成与校验
@@ -32,4 +42,6 @@ uv run python scripts/export_openapi.py --check
 
 生成文件使用对外 `camelCase` 字段。Python 代码继续使用 `snake_case`，Pydantic 同时接受两种输入形式。
 
-`fixture-manifest.schema.json` 已冻结跨进程边界，但生成它的 Fixture Worker 属于 P3-02；当前 P3-01 不伪造 runtime 或 cleanup 通过证据。尚未实现的 Task、AttemptSeal 和 Insight 协议不会提前提交空 Schema；它们在对应领域代码落地时按独立 `schemaVersion` 增加。
+`AttemptSeal` 只能绑定正式 `UnitAttempt`；在 P5 建立该对象前不会创建无宿主空契约。Task、AttemptSeal、Result Snapshot 和 Insight 协议会在对应领域代码落地时按独立 `schemaVersion` 增加。
+
+Browser Runtime 的内部 HTTP 端点还要求短期 Tenant / Run / Worker-scoped Execution Permit 和 HMAC Request Signature，且 Staging / Production Runtime API Origin 必须使用 HTTPS；JSON Schema 只约束消息形状，不替代传输层授权、Report Hash-chain State Machine 或数据库不可变约束。Evidence Finalization 会对完整 `AssertionResultInput` / `EvidenceArtifactInput` 重算 Canonical Digest 并与 Report Chain 的 exact 集合匹配；Artifact 还必须来自可信 `BrowserArtifactWriter`，不能由 Operation 自报。

@@ -101,6 +101,25 @@ class PlatformRepository:
         row = await cursor.fetchone()
         return Project.model_validate(row) if row is not None else None
 
+    async def get_project_for_share(
+        self,
+        connection: AsyncConnection[DictRow],
+        project_id: UUID,
+    ) -> Project | None:
+        """Shared-lock one Project while a child runtime snapshot is created."""
+
+        cursor = await connection.execute(
+            f"""
+            select {PROJECT_COLUMNS}
+            from atlas.project
+            where id = %s
+            for share
+            """,
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        return Project.model_validate(row) if row is not None else None
+
     async def list_projects(
         self,
         connection: AsyncConnection[DictRow],

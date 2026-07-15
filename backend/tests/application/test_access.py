@@ -68,3 +68,22 @@ def test_case_reviewer_can_publish_but_cannot_author() -> None:
 
     assert actor.can_maintain_components(project_id) is False
     assert actor.can_publish_components(project_id)
+
+
+def test_case_author_and_reviewer_duties_are_separated() -> None:
+    project_id = uuid7()
+    author = actor_with(AccessGrant(role=PlatformRole.CASE_AUTHOR, project_id=project_id))
+    reviewer = actor_with(AccessGrant(role=PlatformRole.CASE_REVIEWER, project_id=project_id))
+
+    assert author.can_author_cases(project_id)
+    assert author.can_review_cases(project_id) is False
+    assert reviewer.can_author_cases(project_id) is False
+    assert reviewer.can_review_cases(project_id)
+
+
+def test_project_admin_can_author_and_review_cases() -> None:
+    project_id = uuid7()
+    actor = actor_with(AccessGrant(role=PlatformRole.PROJECT_ADMIN, project_id=project_id))
+
+    assert actor.can_author_cases(project_id)
+    assert actor.can_review_cases(project_id)

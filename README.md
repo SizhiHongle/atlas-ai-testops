@@ -9,7 +9,7 @@
 - `frontend/atlas-ai-testops-prototype/`
   - 当前 Atlas AI 测试平台前端原型源码，包含主工作台与登录页。
 - `backend/`
-  - Python 3.14 模块化后端，包含 Platform RBAC、Identity Catalog、Connector/Capability、Account Health Verification、Account Lease/Fencing、Secret Grant/Adapter、独立 Auth Session Worker、加密 SessionArtifact、DataAtom / DataBlueprint 资产控制面、耐久 FixtureRun 与资源账本。
+  - Python 3.14 模块化后端，包含 Platform RBAC、Identity Catalog、Connector/Capability、Account Health Verification、Account Lease/Fencing、Secret Grant/Adapter、独立 Auth Session Worker、加密 SessionArtifact、DataAtom / DataBlueprint 资产控制面、耐久 FixtureRun / 资源账本，以及不直连主数据库的独立 Browser Worker 执行平面。
 - `compose.yaml`
   - 本地 PostgreSQL、Temporal Dev Server、MinIO、独立 Auth Session Worker 与 Fixture Worker。
 - `documents/IMPLEMENTATION_PROGRESS.md`
@@ -83,6 +83,8 @@ make verify
 ## 说明
 
 - 交付包未包含 `node_modules`、`dist`、`.wrangler`、Git 历史和本地缓存。
-- 当前前端属于可交互产品原型，界面结构、布局、样式和既有交互是实现的视觉权威；业务数据按阶段替换为真实 API，尚未实施的执行过程仍使用演示数据。
+- 当前前端属于可交互产品原型，界面结构、DOM、布局、样式和既有交互是实现的唯一视觉与交互权威；业务数据按阶段替换为真实 API，尚未实施的执行过程仍使用演示数据。P6-01 未修改任何前端原型页面或交互。
 - 打包前已通过 TypeScript 检查与生产构建。
-- 后端已接入 PostgreSQL/Psycopg 连接池、Alembic、RLS、Transactional Outbox、幂等、Platform RBAC、Argon2id 与 Opaque Session、测试账号目录、ConnectorInstallation / Capability Snapshot、账号登录身份与角色健康检查、Lease/Fencing、一次性 Secret Grant、独立 Auth Session Worker、AES-GCM SessionArtifact Vault，以及由独立 Temporal Worker 驱动的 FixtureRun、Node Attempt、Resource Ledger、Manifest、取消补偿、Reconcile、Cleanup Retry / Sweeper 和发布证据。首个真实 SaaS Flow、生产 Secret Provider、KMS 配置与后续 TestCase 控制面仍需继续落地。
+- 后端已接入 PostgreSQL/Psycopg 连接池、Alembic、RLS、Transactional Outbox、幂等、Platform RBAC、Argon2id 与 Opaque Session、测试账号目录、ConnectorInstallation / Capability Snapshot、账号登录身份与角色健康检查、Lease/Fencing、一次性 Secret Grant、独立 Auth Session Worker、AES-GCM SessionArtifact Vault、Fixture 耐久运行与发布证据、TestCase / WorkflowDraft / DebugRun / CaseVersion 发布闭环，以及 P6-00 可信事实层与 P6-01 独立 Browser Worker。Browser Worker 通过短期 Permit + HMAC 内部网关、Temporal Activity、加密 BrowserContext Envelope 和严格 Report Hash-chain 执行冻结 Plan，不直接访问主数据库。
+- P6-01 的安全收口要求 Staging / Production Runtime API 使用 HTTPS、Action Report 连续且同一 `actionId` 只能标识一条 Action 链、Finalize 绑定完整 Assertion / Artifact Input Digest；Artifact 只能由可信 Writer 产生，Blocked 或非成功 Receipt 只能终结为 `INCONCLUSIVE`。
+- P6-01 当前按 fail-closed 交付执行骨架：生产 Evidence / Redaction Writer、首个真实 SaaS Operation / Route Registry、容器级 Egress / DNS / UDP / WebRTC 限制、Envelope Key Ring Rotation、公共 Start 到 Runtime Preparation / Bind / Dispatch 的自动串联和 Multi-actor 仍需后续落地。

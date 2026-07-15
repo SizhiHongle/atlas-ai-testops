@@ -1,6 +1,6 @@
 # Atlas AI 测试平台实施进度
 
-更新时间：2026-07-14
+更新时间：2026-07-15
 
 ## 使用规则
 
@@ -13,11 +13,11 @@
 
 ## 当前状态
 
-- 当前阶段：`P3 Atom、Blueprint、Fixture Run 与 Cleanup（已完成）`
-- 当前切片：`P3-03 Cleanup / Reconcile 与取消补偿（已完成）`
-- 总体状态：P3 已完成，准备进入 P4
+- 当前阶段：`P6 Browser / Oracle / Evidence Runtime（基础中）`
+- 当前切片：`P6-01 无数据库 Browser Worker 与受限 Playwright 执行（已完成）`
+- 总体状态：P4 发布闭环、P6-00 受信运行事实与 P6-01 Browser 执行平面已落地；下一步补齐生产 Evidence / Redaction 与 Live 能力，前端继续只按既有原型槽位接线
 - 当前分支：`main`
-- 当前进入基线提交：`4015026`
+- 当前进入基线提交：`befc631`
 
 ## 阶段看板
 
@@ -27,9 +27,9 @@
 | P1 | Tenant、Project、Environment、平台身份与权限 | 已完成 | 88 tests、真实 PostgreSQL RLS/RBAC/Session、登录原型浏览器 QA |
 | P2 | TestRole、AccountPool、TestAccount、Lease 与 Auth Session | 已完成 | P2-01 至 P2-06 已验收；身份、租约、Secret Grant、加密 Session 与清理链已闭环 |
 | P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 已完成 | P3-00 至 P3-03 已验收；资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与三类发布证据闭环 |
-| P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 未开始 | — |
+| P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 后端完成 | P4-00 至 P4-03 已验收；作者态、不可变 DebugRun、精确绑定、Reviewer 发布门禁与 CaseVersion 冻结闭环已落地 |
 | P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 未开始 | — |
-| P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 未开始 | — |
+| P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 已完成可信事实层；P6-01 独立无数据库 Browser Worker、受信网关、Context Restore、报告链与受限 Playwright Adapter 已验收；Live / 生产 Evidence Writer / AttemptSeal 待后续 |
 | P7 | Result Fact、Snapshot、Classification 与 Gate | 未开始 | — |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 未开始 | — |
 | P9 | 隔离、并发、故障注入、黄金链路与 SLO 验收 | 未开始 | — |
@@ -202,12 +202,95 @@
 - Cleanup Evidence 只由完成真实清理且终态意图为 `RELEASED` 的 Validation Run 产生；取消、失败、未决 Reconcile、泄漏或清理失败均不能伪造发布条件。资产 Contract、Validation 或 Compile Revision 变化时，旧 Cleanup Evidence 自动失效。
 - 真实 PostgreSQL 与 Temporal 测试覆盖 Reconcile `FOUND / ABSENT`、有界 CREATE 重试、业务信号取消、原生 Temporal Cancellation、Transient Cleanup Retry、Sweeper、孤儿与 stale claim 恢复、Cleanup Evidence 和发布门禁；只更新生成的 OpenAPI / TypeScript 类型，未修改前端原型页面、DOM、布局、样式或交互。
 
+## P4-00/P4-01 范围
+
+### 已完成
+
+- 建立 `atlas.test-intent/0.1`、`atlas.test-ir/0.2`、`atlas.plan-template/0.1` 与 WorkflowPatch 领域契约，并导出版本化 JSON Schema；Test IR 只接受精确 Requirement、Actor、Fixture、Surface 与 Node Version 引用，不接受动态 URL、Selector、Header、Cookie、Token、Script、Shell、SQL 或任意代码能力。
+- 确定性 Case Compiler 对 WorkflowGraph 做稳定排序，验证需求锚点、角色、Fixture、Surface、HARD Oracle 与禁用能力，生成内容摘要一致的 Test IR 和 PlanTemplate；编译不执行外部 I/O，也不解析 floating version。
+- WorkflowPatch 同时服务 AI 与人工作者，区分 Patch 可应用性和当前图的业务有效性；结构性悬空引用不能持久化，但缺少必填输入等暂时无效作者态可以保存并明确标记，便于后续继续修图。
+- `20260715_0013` 建立强制 RLS 的 `test_case`、`workflow_draft`、`workflow_node`、`workflow_edge` 与追加式 `draft_operation`；Scope FK、外键索引、部分索引、最小权限和 Trigger 保证租户隔离、身份不可变、无越权删除以及 semantic / layout Revision 每次只推进一条轴。
+- API 提供 TestCase 创建、Catalog、详情、WorkflowDraft 读取、Patch 预检/原子应用和 Layout 更新；写命令使用 Idempotency-Key，语义与布局分别使用 If-Match / ETag CAS，并在同一短事务内写入 DraftOperation、Audit 与 Outbox。
+- RBAC 将 `CASE_AUTHOR` 与 `CASE_REVIEWER` 分离；跨 Tenant 资源统一返回 404。Audit / Outbox 只保存 Revision、Digest、有效性和来源，不保存 Requirement 正文、Workflow 参数或 Intent 内容。
+- 前端只新增 OpenAPI 生成类型和 `lib/api/cases.ts` 的 SWR / mutation 适配层，未修改现有 Cases / Case Canvas 原型页面、DOM、布局、CSS 或交互；后续接线继续以既有前端原型为唯一视觉与交互权威。
+- 真实 PostgreSQL 测试覆盖双 Tenant RLS、幂等重放、语义与布局双 Revision、412 冲突、暂时无效图、结构冲突和追加式操作历史；迁移完成 downgrade / upgrade 往返，全量门禁通过 303 tests，覆盖率 90.32%。
+
+## P4-02 范围
+
+### 已完成
+
+- 建立 `DebugRunLifecycle`、`DebugRunOutcome` 与 `DebugRunSnapshotStatus` 三个正交投影；运行快照固定 Draft ID、semanticRevision、semanticDigest、Test IR、PlanTemplate、compiledDigest、Environment 与 executionDeadline，模型和数据库同时校验嵌套 Digest 一致性。
+- `20260715_0014` 建立强制 RLS 的 `debug_run` 与追加式 `debug_run_event`；Scope FK、不可变快照 Trigger、生命周期约束、当前成功结果 Partial Index、最小权限和事件 Trigger 保证状态与主运行一致、`seq` 无间隙且不能更新或删除历史事件。
+- `PASSED` 只能在 `TERMINATED` 且绑定完整 `evidenceManifestId + digest` 时写入；当前没有 P6 Browser Worker / Evidence Service，因此公共控制面没有完成或写入结果的接口，不会用 Mock、API 请求或 Agent 自报伪造通过。
+- API 提供 Draft DebugRun 启动、TestCase 历史、详情、`afterSeq` 事件增量读取和幂等取消；创建时共享锁定 Case / Project / Environment、排他锁定 Draft、复核 If-Match 与 semanticDigest，再做确定性编译并冻结快照。Production Environment、Archived Case / Project、Disabled Environment 和编译失败均被拒绝。
+- Browser Runtime 通过独立 `DebugRunDispatcher` 端口注入。未配置时在任何写事实前返回 `DEBUG_RUNTIME_UNAVAILABLE`；已冻结后 dispatch 或 cancel signal 暂时失败时保留权威请求，调用方用相同 Idempotency-Key 重放，不重复创建 Run 或事件，也不改变 Outcome。
+- semantic Patch 与 DebugRun 采用统一 Draft → Run 锁顺序；语义变更在同一事务把旧快照标记 `OUTDATED` 并追加事件，layout-only Revision 不影响 DebugRun。跨 Tenant 探测在检查 Runtime 可用性前统一返回 404。
+- 前端仅更新生成 OpenAPI 类型和 `lib/api/cases.ts` 的 SWR / mutation adapter，使用稳定 key 去重 Catalog、详情和事件读取；未修改 Cases、Case Canvas、Debug 或 Publish 原型页面、组件、DOM、布局、CSS 或既有交互。
+- 真实 PostgreSQL 测试覆盖 runtime 缺失、dispatch / cancel signal 失败重放、Production 拒绝、跨 Tenant 隐藏、Digest 冻结、layout 不失效、semantic 自动过期、事件顺序/状态防绕过、无证据 PASS 拒绝和最小权限；迁移完成 `0014 → 0013 → 0014` 往返，全量门禁通过 306 tests，覆盖率 90.39%。
+
+## P4-03 范围
+
+### 已完成
+
+- 建立 `atlas.case-version/0.1` 机器契约；CaseVersion 冻结 Test Intent、规范化 Workflow Graph、Test IR、PlanTemplate、semantic / intent / compiled / content Digest、DebugRun 与 Evidence Manifest 引用，并在 Pydantic 模型中交叉校验所有嵌套快照。
+- `20260715_0015` 建立强制 RLS 的 `case_version`、`case_version_node` 与 `case_version_edge`；Scope FK、复合/部分索引、最小权限和 Trigger 共同保证发布内容与 provenance 不可更新、节点和 Edge 不可修改或删除、应用角色不能删除版本，且不提供 `latest` 或浮动引用。
+- 发布事务按 Case / Project 共享锁、Draft 排他锁、精确 Role / Fixture 共享锁、DebugRun 共享锁的固定顺序执行；在同一短事务内复核 If-Match、Draft / Intent Digest、确定性编译、Actor Revision / Capability、已发布 Fixture 的 Static / Runtime / Cleanup 证据、DebugRun 的 CURRENT + TERMINATED + PASSED 及三类 Digest 一致性。
+- 当前语义 Author 由最新 SEMANTIC DraftOperation（初始版本回退到不可变创建 Audit）解析；发布要求可审计 Reviewer Actor、`CASE_REVIEWER` 权限且 Reviewer 与 Author 不是同一 Actor，数据库再次用约束阻止自审版本进入事实表。
+- API 提供 `POST /v1/test-cases/{caseId}:publish`、`GET /v1/test-cases/{caseId}/versions` 与 `GET /v1/case-versions/{versionId}`；发布使用 Idempotency-Key + clientMutationId、If-Match CAS、精确 DebugRun ID，并原子写入 Audit、Outbox 与可重放 HTTP 结果。
+- 前端仅新增生成 TypeScript 类型以及 `lib/api/cases.ts` 的 CaseVersion SWR / publish adapter；未修改 Cases、Case Canvas、Debug、Publish 原型页面、DOM、布局、CSS 或既有交互。
+- 真实 PostgreSQL 测试覆盖无成功试运行、自审、过期 DebugRun、重复版本 / 证据、幂等重放、跨 Tenant 404、发布后 Draft 继续演进而历史版本不变、节点 / Edge 不可变与无 DELETE 权限；迁移完成 `0015 → 0014 → 0015` 往返，全量门禁通过 310 tests，覆盖率 90.49%。
+
+## P6-00 范围
+
+### 已完成
+
+- 建立 `atlas.execution-contract/0.1`、`atlas.assertion-result/0.1` 与 `atlas.evidence-manifest/0.1` 机器契约并导出 JSON Schema。ExecutionContract 冻结 exact Test IR / Plan、FixtureRun / FixtureManifest、Actor Role Revision、Lease / Fence、BrowserContextRef、Browser Revision、Locale / Timezone、Model / Prompt / Reasoning Policy、Tool / MCP Schema 与 Policy Digest。
+- 确定性 Oracle 只接受与冻结 Assertion Program 匹配的结果输入，不接受调用方提供 Case outcome；HARD Failure、缺失 / 不确定证据和完整 Verified Pass 使用固定规则推导 `FAILED / INCONCLUSIVE / PASSED`，Observation、Artifact 和 Finalization 全部受 ExecutionContract 时间窗约束。
+- `20260715_0016` 建立强制 RLS 的 `execution_contract`、`execution_contract_actor_binding`、`assertion_result`、`evidence_artifact` 与 `evidence_manifest`。Scope FK、不可变 Trigger、复合 / 部分索引和 `SELECT/INSERT` 最小权限保证事实不可覆盖；数据库再次复核 `debug-run:{id}` execution scope、Role / Lease / Fence / Session、Fixture exports、Assertion / Artifact 引用，并重新推导 completeness、integrity 与 outcome。
+- 新增内部 `DebugRuntimeService`，按 `CREATED → BINDING → READY → RUNNING → FINALIZING → TERMINATED` 推进 DebugRun，并在每一步原子写入 DebugRunEvent、Audit 与 Outbox。绑定与终结均支持同一精确命令幂等重放；不同 Contract 或 Evidence 命令被拒绝。
+- CaseVersion 发布不再只相信 DebugRun 上的 Manifest ID / Digest，而是加载实际 EvidenceManifest，复核 ExecutionContract、Test IR、Plan、Fixture、Outcome、Completeness 与 Integrity 全部一致。旧 P6 前无证据 `PASSED` 和迁移时仍活动的旧 Run 会安全回退为 `INCONCLUSIVE`。
+- P6-00 当时没有公共 Runtime 完成 API，也未提供 Browser Worker、Live Action/Event、Artifact 字节验证或 View Token；P6-01 已补齐受信内部 Worker 协议，公共完成 API 仍保持关闭。
+- `AttemptSeal` 明确延后到 P5 创建正式 `UnitAttempt` 后，不创建属于 DebugRun 的无宿主空协议。
+- 前端仅更新 OpenAPI 生成类型；未修改任何现有页面、组件、DOM、布局、CSS 或交互，继续以前端原型为唯一视觉与交互权威。
+
+## P6-01 范围
+
+### 已实现
+
+- 建立 `atlas.browser-execution-bundle/0.1`、`atlas.browser-runtime-report/0.1` 与加密 `atlas.browser-context-restore-envelope/0.1` 协议。执行包只暴露冻结 Contract / Test IR / Plan、Fixture Export 和每 Actor 的密文 Restore Envelope，不把 Storage State、ObjectRef 或 Vault Key 放入 Temporal History。
+- `20260715_0017` 新增强制 RLS、不可更新/删除的 `browser_runtime_report`，以及 EvidenceManifest `finalization_command_digest`。数据库 Trigger 约束首条 `execution.started`、唯一 Started、完成后禁写、单调时间与终结时精确 Chain Head / Count；应用层再约束类型化 Payload、无间隙 Sequence、同一 `actionId` 不可跨 Action 链复用和连续 Proposal → Policy → ALLOW Receipt，不允许其他普通 Report 插入一个未闭合 Action；Policy 后仅可用 `execution.blocked` 代替无法形成的可信 Receipt。
+- 新增只面向机器身份的 Browser Runtime 内部 API：读取执行包、Ready、Start、追加 Report 和 Finalize Evidence。Temporal Dispatcher 签发 exact Tenant / Run / Worker / Deadline 的短期 Permit；每个请求还以独立 HMAC Key 签名 Method、Path、Scope、Timestamp、Nonce、Body 与 Permit Digest，响应使用 `no-store`，请求体有界。Local / Test / Development 可使用 HTTP 调试，Staging / Production 的 Browser Worker 配置非 HTTPS Runtime API 时在启动前拒绝。
+- 新增独立 `atlas-browser-worker` 进程与 Docker Target。Worker Settings 不包含控制面 `database_url`，Browser Workflow 只在已经绑定 exact ExecutionContract 后启动；一个有 Heartbeat 的长时 Activity 承载副作用并禁止自动 Activity Retry，Temporal 结果仅返回安全终态摘要。
+- BrowserContext Restore Descriptor 使用 AES-256-GCM Envelope 和 Contract-bound AAD 投递；Worker 在内存中核对 Tenant / Project / Environment、Lease / Fence、Worker、Actor、Context Ref、Key Version 与 Expiry，再经 SessionArtifact Vault 恢复隔离的非持久化 Playwright Context。
+- Playwright Adapter 校验实际 Playwright / Chromium Revision、Tool / Policy / MCP Digest 和 executable Action 集；只解析部署时 exact Operation / Published Route Registry。HTTP 与 WebSocket 都限制在 Session Scope 的精确 Origin，绝对 URL、动态 Module、Script、Callable 与任意 Locator 不能从 Agent / 资产 / HTTP 注入。
+- DOM Action 绑定当前 Observation 的 retained `ElementHandle`、Page Revision、Semantic Fingerprint 与单次 Nonce，执行前重新核对可见性、Element Key 和 Accessible Name。Action ID / Grant 只消费一次；Report Chain 出现 `execution.blocked` 或任一 Receipt 为 `FAILED / OUTCOME_UNKNOWN` 时，全部 Assertion 与最终 Outcome 强制为 `INCONCLUSIVE`，不能由 Operation 或后续证据覆盖。
+- Browser Operation 只能经 `BrowserToolSession` 把原始证据字节交给可信 `BrowserArtifactWriter`；Operation 直接构造或返回 `EvidenceArtifactInput` 必须拒绝，即使其元数据与 `VERIFIED` 字段形状完整也不能进入终结输入。
+- Report Payload 限制大小、嵌套深度、敏感文本和绝对 URL；链首、Sequence、时间、Previous Digest、Content Digest、Action 连续性与链尾均严格校验。每条 Assertion / Artifact Report 携带完整 Input 的 Canonical Digest，Finalization 对 Command 中每个完整 `AssertionResultInput` / `EvidenceArtifactInput` 重算 Digest 并匹配 exact Report 集合；同一完整命令的 replay 再由持久化 Finalization Command Digest 约束。
+- P6-01 未修改任何前端页面、组件、DOM、布局、CSS 或既有交互。前端原型继续是唯一视觉与交互权威，后续能力只能接入已有 Debug / Live / Evidence 槽位。
+
+### 当前 fail-closed 边界
+
+- 生产 `BrowserArtifactWriter` / Evidence Redaction、对象存储写入、独立 Hash 与 Integrity Verification 尚未实现，属于 P6-02；未配置时 `CAPTURE_VIEW` 拒绝执行。
+- 默认 Browser Operation / Route Registry 为空；首个真实 SaaS exact Operation 与 Published Route 必须由部署代码注册，不能用通用动态脚本替代。
+- Playwright HTTP / WebSocket Routing 不是完整网络沙箱。生产容器仍需部署 Egress、DNS、UDP / WebRTC 限制。
+- BrowserContext Envelope 目前只支持一个活动 Key Version；生产 Key Ring、Rotation 与旧 Key 有界解密窗口尚未落地。
+- 公共 DebugRun Start 尚未自动完成 Runtime Preparation、ExecutionContract Bind 与 Browser Dispatch；P6-01 只消费已经正确绑定的 Contract。
+- 当前只支持单 Actor；Multi-actor Context、并行调度、Lease 与控制权仲裁延后。
+
+### 验证状态
+
+- Alembic `20260715_0017 → 20260715_0016 → 20260715_0017` 往返通过；报告表、EvidenceManifest Finalization Digest、Trigger、RLS 与最小权限可重复部署。
+- 真实 PostgreSQL、Temporal 与 Chromium 验证覆盖内部机器认证、Report / Finalization 幂等与状态机、DOM 重排后目标不漂移、WebSocket Origin、Browser Revision、失败 Receipt、Context Envelope、Worker 装配和原生 Temporal Cancellation。
+- `make verify` 通过：389 tests、覆盖率 90.10%、ruff、严格 mypy、Schema / OpenAPI 漂移、Python sdist / wheel、TypeScript 与前端生产构建全部成功；仅更新生成类型，前端原型页面未改。
+
 ### 下一步
 
-1. 进入 P4，先落地 TestCase、WorkflowDraft、DebugRun 与 CaseVersion 的数据库权威、版本协议和发布边界；继续以前端现有 Cases / Case Canvas 原型为视觉与交互权威。
-2. 接入首个真实 SaaS Fixture Provider 与 `PasswordLoginFlow`、生产 Secret Provider 和 KMS-backed `SessionArtifactVault`；缺少受信部署配置时继续 fail-closed。
-3. 为各 Tenant 配置生产 Temporal Schedule，周期调度 Fixture Cleanup Sweep、`AccountHealthWorkflow`、Connector Reconcile、Credential Expiry Monitor 和 Session Janitor Workflow。
-4. 身份 MCP v1 Transport 与 `ExecutionIdentityGrant` 服务端校验延后到 P5 的 TaskRun / ExecutionUnit 权威事实落地后实施。
+1. P6-02 落地生产 Evidence / Redaction Writer、Evidence Object 验证、Live Event / Action、短期 View / Read Token 和断线重放；只映射到前端现有 Debug / Live / Evidence 槽位，不重画或调整原型结构。
+2. 串联公共 DebugRun Start → Runtime Preparation → ExecutionContract Bind → Browser Dispatch，并保持同一命令的幂等恢复语义。
+3. 接入首个真实 SaaS Browser Operation / Published Route，并在部署层实施容器 Egress / DNS / UDP / WebRTC 策略与 Envelope Key Ring Rotation。
+4. P5 建立 TaskPlan / TaskRun / ExecutionUnit / UnitAttempt 后，再在 P6 后续切片创建 AttemptSeal，并在 P7 形成 Result Snapshot / Gate；Multi-actor 同时等待正式调度与控制权协议。
+5. 接入首个真实 SaaS Fixture Provider 与 `PasswordLoginFlow`、生产 Secret Provider 和 KMS-backed `SessionArtifactVault`；缺少受信部署配置时继续 fail-closed。
+6. 为各 Tenant 配置生产 Temporal Schedule，周期调度 Fixture Cleanup Sweep、`AccountHealthWorkflow`、Connector Reconcile、Credential Expiry Monitor 和 Session Janitor Workflow。
 
 ## 验证记录
 
@@ -264,6 +347,21 @@
 | 2026-07-14 | P3 Migration | `20260714_0012` downgrade `0011` → upgrade `0012` | 通过；状态机 Constraint、Attempt Guard、Scope FK、Index、RLS、Privilege 与旧数据 fail-closed 修复往返成功 |
 | 2026-07-14 | P3-03 契约 | OpenAPI → TypeScript、cancel / retry-cleanup / cleanup sweep 与 Attempt 安全投影 | 通过；仅更新生成契约和类型，未修改前端原型页面、结构、布局、样式或交互 |
 | 2026-07-14 | P3-03 全量门禁 | `make verify` | 通过；286 tests、覆盖率 90.08%、ruff、严格 mypy、契约漂移、Python 包与前端生产构建全部成功 |
+| 2026-07-15 | P4-00/P4-01 协议与 API | Test Intent / Test IR 0.2 / PlanTemplate、WorkflowPatch、TestCase Catalog、WorkflowDraft 双 Revision | 通过；确定性摘要、RBAC、幂等、CAS、Audit / Outbox 与前端类型适配均已验证 |
+| 2026-07-15 | P4 Migration | `20260715_0013` upgrade → downgrade `0012` → upgrade `0013` | 通过；Scope FK、Index、Trigger、强制 RLS、最小权限与 DraftOperation 追加历史往返成功 |
+| 2026-07-15 | P4-00/P4-01 全量门禁 | `make verify` | 通过；303 tests、覆盖率 90.32%、ruff、严格 mypy、Schema / OpenAPI 漂移、Python 包、TypeScript 与前端生产构建全部成功 |
+| 2026-07-15 | P4-02 DebugRun 控制面 | 不可变 Draft snapshot、dispatch / cancel 重放、OUTDATED、事件 replay、无证据 PASS 拒绝 | 通过；真实 PostgreSQL、跨 Tenant 404、Production deny、最小权限与事件数据库防绕过均已验证 |
+| 2026-07-15 | P4-02 Migration | `20260715_0014` upgrade → downgrade `0013` → upgrade `0014` | 通过；Scope FK、状态 / Digest / Evidence Constraint、Trigger、Partial Index、强制 RLS 与 Privilege 往返成功 |
+| 2026-07-15 | P4-02 全量门禁 | `make verify` | 通过；306 tests、覆盖率 90.39%、ruff、严格 mypy、Schema / OpenAPI 漂移、Python 包、TypeScript 与前端生产构建全部成功 |
+| 2026-07-15 | P4-03 CaseVersion 发布门禁 | 当前 Draft 复编、精确 Role / Fixture、成功 DebugRun、Author / Reviewer 分离、冻结快照 | 通过；真实 PostgreSQL 覆盖幂等、过期证据、跨 Tenant、不可变 Trigger 与最小权限 |
+| 2026-07-15 | P4-03 Migration | `20260715_0015` upgrade → downgrade `0014` → upgrade `0015` | 通过；Scope FK、复合/部分索引、强制 RLS、不可变 Trigger 与 Privilege 往返成功 |
+| 2026-07-15 | P4-03 全量门禁 | `make verify` | 通过；310 tests、覆盖率 90.49%、ruff、严格 mypy、Schema / OpenAPI 漂移、Python 包、TypeScript 与前端生产构建全部成功 |
+| 2026-07-15 | P6-00 Trusted Runtime | ExecutionContract exact binding、Oracle fail-closed、EvidenceManifest、幂等状态推进、CaseVersion 实证复核 | 通过；真实 PostgreSQL 覆盖 Fixture / Lease execution scope、Role / Fence / Session、证据时间窗、结果防伪、跨 Tenant RLS 与不可变事实 |
+| 2026-07-15 | P6-00 Migration | `20260715_0016` downgrade `0015` → upgrade `0016` | 通过；旧活动 / 无证据成功 Run 安全回退，Scope FK、Trigger、Index、RLS、Privilege 和 P6 Evidence 降级清理往返成功 |
+| 2026-07-15 | P6-00 全量门禁 | `make verify` | 通过；319 tests、覆盖率 91.05%、ruff、严格 mypy、Schema / OpenAPI 漂移、Python sdist / wheel、TypeScript 与前端生产构建全部成功 |
+| 2026-07-15 | P6-01 Browser 执行平面 | Permit + HMAC 内部网关、Temporal Activity、Context Envelope、Report Chain、受限 Playwright | 通过；真实 PostgreSQL / Temporal / Chromium 覆盖精确绑定、幂等、DOM 目标稳定、Origin、失败闭合与 Worker 无数据库装配 |
+| 2026-07-15 | P6-01 Migration | `20260715_0017` downgrade `0016` → upgrade `0017` | 通过；Append-only Report、Evidence Finalization Digest、Trigger、RLS、Privilege 与 CaseVersion Evidence 流程往返成功 |
+| 2026-07-15 | P6-01 全量门禁 | `make verify` | 通过；389 tests、覆盖率 90.10%、ruff、严格 mypy、Schema / OpenAPI 漂移、Python sdist / wheel、TypeScript 与前端生产构建全部成功 |
 
 ## 当前风险与外部输入
 
@@ -274,4 +372,5 @@
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
 - P3-03 已完成取消后补偿、Reconcile、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Evidence；生产环境仍需按 Tenant 配置 Temporal Schedule 和真实 Provider，缺失时继续 fail-closed。
+- P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；生产 Evidence / Redaction Writer、对象字节验证、Live / View Token、真实 SaaS Operation / Route Registry、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
 - 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

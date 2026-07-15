@@ -5,7 +5,10 @@ from fastapi import APIRouter
 from atlas_testops.api.problem_details import ProblemDetails
 from atlas_testops.api.v1.account_health import router as account_health_router
 from atlas_testops.api.v1.auth import router as auth_router
+from atlas_testops.api.v1.case_versions import router as case_versions_router
+from atlas_testops.api.v1.cases import router as cases_router
 from atlas_testops.api.v1.connectors import router as connectors_router
+from atlas_testops.api.v1.debug_runs import router as debug_runs_router
 from atlas_testops.api.v1.fixture_assets import router as fixture_assets_router
 from atlas_testops.api.v1.fixture_runs import router as fixture_runs_router
 from atlas_testops.api.v1.health import router as health_router
@@ -21,6 +24,9 @@ api_router = APIRouter(
 api_router.include_router(health_router, tags=["health"])
 api_router.include_router(auth_router, tags=["authentication"])
 api_router.include_router(platform_router, tags=["platform"])
+api_router.include_router(cases_router, tags=["test-cases"])
+api_router.include_router(case_versions_router, tags=["case-versions"])
+api_router.include_router(debug_runs_router, tags=["debug-runs"])
 api_router.include_router(connectors_router, tags=["connectors"])
 api_router.include_router(fixture_assets_router, tags=["fixture-assets"])
 api_router.include_router(fixture_runs_router, tags=["fixture-runs"])

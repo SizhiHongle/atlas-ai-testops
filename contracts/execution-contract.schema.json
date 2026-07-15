@@ -1,0 +1,395 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/execution-contract/0.1/schema.json",
+  "$defs": {
+    "BrowserExecutionProfile": {
+      "additionalProperties": false,
+      "description": "Reviewed browser binary and deterministic locale settings.",
+      "properties": {
+        "engine": {
+          "const": "chromium",
+          "default": "chromium",
+          "title": "Engine",
+          "type": "string"
+        },
+        "revision": {
+          "maxLength": 160,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{1,255}$",
+          "title": "Revision",
+          "type": "string"
+        },
+        "viewport": {
+          "$ref": "#/$defs/Viewport"
+        },
+        "locale": {
+          "maxLength": 35,
+          "minLength": 2,
+          "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+          "title": "Locale",
+          "type": "string"
+        },
+        "timezone": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_+./-]+$",
+          "title": "Timezone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision",
+        "viewport",
+        "locale",
+        "timezone"
+      ],
+      "title": "BrowserExecutionProfile",
+      "type": "object"
+    },
+    "ExecutionActorBinding": {
+      "additionalProperties": false,
+      "description": "Exact role, lease fence, and opaque login session for one actor slot.",
+      "properties": {
+        "actorSlot": {
+          "maxLength": 80,
+          "minLength": 2,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{1,79}$",
+          "title": "Actorslot",
+          "type": "string"
+        },
+        "roleId": {
+          "format": "uuid",
+          "title": "Roleid",
+          "type": "string"
+        },
+        "roleKey": {
+          "maxLength": 80,
+          "minLength": 2,
+          "pattern": "^[a-z][a-z0-9._-]{1,79}$",
+          "title": "Rolekey",
+          "type": "string"
+        },
+        "roleRevision": {
+          "minimum": 1,
+          "title": "Rolerevision",
+          "type": "integer"
+        },
+        "accountLeaseId": {
+          "format": "uuid",
+          "title": "Accountleaseid",
+          "type": "string"
+        },
+        "accountHandle": {
+          "pattern": "^ah_[A-Za-z0-9_-]{16,128}$",
+          "title": "Accounthandle",
+          "type": "string"
+        },
+        "fencingToken": {
+          "minimum": 1,
+          "title": "Fencingtoken",
+          "type": "integer"
+        },
+        "browserContextRef": {
+          "pattern": "^bctx_[A-Za-z0-9_-]{32,200}$",
+          "title": "Browsercontextref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actorSlot",
+        "roleId",
+        "roleKey",
+        "roleRevision",
+        "accountLeaseId",
+        "accountHandle",
+        "fencingToken",
+        "browserContextRef"
+      ],
+      "title": "ExecutionActorBinding",
+      "type": "object"
+    },
+    "FixtureExecutionBinding": {
+      "additionalProperties": false,
+      "description": "Exact ready FixtureRun and immutable export manifest binding.",
+      "properties": {
+        "fixtureRunId": {
+          "format": "uuid",
+          "title": "Fixturerunid",
+          "type": "string"
+        },
+        "blueprintVersionId": {
+          "format": "uuid",
+          "title": "Blueprintversionid",
+          "type": "string"
+        },
+        "blueprintVersionRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Blueprintversionref",
+          "type": "string"
+        },
+        "blueprintContentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Blueprintcontentdigest",
+          "type": "string"
+        },
+        "fixturePlanDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Fixtureplandigest",
+          "type": "string"
+        },
+        "fixtureManifestDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Fixturemanifestdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fixtureRunId",
+        "blueprintVersionId",
+        "blueprintVersionRef",
+        "blueprintContentDigest",
+        "fixturePlanDigest",
+        "fixtureManifestDigest"
+      ],
+      "title": "FixtureExecutionBinding",
+      "type": "object"
+    },
+    "ModelExecutionProfile": {
+      "additionalProperties": false,
+      "description": "Frozen model and Prompt identities without provider secrets.",
+      "properties": {
+        "modelProfileRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Modelprofileref",
+          "type": "string"
+        },
+        "promptBundleRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Promptbundleref",
+          "type": "string"
+        },
+        "reasoningPolicyRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Reasoningpolicyref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "modelProfileRef",
+        "promptBundleRef",
+        "reasoningPolicyRef"
+      ],
+      "title": "ModelExecutionProfile",
+      "type": "object"
+    },
+    "ToolExecutionProfile": {
+      "additionalProperties": false,
+      "description": "Frozen tool catalog, MCP manifests, and policy bundle digests.",
+      "properties": {
+        "toolCatalogRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Toolcatalogref",
+          "type": "string"
+        },
+        "mcpServerManifestDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Mcpservermanifestdigest",
+          "type": "string"
+        },
+        "toolSchemaDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Toolschemadigest",
+          "type": "string"
+        },
+        "policyBundleRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Policybundleref",
+          "type": "string"
+        },
+        "policyDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Policydigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "toolCatalogRef",
+        "mcpServerManifestDigest",
+        "toolSchemaDigest",
+        "policyBundleRef",
+        "policyDigest"
+      ],
+      "title": "ToolExecutionProfile",
+      "type": "object"
+    },
+    "Viewport": {
+      "additionalProperties": false,
+      "description": "Frozen browser viewport used by one execution.",
+      "properties": {
+        "width": {
+          "maximum": 7680,
+          "minimum": 320,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "maximum": 4320,
+          "minimum": 320,
+          "title": "Height",
+          "type": "integer"
+        },
+        "deviceScaleFactor": {
+          "default": 1.0,
+          "maximum": 4.0,
+          "minimum": 0.5,
+          "title": "Devicescalefactor",
+          "type": "number"
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "title": "Viewport",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Complete immutable binding consumed by one DebugRun browser execution.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.execution-contract/0.1",
+      "default": "atlas.execution-contract/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "environmentId": {
+      "format": "uuid",
+      "title": "Environmentid",
+      "type": "string"
+    },
+    "debugRunId": {
+      "format": "uuid",
+      "title": "Debugrunid",
+      "type": "string"
+    },
+    "testCaseId": {
+      "format": "uuid",
+      "title": "Testcaseid",
+      "type": "string"
+    },
+    "semanticRevision": {
+      "minimum": 1,
+      "title": "Semanticrevision",
+      "type": "integer"
+    },
+    "testIrDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Testirdigest",
+      "type": "string"
+    },
+    "planDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plandigest",
+      "type": "string"
+    },
+    "compiledDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Compileddigest",
+      "type": "string"
+    },
+    "actors": {
+      "items": {
+        "$ref": "#/$defs/ExecutionActorBinding"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Actors",
+      "type": "array"
+    },
+    "fixture": {
+      "$ref": "#/$defs/FixtureExecutionBinding"
+    },
+    "browser": {
+      "$ref": "#/$defs/BrowserExecutionProfile"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelExecutionProfile"
+    },
+    "tools": {
+      "$ref": "#/$defs/ToolExecutionProfile"
+    },
+    "workerIdentity": {
+      "maxLength": 160,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,159}$",
+      "title": "Workeridentity",
+      "type": "string"
+    },
+    "executionDeadline": {
+      "format": "date-time",
+      "title": "Executiondeadline",
+      "type": "string"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "contentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Contentdigest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "environmentId",
+    "debugRunId",
+    "testCaseId",
+    "semanticRevision",
+    "testIrDigest",
+    "planDigest",
+    "compiledDigest",
+    "actors",
+    "fixture",
+    "browser",
+    "model",
+    "tools",
+    "workerIdentity",
+    "executionDeadline",
+    "createdAt",
+    "contentDigest"
+  ],
+  "title": "ExecutionContract",
+  "type": "object"
+}

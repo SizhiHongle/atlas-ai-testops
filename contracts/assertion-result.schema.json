@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/assertion-result/0.1/schema.json",
+  "$defs": {
+    "AssertionStatus": {
+      "description": "Deterministic Oracle decision for one frozen assertion.",
+      "enum": [
+        "PASSED",
+        "FAILED",
+        "INCONCLUSIVE"
+      ],
+      "title": "AssertionStatus",
+      "type": "string"
+    },
+    "OracleStrength": {
+      "description": "Oracle authority level.",
+      "enum": [
+        "hard",
+        "soft",
+        "diagnostic"
+      ],
+      "title": "OracleStrength",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Oracle result validated against an immutable assertion specification.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.assertion-result/0.1",
+      "default": "atlas.assertion-result/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "assertionId": {
+      "maxLength": 160,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{1,255}$",
+      "title": "Assertionid",
+      "type": "string"
+    },
+    "nodeId": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{1,255}$",
+      "title": "Nodeid",
+      "type": "string"
+    },
+    "strength": {
+      "$ref": "#/$defs/OracleStrength"
+    },
+    "status": {
+      "$ref": "#/$defs/AssertionStatus"
+    },
+    "expectedDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Expecteddigest",
+      "type": "string"
+    },
+    "actualSafeSummary": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Actualsafesummary",
+      "type": "string"
+    },
+    "evaluatorVersionRef": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "title": "Evaluatorversionref",
+      "type": "string"
+    },
+    "evidenceRefs": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Evidencerefs",
+      "type": "array"
+    },
+    "observedAt": {
+      "format": "date-time",
+      "title": "Observedat",
+      "type": "string"
+    },
+    "durationMs": {
+      "maximum": 3600000,
+      "minimum": 0,
+      "title": "Durationms",
+      "type": "integer"
+    },
+    "resultDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Resultdigest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "assertionId",
+    "nodeId",
+    "strength",
+    "status",
+    "expectedDigest",
+    "actualSafeSummary",
+    "evaluatorVersionRef",
+    "observedAt",
+    "durationMs",
+    "resultDigest"
+  ],
+  "title": "AssertionResult",
+  "type": "object"
+}
