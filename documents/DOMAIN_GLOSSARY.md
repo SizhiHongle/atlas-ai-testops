@@ -58,7 +58,8 @@ TaskPlanVersion
 | `DataProfileVersion` | exact Fixture Blueprint / Plan 与无秘密 Run Inputs | P5-00B1 已落地；Profile 冻结 digest，dispatch admission 再按 exact Fixture `run_input_schema` 复验；不保存动态 Secret 或运行资源 |
 | `TaskPlanVersion` | 已发布的任务选择、矩阵、触发和策略 | P5-00B1 已接入四类正式 Profile 发布门禁；发布后不可变，PostgreSQL |
 | `TaskRun` | 一次触发形成的任务运行与冻结 Manifest | stable request digest 幂等；只有 `MATERIALIZING → SEALED` 完整证明后才能推进状态 |
-| `TaskWorkflowStartIntent` | 与 sealed TaskRun / deterministic Workflow ID 同事务生成的待启动事实 | P5-00B1 仅追加 `PENDING` 意图，不等于 Temporal 已启动，也不由本切片消费 |
+| `TaskWorkflowStartIntent` | 与 sealed TaskRun / deterministic Workflow ID 同事务生成，并由可靠交付状态机推进的待启动事实 | P5-00B2A 支持 `PENDING / CLAIMED / RETRY_WAIT / STARTED / FAILED`；Claim Token + Revision 防旧 Consumer 覆盖，`STARTED` 只表示 Temporal 接受，不表示 Task 已执行或成功 |
+| `TaskWorkflowIntentConsumer` | 使用独立 `atlas_dispatcher` 权限把 TaskRun Start Intent 可靠提交到 Temporal 的后台进程 | 短事务 Claim → 事务外 Start / Describe → 短事务 CAS Ack；默认关闭，只消费 exact `AtlasTaskRunWorkflow + atlas-task-run`，不包含真实 Root Workflow / Activity |
 | `ExecutionUnit` | CaseVersion 与矩阵单元形成的逻辑测试槽位 | P5-00A 已落地；Manifest 身份创建后不可变，PostgreSQL |
 | `UnitAttempt` | ExecutionUnit 的一次真实执行 | 每次业务重试创建新 Attempt；P5-00B1 使用确定性 namespace / Workflow ID，Activity retry 不创建新 Attempt |
 | `AttemptSeal` | Attempt 关闭时产生的不可变事实包 | P5-00A 已提供正式宿主；Seal 待 P6 后续，永久不可变 |

@@ -61,13 +61,16 @@ DATA_PROFILE_COLUMNS = (
 )
 WORKFLOW_START_INTENT_COLUMNS = (
     "id, tenant_id, project_id, task_run_id, owner_kind, owner_id, namespace, "
-    "workflow_id, request_digest, workflow_type, task_queue, status, created_at"
+    "workflow_id, request_digest, manifest_hash, workflow_type, task_queue, status, "
+    "available_at, claim_token, claimed_by, claimed_at, claim_expires_at, "
+    "dispatch_attempts, last_error_code, last_error_at, workflow_started_at, "
+    "dispatch_failed_at, dispatch_revision, created_at"
 )
 
 
 @dataclass(frozen=True, slots=True)
 class TaskWorkflowStartIntent:
-    """Read-only append-only workflow start fact; B1 never claims or consumes it."""
+    """Tenant-scoped read projection of the trusted durable delivery state machine."""
 
     id: UUID
     tenant_id: UUID
@@ -78,9 +81,21 @@ class TaskWorkflowStartIntent:
     namespace: str
     workflow_id: str
     request_digest: str
+    manifest_hash: str
     workflow_type: str
     task_queue: str
     status: str
+    available_at: datetime
+    claim_token: UUID | None
+    claimed_by: str | None
+    claimed_at: datetime | None
+    claim_expires_at: datetime | None
+    dispatch_attempts: int
+    last_error_code: str | None
+    last_error_at: datetime | None
+    workflow_started_at: datetime | None
+    dispatch_failed_at: datetime | None
+    dispatch_revision: int
     created_at: datetime
 
     @classmethod

@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-07-16
 - Owners: Atlas Test Space
-- Scope: P5-00A 执行宿主；P5-00B1 正式 Profile、Workflow identity、materialization seal 与 Revision CAS
+- Scope: P5-00A 执行宿主；P5-00B1 正式 Profile、Workflow identity、materialization seal 与 Revision CAS；P5-00B2A durable Start Intent 交付
 
 ## 背景
 
@@ -27,6 +27,10 @@ P6-02B2 的 `LiveSession`、`ControlLease`、控制 Epoch / Fence 和持久化 `
 12. P5-00B1 为 logical Run input 计算不含服务端 Run ID / 时间的 stable request digest；Run / Attempt Workflow ID 由 Tenant ID 与对象 ID 确定性生成，并在 `(namespace, workflowId)` Registry 中跨 owner 统一占位。同一 trigger 自然键只有 request digest 和不可变 `rerunOfTaskRunId` lineage 都相同才可 replay。
 13. 新 Run 从 `MATERIALIZING` 开始。数据库 Seal 必须重算 digest、证明全部 Unit 和首个 Attempt 完整、重验可变依赖，然后才切换 `SEALED` 并在同一事务追加唯一 `PENDING` Workflow Start Intent。Intent 不是 Temporal 已启动的声明，B1 不消费它。
 14. 三轴状态只通过数据库拥有的 expected Revision CAS 函数推进，锁序固定为 Run → Unit → Attempt；未 Seal 或 `legacy_unsealed` 的 Run 不能推进。应用角色不再直接 UPDATE 状态列。未来 dispatcher 的 Admission 在同一短事务内重读父 Run 与 Unit，只接受 SEALED 且处于 QUEUED / RUNNING 的 Run，以及仍为 QUEUED 的 Unit；Pause / Cancel / Finalize / Closed 状态全部 fail-closed。
+15. P5-00B2A 将 Start Intent 交付状态固定为 `PENDING → CLAIMED → RETRY_WAIT / STARTED / FAILED`。Claim 带有短期 Lease、Opaque Token、Dispatcher Identity、递增 Attempt 与 `dispatchRevision`；只有 Lease + Token + Revision 全部匹配的当前 Consumer 才能确认结果，到期 Claim 可被其他 Consumer 接管。确认时间和 Retry `availableAt` 由 PostgreSQL 时钟生成。
+16. 跨 Tenant 领取只能由独立 `atlas_dispatcher` 登录角色完成。该角色无 Superuser / `BYPASSRLS`、无 Intent 表级 DML，只获四个 owner-owned `SECURITY DEFINER` 函数的 EXECUTE；API 使用的 `atlas_app` 不获这些权限。Claim 必须指定 exact namespace，并只领取 `TASK_RUN + AtlasTaskRunWorkflow + atlas-task-run`。
+17. Consumer 使用三段式边界：短事务 Claim 并提交，事务外 Temporal Start / Describe，再以新短事务 CAS Ack / Retry / Fail，绝不持锁等待网络。Temporal Input 只包含版本、Tenant / Project / Run identity、request digest 与 manifest hash；稳定 `request_id=str(intent.id)`、确定性 Workflow ID、`REJECT_DUPLICATE + USE_EXISTING` 处理不确定重试，但每次仍必须 Describe 并验证 namespace、Workflow Type、Task Queue 与 Memo identity / digest。
+18. `STARTED` 只表示 Temporal 接受并可验证该 Workflow identity，不表示 Task 已运行或成功。Consumer 与 Compose profile 默认关闭，B2A 不注册 no-op / placeholder Workflow；真实 `AtlasTaskRunWorkflow`、Activity 与 UnitAttempt Workflow 必须由后续切片按正式执行语义实现。
 
 ## 后果
 
@@ -35,7 +39,8 @@ P6-02B2 的 `LiveSession`、`ControlLease`、控制 Epoch / Fence 和持久化 `
 - P5-00B1 已补齐四类正式版本宿主、发布门禁、同作用域 FK、stable request digest、Temporal identity registry、同步 materialization seal 与 Revision CAS；缺失或漂移依赖继续 fail-closed。
 - 超过 64 Units 的 Manifest 仍必须在后续提供可恢复分区物化、checkpoint / resume 与容量验证；B1 的 Seal 只证明当前有界同步聚合，不能被解释为大批次能力。
 - Schedule、CI、Webhook 与公共 API 接入必须复用 stable request digest / insert-or-get 协议；不能把服务端生成的 Run ID 与时间当作同一 triggerFingerprint 的幂等身份。
-- Pending Start Intent 的 Claim / Lease / Retry / Started / Failed 状态机、Temporal Consumer 和恢复扫描属于后续切片；在这些能力落地前不会把意图事实伪装成 Workflow 已启动。
+- P5-00B2A 已落地 Pending Start Intent 的 Claim / Lease / Retry / Started / Failed 状态机、Temporal Consumer 和到期 Claim 恢复；稳定 Request ID 与 collision verification 覆盖 Start 成功但 Ack 前崩溃。该能力只证明交付，不把 `STARTED` 伪装成 Workflow 已完成或 Task 已成功。
+- 真实 Task Root Workflow / Activity、UnitAttempt Workflow、公共 Command API 和 Schedule / CI Adapter 仍属于后续切片；在这些能力落地前 Consumer 保持默认关闭。
 - 同一 Trigger 的重复提交可由数据库唯一约束和后续应用幂等协议收敛为一个逻辑 TaskRun。
 - 任务重跑、失败项重跑和用例重试不会改写历史结果，为后续 Result Snapshot、Gate 和 Flaky 解释保留完整事实。
 - DebugRun 的 ExecutionContract、EvidenceManifest 与 Live Cursor 继续保持原协议；正式 Attempt 将使用独立 Contract、AttemptSeal 和 Live 协议，避免可空多态宿主。

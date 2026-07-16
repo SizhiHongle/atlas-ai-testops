@@ -32,6 +32,10 @@ FROM runtime AS fixture-worker
 
 CMD ["atlas-fixture-worker"]
 
+FROM runtime AS task-intent-consumer
+
+CMD ["atlas-task-intent-consumer"]
+
 FROM runtime AS auth-session-worker
 
 USER root

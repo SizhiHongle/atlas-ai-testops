@@ -44,12 +44,13 @@ Atlas AI 测试平台的 Python 3.14 模块化后端。
 - P6-02B1 DebugRun Live 安全观察流：版本化 Snapshot / Event / Opaque Base64URL Cursor、`Last-Event-ID` 有序 replay、轻量 Snapshot / head 单 SQL、短事务轮询、Heartbeat comment、连接生命周期与进程内 Observer 容量上限；Snapshot 查询只构造安全 Run Projection，不物化完整 Test IR / PlanTemplate。
 - P5-00A 正式任务执行宿主：`TaskPlanVersion → TaskRun → ExecutionUnit → UnitAttempt`、不可变 Run Manifest、Lifecycle / Quality / Hygiene 三轴、追加 Attempt / Event exact replay，以及 `20260716_0022` 的复合 Scope FK、Repository / PostgreSQL 双层 Plan-to-Manifest provenance、JSON 缺键 / null fail-closed、gapless 父行锁、不可变 Trigger、`FORCE RLS` 与最小权限。
 - P5-00B1 调度前置边界：四类不可变 `ExecutionProfileVersion` / `IdentityProfileVersion` / `BrowserProfileVersion` / `DataProfileVersion` 正式宿主与发布门禁、`executionProfileVersionId` 统一命名、稳定 Run request digest 与 exact rerun lineage、Run / Attempt 确定性 Temporal identity 与 namespace 全局注册表、`MATERIALIZING → SEALED` 完整性证明、SEALED / Lifecycle / QUEUED Admission、受约束的后续 Attempt、Pending Workflow Start Intent，以及数据库拥有的 Run → Unit → Attempt Revision CAS。
-- Profile、TaskPlanVersion、TaskRunManifest、TaskRun、ExecutionUnit、UnitAttempt 与 TaskExecutionEvent 的机器 Schema 已导出；P5-00B1 仍未开放公共 Task API，也不消费 Start Intent 或启动 Temporal 编排。
+- P5-00B2A 可靠 Intent 交付边界：`20260716_0024` 的 `PENDING / CLAIMED / RETRY_WAIT / STARTED / FAILED` 状态机、独立且无表级 DML 的 `atlas_dispatcher`、Claim Lease / Token / Revision Fence、三段式短事务 Consumer、稳定 Temporal `request_id`、`REJECT_DUPLICATE + USE_EXISTING` 与 Describe Type / Queue / Memo collision verification。Consumer 与 Compose profile 默认关闭；`STARTED` 只表示 Temporal 接受。
+- Profile、TaskPlanVersion、TaskRunManifest、TaskRun、ExecutionUnit、UnitAttempt 与 TaskExecutionEvent 的机器 Schema 已导出；P5-00B2A 仍未开放公共 Task API，也未实现真实 `AtlasTaskRunWorkflow` / Activity 或 UnitAttempt Workflow。代码没有注册 no-op / placeholder Workflow。
 - 同步初始物化仍严格限制为最多 64 Units；Seal 会重算 Plan / Manifest / Unit / request digest，证明每个 Unit 和首个 Attempt 完整落地，并重验 PUBLISHED Profile、Case / Fixture exact binding、ACTIVE TEST/STAGING Environment 与当前 TestRole。超过 64 Units 的可恢复分区物化和容量验证留给后续 P5 切片，不能通过放宽当前事务伪装完成。
 - `DebugRun=TERMINATED` 不封存事件日志；SSE 会跨过 `debug_run.terminated` replay 后续 `debug_run.snapshot_outdated`，到达当前 head 后继续 Poll，直到客户端断开或 Service 事件生成预算耗尽。Route 内 `_DebugLiveStreamingResponse` 使用 `maximum_connection_seconds` 加固定 1.0 秒 Close Grace 管理生成、Source close 与 Slot release；最后安装的 pure-ASGI `DebugLiveStreamSendDeadlineMiddleware` 使用相同 maximum 与 Close Grace，包住 `BaseHTTPMiddleware` 后的真实 client-facing `send`，阻塞写入到期会被取消。
 - Live Event 使用 event-type allowlist，不原样转发事实 Payload；取消原因、Report / Chain Digest、ObjectRef、Authorization、Password、输入 Value 与未知字段不进入 SSE。`20260716_0019` 只提交 32 KiB Payload `CHECK ... NOT VALID` 可修复边界；`20260716_0020` 只先 Validate，再创建 UPDATE / DELETE 防护 Trigger；`20260716_0021` 通过 Alembic autocommit 执行 `DROP INDEX CONCURRENTLY IF EXISTS` 清理冗余 replay index，downgrade 以 `CREATE INDEX CONCURRENTLY IF NOT EXISTS` 恢复。若历史超限 Payload 使 0020 失败，版本保持 0019；修复后重试 0020，成功后再进入 0021。
 
-首个真实 SaaS `PasswordLoginFlow`、生产 Secret Provider / KMS-backed Vault 和真实 SaaS Browser Operation / Route Registry 仍需部署侧提供。生产 Evidence Bucket 的 Object Lock / Versioning、Credential 分离与生命周期策略也属于部署责任。P6-02B1 只提供 DebugRun-scoped 只读 Observer；P5-00B1 已提供正式 UnitAttempt、Profile、Seal、CAS 与 Start Intent 前置事实，但 Task Temporal Workflow / Intent Consumer、公共 Task 控制面、正式 LiveSession、ControlLease、浏览器控制 Epoch / Fence、Human Takeover、持久化 ActionGrant、容器级 Egress / DNS / UDP / WebRTC 限制、BrowserContext Envelope Key Ring Rotation、公共 Start 自动 Preparation / Bind / Dispatch 与 Multi-actor 尚未完成；缺失时对应能力明确 fail-closed。架构决策见 `../documents/adr/`。
+首个真实 SaaS `PasswordLoginFlow`、生产 Secret Provider / KMS-backed Vault 和真实 SaaS Browser Operation / Route Registry 仍需部署侧提供。生产 Evidence Bucket 的 Object Lock / Versioning、Credential 分离与生命周期策略也属于部署责任。P6-02B1 只提供 DebugRun-scoped 只读 Observer；P5-00B2A 已提供正式 UnitAttempt、Profile、Seal、CAS 与可靠 Start Intent 交付层，但 Task Temporal Root Workflow / Activity、公共 Task 控制面、正式 LiveSession、ControlLease、浏览器控制 Epoch / Fence、Human Takeover、持久化 ActionGrant、超过 64 Units 的分区物化、容器级 Egress / DNS / UDP / WebRTC 限制、BrowserContext Envelope Key Ring Rotation、公共 Start 自动 Preparation / Bind / Dispatch 与 Multi-actor 尚未完成；缺失时对应能力明确 fail-closed。架构决策见 `../documents/adr/`。
 
 ## 开发
 
@@ -118,6 +119,17 @@ uv run python scripts/export_openapi.py
 ```bash
 uv run atlas-temporal-worker
 ```
+
+运行独立 Task Workflow Intent Consumer 入口：
+
+```bash
+ATLAS_TASK_INTENT_CONSUMPTION_ENABLED=true \
+ATLAS_TASK_DISPATCHER_DATABASE_URL='postgresql://atlas_dispatcher:<password>@127.0.0.1:5432/atlas' \
+ATLAS_TASK_INTENT_TEMPORAL_NAMESPACE=default \
+uv run atlas-task-intent-consumer
+```
+
+该进程使用独立 Dispatcher DSN，不读取 API Tenant Context，也不能复用 `atlas_app`。它先提交 Claim 事务，再在事务外 Start / Describe Temporal Workflow，最后以 Claim Token + Revision 的新事务确认结果。入口和 Compose profile 均默认关闭；当前仓库尚未注册真实 `AtlasTaskRunWorkflow` / Activity，因此除迁移与集成验证外，不应在生产启用。Compose 验证还需要同时显式设置 `ATLAS_TASK_INTENT_CONSUMPTION_ENABLED=true` 并启用 `--profile task-intent-consumer`。
 
 运行独立 Auth Session Worker：
 

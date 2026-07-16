@@ -5,6 +5,19 @@ create role atlas_app
   nosuperuser
   nocreatedb
   nocreaterole
+  nobypassrls
   noinherit;
 
 grant connect on database atlas to atlas_app;
+
+-- Intent Consumer uses a dedicated login; production roles are deployment-managed.
+create role atlas_dispatcher
+  login
+  password 'atlas_dispatcher'
+  nosuperuser
+  nocreatedb
+  nocreaterole
+  nobypassrls
+  noinherit;
+
+grant connect on database atlas to atlas_dispatcher;

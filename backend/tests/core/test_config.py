@@ -9,6 +9,7 @@ from atlas_testops.core.config import (
     AuthSessionWorkerSettings,
     BrowserWorkerSettings,
     Settings,
+    TaskIntentConsumerSettings,
 )
 
 
@@ -212,6 +213,106 @@ def test_rejects_unsafe_health_and_fixture_timeout_relationships(
 ) -> None:
     with pytest.raises(ValidationError):
         Settings(environment="test", **overrides)  # type: ignore[arg-type]
+
+
+def test_task_intent_consumer_is_disabled_and_authority_is_process_isolated() -> None:
+    settings = TaskIntentConsumerSettings(environment="test")
+
+    assert settings.task_intent_consumption_enabled is False
+    assert settings.task_dispatcher_database_url_value is None
+    assert settings.task_intent_task_queue == "atlas-task-run"
+    assert not hasattr(Settings(environment="test"), "task_dispatcher_database_url")
+
+
+def test_enabled_task_intent_consumer_requires_and_protects_dispatcher_dsn() -> None:
+    with pytest.raises(ValidationError, match="dedicated dispatcher DSN"):
+        TaskIntentConsumerSettings(
+            environment="test",
+            task_intent_consumption_enabled=True,
+        )
+
+    dsn = "postgresql://atlas_dispatcher:dispatcher-secret@localhost/atlas"
+    settings = TaskIntentConsumerSettings(
+        environment="test",
+        task_intent_consumption_enabled=True,
+        task_dispatcher_database_url=SecretStr(dsn),
+    )
+
+    assert settings.task_dispatcher_database_url_value == dsn
+    assert "dispatcher-secret" not in repr(settings)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {
+            "task_dispatcher_database_pool_min_size": 5,
+            "task_dispatcher_database_pool_max_size": 4,
+        },
+        {
+            "task_intent_retry_initial_seconds": 10,
+            "task_intent_retry_maximum_seconds": 9,
+        },
+        {
+            "task_intent_rpc_attempts": 3,
+            "task_intent_rpc_timeout_seconds": 10,
+            "task_intent_rpc_retry_delay_seconds": 0.25,
+            "task_intent_lease_seconds": 30,
+        },
+        {
+            "task_intent_rpc_attempts": 3,
+            "task_intent_rpc_timeout_seconds": 10,
+            "task_intent_rpc_retry_delay_seconds": 0.25,
+            "task_intent_lease_seconds": 45,
+        },
+        {
+            "task_intent_rpc_attempts": 5,
+            "task_intent_rpc_timeout_seconds": 1,
+            "task_intent_rpc_retry_delay_seconds": 5,
+            "task_intent_lease_seconds": 45,
+        },
+        {
+            "task_intent_poll_interval_seconds": 10,
+            "task_intent_lease_seconds": 10,
+            "task_intent_rpc_attempts": 1,
+            "task_intent_rpc_timeout_seconds": 5,
+        },
+        {"task_intent_worker_identity": "x" * 129},
+        {"task_intent_batch_size": 101},
+        {"task_intent_lease_seconds": 901},
+    ],
+)
+def test_task_intent_consumer_rejects_unsafe_pool_and_retry_relationships(
+    overrides: dict[str, object],
+) -> None:
+    with pytest.raises(ValidationError):
+        TaskIntentConsumerSettings.model_validate(
+            {
+                "environment": "test",
+                **overrides,
+            }
+        )
+
+
+def test_production_task_intent_consumer_requires_independent_database_role() -> None:
+    with pytest.raises(ValidationError, match="atlas_dispatcher PostgreSQL role"):
+        TaskIntentConsumerSettings(
+            environment="production",
+            task_intent_consumption_enabled=True,
+            task_dispatcher_database_url=SecretStr(
+                "postgresql://atlas_app:secret@database.internal/atlas"
+            ),
+        )
+
+    settings = TaskIntentConsumerSettings(
+        environment="production",
+        task_intent_consumption_enabled=True,
+        task_dispatcher_database_url=SecretStr(
+            "postgresql://atlas_dispatcher:secret@database.internal/atlas"
+        ),
+    )
+
+    assert settings.task_intent_consumption_enabled
 
 
 def test_local_auth_session_worker_accepts_complete_vault_configuration() -> None:

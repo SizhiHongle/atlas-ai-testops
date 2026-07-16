@@ -277,6 +277,133 @@ def get_settings() -> Settings:
     return Settings()
 
 
+class TaskIntentConsumerSettings(BaseSettings):
+    """Cross-tenant dispatcher authority loaded only by the Intent Consumer."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_prefix="ATLAS_",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    environment: Literal[
+        "local",
+        "test",
+        "development",
+        "staging",
+        "production",
+    ] = "local"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    task_intent_consumption_enabled: bool = False
+    task_dispatcher_database_url: SecretStr | None = None
+    task_dispatcher_database_pool_min_size: int = Field(default=1, ge=1, le=16)
+    task_dispatcher_database_pool_max_size: int = Field(default=4, ge=1, le=32)
+    task_dispatcher_database_connect_timeout_seconds: float = Field(
+        default=5.0,
+        gt=0,
+        le=60,
+    )
+    task_dispatcher_database_statement_timeout_ms: int = Field(
+        default=10_000,
+        ge=100,
+        le=60_000,
+    )
+    temporal_address: str = Field(
+        default="127.0.0.1:7233",
+        min_length=1,
+        max_length=320,
+    )
+    task_intent_temporal_namespace: str = Field(
+        default="default",
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+    )
+    task_intent_task_queue: Literal["atlas-task-run"] = "atlas-task-run"
+    task_intent_worker_identity: str = Field(
+        default="task-intent-consumer",
+        min_length=3,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$",
+    )
+    task_intent_poll_interval_seconds: float = Field(default=1.0, ge=0.1, le=60)
+    task_intent_lease_seconds: int = Field(default=90, ge=10, le=900)
+    task_intent_batch_size: int = Field(default=32, ge=1, le=100)
+    task_intent_max_attempts: int = Field(default=8, ge=1, le=64)
+    task_intent_retry_initial_seconds: float = Field(default=5.0, ge=0.1, le=300)
+    task_intent_retry_maximum_seconds: float = Field(default=300.0, ge=0.1, le=3_600)
+    task_intent_rpc_attempts: int = Field(default=3, ge=1, le=5)
+    task_intent_rpc_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
+    task_intent_rpc_retry_delay_seconds: float = Field(default=0.25, ge=0.05, le=5)
+
+    @model_validator(mode="after")
+    def validate_consumer_authority_and_timeouts(self) -> Self:
+        """Fail closed before constructing database or Temporal clients."""
+
+        if (
+            self.task_dispatcher_database_pool_max_size
+            < self.task_dispatcher_database_pool_min_size
+        ):
+            raise ValueError(
+                "task dispatcher database pool max size must be >= min size"
+            )
+        dispatcher_url = self.task_dispatcher_database_url
+        if self.task_intent_consumption_enabled and dispatcher_url is None:
+            raise ValueError(
+                "enabled Task Intent consumption requires a dedicated dispatcher DSN"
+            )
+        if dispatcher_url is not None:
+            raw_url = dispatcher_url.get_secret_value().strip()
+            if not raw_url:
+                raise ValueError("task dispatcher database DSN must not be blank")
+            if self.task_intent_consumption_enabled:
+                parsed = urlsplit(raw_url)
+                if (
+                    parsed.scheme not in {"postgres", "postgresql"}
+                    or parsed.hostname is None
+                    or parsed.username is None
+                    or parsed.username.lower() != "atlas_dispatcher"
+                ):
+                    raise ValueError(
+                        "Task Intent consumption requires the dedicated "
+                        "atlas_dispatcher PostgreSQL role"
+                    )
+        if (
+            self.task_intent_retry_maximum_seconds
+            < self.task_intent_retry_initial_seconds
+        ):
+            raise ValueError(
+                "task intent retry maximum must be >= retry initial"
+            )
+        rpc_budget = (
+            2
+            * self.task_intent_rpc_attempts
+            * self.task_intent_rpc_timeout_seconds
+            + (
+                self.task_intent_rpc_attempts
+                * (self.task_intent_rpc_attempts - 1)
+                / 2
+            )
+            * self.task_intent_rpc_retry_delay_seconds
+        )
+        if self.task_intent_lease_seconds <= rpc_budget:
+            raise ValueError(
+                "task intent lease must exceed the complete Temporal RPC retry budget"
+            )
+        if self.task_intent_poll_interval_seconds >= self.task_intent_lease_seconds:
+            raise ValueError("task intent poll interval must be below the claim lease")
+        return self
+
+    @property
+    def task_dispatcher_database_url_value(self) -> str | None:
+        """Unwrap the dedicated DSN only inside the Consumer process."""
+
+        if self.task_dispatcher_database_url is None:
+            return None
+        return self.task_dispatcher_database_url.get_secret_value()
+
+
 class AuthSessionWorkerSettings(BaseSettings):
     """Secrets and object-store settings loaded only by the Auth Session Worker."""
 

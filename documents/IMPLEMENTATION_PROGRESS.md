@@ -14,10 +14,10 @@
 ## 当前状态
 
 - 当前阶段：`P5 Task Runtime（基础中）`
-- 当前切片：`P5-00B1 调度前置事实、Seal 与 Revision CAS（已验收）`
-- 总体状态：P5 已建立正式执行宿主、四类 Profile Version、stable request digest、deterministic Temporal identity、materialization seal、Revision CAS 与 Pending Start Intent；Temporal Intent Consumer / Workflow、公共 Command API、大批次分区物化、AttemptSeal 和 P6-02B2 控制权仍待后续，前端继续只按既有原型槽位接线
+- 当前切片：`P5-00B2A 可靠 Workflow Start Intent 交付层（已验收）`
+- 总体状态：P5 已建立正式执行宿主、四类 Profile Version、stable request digest、deterministic Temporal identity、materialization seal、Revision CAS，以及由独立 `atlas_dispatcher` 消费的 durable Start Intent 状态机；真实 `AtlasTaskRunWorkflow` / Activity、公共 Command API、大批次分区物化、AttemptSeal 和 P6-02B2 控制权仍待后续，Consumer 与 Compose 默认关闭，前端继续只按既有原型槽位接线
 - 当前分支：`main`
-- 当前进入基线提交：`3a8d74e`
+- 当前进入基线提交：`5e6372f`
 
 ## 阶段看板
 
@@ -28,7 +28,7 @@
 | P2 | TestRole、AccountPool、TestAccount、Lease 与 Auth Session | 已完成 | P2-01 至 P2-06 已验收；身份、租约、Secret Grant、加密 Session 与清理链已闭环 |
 | P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 已完成 | P3-00 至 P3-03 已验收；资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与三类发布证据闭环 |
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 后端完成 | P4-00 至 P4-03 已验收；作者态、不可变 DebugRun、精确绑定、Reviewer 发布门禁与 CaseVersion 冻结闭环已落地 |
-| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 宿主与 P5-00B1 Profile / request digest / Workflow identity / Seal / CAS 已验收；Intent Consumer、编排、大批次物化与公共控制面待后续 |
+| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 宿主、P5-00B1 Profile / request digest / Workflow identity / Seal / CAS，以及 P5-00B2A durable Intent Consumer 均已验收；真实 Task Workflow / Activity、大批次物化与公共控制面待后续 |
 | P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面与 P6-02A 可信截图写入 / 受控读取已验收；P6-02B1 DebugRun Live 安全观察流已实现，P6-02B2 控制权与 AttemptSeal 可基于正式 UnitAttempt 继续落地 |
 | P7 | Result Fact、Snapshot、Classification 与 Gate | 未开始 | — |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 未开始 | — |
@@ -257,7 +257,7 @@
 ### 后续边界
 
 - P5-00A 只建立事实宿主和持久化边界，不伪造 Temporal 调度、Command API、Schedule / CI Adapter、AttemptSeal、LiveSession、ControlLease 或 Result Snapshot。
-- P5-00B1 已补齐原计划中的四类正式 Profile、稳定 request digest、Temporal Workflow identity、同步 materialization seal 与统一 Revision CAS；超过 64 Units 的可恢复分区物化、Intent Consumer、Temporal 编排、Schedule / CI / API 入口仍属于后续切片。随后 P6-02B2 的人工控制事实才能精确绑定 `UnitAttempt`。
+- P5-00B1 已补齐原计划中的四类正式 Profile、稳定 request digest、Temporal Workflow identity、同步 materialization seal 与统一 Revision CAS；P5-00B2A 已实现 Intent Consumer 的可靠交付层。超过 64 Units 的可恢复分区物化、真实 Task Workflow / Activity、Schedule / CI / API 入口仍属于后续切片。随后 P6-02B2 的人工控制事实才能精确绑定 `UnitAttempt`。
 
 ## P5-00B1 范围
 
@@ -281,9 +281,29 @@
 
 ### 后续边界
 
-- `task_workflow_start_intent` 在 B1 中只允许不可变 `PENDING` 事实；Claim / Lease / Retry / Started / Failed 状态机、Temporal Workflow / Activity 和恢复扫描属于下一切片。
+- `task_workflow_start_intent` 在 B1 中只允许不可变 `PENDING` 事实；P5-00B2A 已在后续 migration 中增加 Claim / Lease / Retry / Started / Failed 状态机和恢复领取，但真实 Temporal Task Workflow / Activity 仍未实现。
 - 超过 64 Units 的 Manifest 仍由数据库 fail-closed。后续必须实现可恢复分区物化、分片 checkpoint、Seal 恢复和容量测试，不能扩大当前同步事务。
 - 公共 Task Plan / Run / Command / Event API、Schedule / CI / Webhook Adapter、AttemptSeal、Result Snapshot、LiveSession 与 ControlLease 均未在 B1 中伪造完成。
+
+## P5-00B2A 范围
+
+### 已实现
+
+- `20260716_0024` 将 `task_workflow_start_intent` 扩展为 `PENDING → CLAIMED → RETRY_WAIT / STARTED / FAILED` 的数据库权威状态机，增加可信 `manifestHash`、`availableAt`、Claim Token、Claim Lease、Dispatcher Identity、`dispatchAttempts`、安全 Error Code、终态时间和单调 `dispatchRevision`。到期 Claim 可由其他 Consumer 接管，Ready / Expired Claim 均有有界索引；数据库 Trigger 只允许合法状态转换。
+- 新增专用登录角色 `atlas_dispatcher`。该角色不是 Superuser、没有 `BYPASSRLS`、没有 Intent 表级 DML，只能执行四个 owner-owned `SECURITY DEFINER` 函数；`atlas_app` 无权 Claim 或确认结果。Claim 还必须显式绑定 Temporal namespace，并只领取 exact `TASK_RUN + AtlasTaskRunWorkflow + atlas-task-run`，防止跨 namespace 或未来 UnitAttempt Intent 被当前 Consumer 误消费。
+- 新增独立 `TaskIntentDispatcherDatabase` 与三段式 `TaskWorkflowIntentConsumer`：第一段短事务批量 Claim 并提交，第二段在事务外调用 Temporal，第三段以 exact Intent ID + Claim Token + Revision 的短事务确认 `STARTED`、安排 Retry 或永久 `FAILED`。确认时间与 Retry 可用时间由 PostgreSQL 时钟生成；任何 Lease 过期或 CAS 失配都不会覆盖新 Consumer 的结果。
+- Temporal 提交只接受确定性 Run Workflow ID、固定 Workflow Type / Task Queue，以及包含 `schemaVersion + tenantId + projectId + taskRunId + requestDigest + manifestHash` 的无秘密 Input。每次提交使用稳定 `request_id=str(intent.id)`、`REJECT_DUPLICATE + USE_EXISTING`；无论新建还是碰到既有 Workflow，均 `describe` 并精确核对 namespace、Workflow Type、Task Queue 与 Memo identity / digest，碰撞不一致时 fail-closed。
+- Temporal RPC 不确定结果只做有界进程内重试；`INVALID_ARGUMENT / PERMISSION_DENIED / UNAUTHENTICATED / NOT_FOUND / FAILED_PRECONDITION / OUT_OF_RANGE / UNIMPLEMENTED / DATA_LOSS` 等永久错误直接进入安全 `FAILED`，依赖异常正文不会持久化。进程崩溃发生在 Start 前、Start 后 Ack 前或 Ack 后时，分别由 Lease 接管、稳定 Request ID + collision verification 或终态排除恢复。
+- 新增独立 `atlas-task-intent-consumer` 入口、Docker target 与 Compose profile。`ATLAS_TASK_INTENT_CONSUMPTION_ENABLED` 默认 `false`，Compose 服务还要求显式启用 `task-intent-consumer` profile；只有启用时才允许解包专用 Dispatcher DSN。未注册占位或 no-op Workflow。
+- `STARTED` 只表示 Temporal 接受并可验证这次 Workflow Start，不表示 Task 已运行、已成功或已产出结果。PostgreSQL 仍是业务状态和最终事实权威，Temporal History 不替代 TaskRun / Event / Evidence。
+- 定向验证覆盖 90 项 Core / Worker / Config / Migration / 真实 PostgreSQL / 真实 Temporal 测试；最终 `make verify` 通过 Ruff、严格 mypy 259 个 source files、712 tests、90.46% 覆盖率、Schema / OpenAPI 漂移、Python sdist / wheel、前端 TypeScript 与 production build。`20260716_0024 → 20260716_0023 → 20260716_0024` 往返和独立 `task-intent-consumer` Docker 镜像构建均已通过。
+- 未修改任何前端页面、组件、DOM、布局、CSS 或既有交互；Launch、Task Control 与 Live Theatre 继续以前端已设计原型为唯一权威。
+
+### 后续边界
+
+- `AtlasTaskRunWorkflow`、Unit 调度 Activity、`AtlasUnitAttemptWorkflow` 和对应 Worker 尚未实现；在真实 Worker 就绪前，生产环境必须保持 Intent Consumer 关闭。B2A 不以接受到尚无人处理的 Task Queue 冒充 Task 执行能力。
+- 公共 Task Plan / Run / Command / Event API、Schedule / CI / Webhook Adapter、超过 64 Units 的可恢复分区物化、AttemptSeal、Result Snapshot、LiveSession 与 ControlLease 均未实现。
+- 下一 P5 执行切片应先落地最多 64 Units 的真实 `AtlasTaskRunWorkflow` 与可恢复 Unit 调度，再单独处理超过 64 Units 的分区物化、checkpoint / resume 与 Continue-As-New；不得通过放宽当前同步 Seal 或数据库事务伪装大批次能力。
 
 ## P6-00 范围
 
@@ -333,7 +353,7 @@
 1. 在 P6-02B2 基于 P5-00A 已建立的正式 UnitAttempt 落地 LiveSession、ControlLease、浏览器控制 Epoch / Fence、Human Takeover 与持久化 ActionGrant；P6-02B1 已提供的 DebugRun Live 只映射到前端现有 Debug / Live / Evidence 槽位，不重画或调整原型结构。
 2. 串联公共 DebugRun Start → Runtime Preparation → ExecutionContract Bind → Browser Dispatch，并保持同一命令的幂等恢复语义。
 3. 接入首个真实 SaaS Browser Operation / Published Route，并在部署层实施容器 Egress / DNS / UDP / WebRTC 策略与 Envelope Key Ring Rotation。
-4. P5-00A 已建立 TaskPlan / TaskRun / ExecutionUnit / UnitAttempt；后续在 P6 创建 AttemptSeal，并在 P7 形成 Result Snapshot / Gate。Multi-actor 仍等待正式调度与控制权协议。
+4. P5-00B2A 已建立 durable Start Intent 交付层；下一 P5 切片落地最多 64 Units 的真实 `AtlasTaskRunWorkflow` / Activity 和 Unit 调度，随后再处理超过 64 Units 的分区物化。后续在 P6 创建 AttemptSeal，并在 P7 形成 Result Snapshot / Gate；Multi-actor 仍等待正式调度与控制权协议。
 5. 接入首个真实 SaaS Fixture Provider 与 `PasswordLoginFlow`、生产 Secret Provider 和 KMS-backed `SessionArtifactVault`；缺少受信部署配置时继续 fail-closed。
 6. 为各 Tenant 配置生产 Temporal Schedule，周期调度 Fixture Cleanup Sweep、`AccountHealthWorkflow`、Connector Reconcile、Credential Expiry Monitor 和 Session Janitor Workflow。
 
@@ -376,7 +396,7 @@
 
 ### P6-02B2 / P5 后续仍待落地
 
-- P5-00A 已建立 `TaskRun / ExecutionUnit / UnitAttempt` 正式宿主，但尚未接入耐久编排。B1 仍不创建 `LiveSession`、`AttemptSeal` 或其他现场事实；P6-02B2 将直接绑定正式 UnitAttempt，不能退回 DebugRun 多态宿主。
+- P5-00A 已建立 `TaskRun / ExecutionUnit / UnitAttempt` 正式宿主，P5-00B2A 已补充 durable Start Intent Consumer，但真实 Task Workflow / Activity 仍未接入。B2A 不创建 `LiveSession`、`AttemptSeal` 或其他现场事实；P6-02B2 将直接绑定正式 UnitAttempt，不能退回 DebugRun 多态宿主。
 - Browser `ControlLease`、控制权 Epoch / Fence、Pause / Resume / Takeover Command、Human Takeover、Safe Point / Quiesce、持久化且绑定 Epoch / Fence 的 `ActionGrant` 均未实现。当前 SSE 是只读 Observer 通道，不接受 Frame、Command、Action 或人工输入，也不把 P6-01 Worker 内部单次 Action 校验误称为持久化人工控制协议。
 - 首个真实 SaaS Operation / Published Route、容器级 Egress / DNS / UDP / WebRTC、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch、Multi-actor 和正式 AttemptSeal 仍按既有计划后续落地，缺少对应部署能力时继续 fail-closed。
 
@@ -458,6 +478,8 @@
 | 2026-07-16 | P6-02B1 全量门禁 | `make verify` | 通过；Ruff all、严格 mypy 233 files、pytest 521 passed / coverage 90.18%、真实 PostgreSQL retry + `0018 ↔ 0021` roundtrip、Contracts Checks、Python sdist / wheel、Frontend `check:api`、`tsc` 与 Vinext Production Build 全部成功 |
 | 2026-07-16 | P5-00A 正式执行宿主 | TaskPlanVersion / Run Manifest / TaskRun / ExecutionUnit / UnitAttempt / TaskExecutionEvent、Repository exact replay | 通过；领域与仓储定向测试、机器 Schema 漂移检查及真实 PostgreSQL 完整反向链验收 |
 | 2026-07-16 | P5-00A PostgreSQL / Migration | `20260716_0022`，`0021 → 0022 → 0021 → 0022` | 通过；复合 Scope、Manifest 绑定、Attempt / Event gapless、不可变 Trigger、`FORCE RLS`、最小权限和完整 downgrade 均已验证 |
+| 2026-07-16 | P5-00B1 调度前置 | 四类 Profile、stable request digest、Workflow identity registry、materialization Seal、Revision CAS | 通过；完整 `make verify` 651 tests / coverage 90.35%，真实 PostgreSQL、Chromium 与 `0023 ↔ 0022` populated roundtrip 均已验收 |
+| 2026-07-16 | P5-00B2A Intent 可靠交付 | `20260716_0024` 状态机、独立 `atlas_dispatcher`、三段式 Consumer、稳定 Temporal Start / collision verification | 通过；90 项定向及真实 PostgreSQL / Temporal 测试、`0024 → 0023 → 0024` 往返、Consumer 镜像构建与完整 `make verify` 均成功；全量 712 tests / coverage 90.46% |
 
 ## 当前风险与外部输入
 
@@ -468,6 +490,6 @@
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
 - P3-03 已完成取消后补偿、Reconcile、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Evidence；生产环境仍需按 Tenant 配置 Temporal Schedule 和真实 Provider，缺失时继续 fail-closed。
-- P5-00B1 已建立正式 Profile、Seal、CAS 与 Pending Start Intent，但 Intent Consumer、Task Temporal Workflow / Activity、Command API、Schedule / CI Adapter、超过 64 Units 的可恢复分区物化与恢复扫描尚未实现；Pending Intent 不会被描述成 Workflow 已启动或 Task 已执行。
+- P5-00B1 已建立正式 Profile、Seal、CAS 与 Pending Start Intent，P5-00B2A 已实现独立、默认关闭的 durable Intent Consumer 与 Claim / Lease / Retry / Started / Failed 恢复状态机；Task Temporal Root Workflow / Activity、Command API、Schedule / CI Adapter 和超过 64 Units 的可恢复分区物化尚未实现。`STARTED` 只表示 Temporal 接受，不能描述成 Task 已执行或成功。
 - P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；P6-02A Evidence Writer / 受控读取与 P6-02B1 DebugRun Live Snapshot / SSE 已完成。P6-02B2 的 UnitAttempt-scoped LiveSession、ControlLease、控制 Epoch / Fence、Human Takeover 与持久化 ActionGrant，以及真实 SaaS Operation / Route Registry、生产 Bucket Object Lock / Versioning、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
 - 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

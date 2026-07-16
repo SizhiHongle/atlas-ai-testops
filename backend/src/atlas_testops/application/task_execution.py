@@ -648,7 +648,7 @@ class TaskExecutionStateService:
         actor: ActorContext,
         task_run_id: UUID,
     ) -> TaskWorkflowStartIntent:
-        """Read the append-only root intent without claiming or starting it."""
+        """Read the root intent delivery state without claiming or starting it."""
 
         async with self._database.transaction(actor.database_context()) as connection:
             await self._require_run(connection, actor, task_run_id)
@@ -668,7 +668,7 @@ class TaskExecutionStateService:
         project_id: UUID,
         limit: int = 64,
     ) -> tuple[TaskWorkflowStartIntent, ...]:
-        """Inspect pending intents without claiming, updating, or starting workflows."""
+        """Inspect PENDING intents without claiming, updating, or starting workflows."""
 
         if not actor.can_operate_project(project_id):
             raise _forbidden("当前身份不能查看该 Project 的 Workflow Start Intent。")

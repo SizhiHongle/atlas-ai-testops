@@ -93,6 +93,35 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  task-intent-consumer:
+    profiles: ["task-intent-consumer"]
+    build:
+      context: ./backend
+      target: task-intent-consumer
+    environment:
+      ATLAS_ENVIRONMENT: local
+      ATLAS_TASK_INTENT_CONSUMPTION_ENABLED: ${ATLAS_TASK_INTENT_CONSUMPTION_ENABLED:-false}
+      ATLAS_TASK_DISPATCHER_DATABASE_URL: postgresql://atlas_dispatcher:atlas_dispatcher@postgres:5432/atlas
+      ATLAS_TEMPORAL_ADDRESS: temporal:7233
+      ATLAS_TASK_INTENT_TEMPORAL_NAMESPACE: default
+      ATLAS_TASK_INTENT_TASK_QUEUE: atlas-task-run
+      ATLAS_TASK_INTENT_WORKER_IDENTITY: task-intent-consumer-local
+      ATLAS_TASK_INTENT_POLL_INTERVAL_SECONDS: 1
+      ATLAS_TASK_INTENT_LEASE_SECONDS: 90
+      ATLAS_TASK_INTENT_BATCH_SIZE: 32
+      ATLAS_TASK_INTENT_MAX_ATTEMPTS: 8
+      ATLAS_TASK_INTENT_RETRY_INITIAL_SECONDS: 5
+      ATLAS_TASK_INTENT_RETRY_MAXIMUM_SECONDS: 300
+      ATLAS_TASK_INTENT_RPC_ATTEMPTS: 3
+      ATLAS_TASK_INTENT_RPC_TIMEOUT_SECONDS: 10
+      ATLAS_TASK_INTENT_RPC_RETRY_DELAY_SECONDS: 0.25
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    restart: "no"
+
 volumes:
   atlas-postgres:
   atlas-minio:

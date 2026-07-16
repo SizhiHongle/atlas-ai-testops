@@ -30,6 +30,7 @@ dependencies = [
 atlas-auth-session-worker = "atlas_testops.workers.auth_session:main"
 atlas-browser-worker = "atlas_testops.workers.browser:main"
 atlas-fixture-worker = "atlas_testops.workers.fixture:main"
+atlas-task-intent-consumer = "atlas_testops.workers.task_intent:main"
 atlas-temporal-worker = "atlas_testops.workers.temporal:main"
 
 [dependency-groups]
