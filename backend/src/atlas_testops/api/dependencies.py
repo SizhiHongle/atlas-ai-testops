@@ -13,12 +13,15 @@ from atlas_testops.application.connectors import ConnectorService
 from atlas_testops.application.credentials import CredentialBrokerService
 from atlas_testops.application.debug_run_dispatcher import DebugRunDispatcher
 from atlas_testops.application.debug_runs import DebugRunService
+from atlas_testops.application.evidence import EvidenceService
 from atlas_testops.application.fixture_assets import FixtureAssetService
 from atlas_testops.application.fixture_dispatcher import FixtureRunDispatcher
 from atlas_testops.application.fixture_runs import FixtureRunService
 from atlas_testops.application.identity import IdentityService
 from atlas_testops.application.leases import LeaseService
+from atlas_testops.application.live import DebugLiveService, DebugLiveStreamLimiter
 from atlas_testops.application.platform import PlatformService
+from atlas_testops.application.ports.evidence import EvidenceObjectReader
 from atlas_testops.application.ports.secrets import SecretProvider
 from atlas_testops.application.session_dispatcher import AuthSessionDispatcher
 from atlas_testops.core.config import Settings
@@ -116,6 +119,24 @@ def get_optional_debug_run_dispatcher(request: Request) -> DebugRunDispatcher | 
     )
 
 
+def get_optional_evidence_object_reader(request: Request) -> EvidenceObjectReader | None:
+    """Return the independently verifying reader without making metadata APIs fail."""
+
+    return cast(
+        EvidenceObjectReader | None,
+        request.app.state.evidence_object_reader,
+    )
+
+
+def get_debug_live_stream_limiter(request: Request) -> DebugLiveStreamLimiter:
+    """Return the process-local bound for concurrent live observers."""
+
+    return cast(
+        DebugLiveStreamLimiter,
+        request.app.state.debug_live_stream_limiter,
+    )
+
+
 SettingsDependency = Annotated[Settings, Depends(get_app_settings)]
 DatabaseDependency = Annotated[Database, Depends(get_database)]
 OptionalDatabaseDependency = Annotated[Database | None, Depends(get_optional_database)]
@@ -140,6 +161,14 @@ FixtureRunDispatcherDependency = Annotated[
 OptionalDebugRunDispatcherDependency = Annotated[
     DebugRunDispatcher | None,
     Depends(get_optional_debug_run_dispatcher),
+]
+OptionalEvidenceObjectReaderDependency = Annotated[
+    EvidenceObjectReader | None,
+    Depends(get_optional_evidence_object_reader),
+]
+DebugLiveStreamLimiterDependency = Annotated[
+    DebugLiveStreamLimiter,
+    Depends(get_debug_live_stream_limiter),
 ]
 
 
@@ -185,6 +214,48 @@ def get_debug_run_service(
 DebugRunServiceDependency = Annotated[
     DebugRunService,
     Depends(get_debug_run_service),
+]
+
+
+def get_debug_live_service(
+    database: DatabaseDependency,
+    settings: SettingsDependency,
+) -> DebugLiveService:
+    """Create a short-transaction DebugRun live projection service."""
+
+    return DebugLiveService(
+        database,
+        poll_interval_seconds=settings.debug_live_poll_interval_ms / 1_000,
+        heartbeat_interval_seconds=settings.debug_live_heartbeat_seconds,
+        maximum_connection_seconds=settings.debug_live_max_connection_seconds,
+        batch_size=settings.debug_live_batch_size,
+    )
+
+
+DebugLiveServiceDependency = Annotated[
+    DebugLiveService,
+    Depends(get_debug_live_service),
+]
+
+
+def get_evidence_service(
+    database: DatabaseDependency,
+    reader: OptionalEvidenceObjectReaderDependency,
+    settings: SettingsDependency,
+) -> EvidenceService:
+    """Create a request-scoped Evidence service over shared durable dependencies."""
+
+    return EvidenceService(
+        database,
+        reader,
+        grant_ttl=timedelta(seconds=settings.evidence_read_grant_ttl_seconds),
+        maximum_reads=settings.evidence_read_grant_max_reads,
+    )
+
+
+EvidenceServiceDependency = Annotated[
+    EvidenceService,
+    Depends(get_evidence_service),
 ]
 
 

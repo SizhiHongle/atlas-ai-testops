@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-run/0.1/schema.json",
+  "$defs": {
+    "ExecutionHygiene": {
+      "description": "Shared resource-cleanup axis independent of result quality.",
+      "enum": [
+        "NOT_REQUIRED",
+        "PENDING",
+        "RUNNING",
+        "CLEANED",
+        "CLEANUP_FAILED",
+        "LEAKED"
+      ],
+      "title": "ExecutionHygiene",
+      "type": "string"
+    },
+    "ExecutionLifecycle": {
+      "description": "Shared TaskRun, ExecutionUnit, and UnitAttempt lifecycle axis.",
+      "enum": [
+        "QUEUED",
+        "RUNNING",
+        "PAUSE_REQUESTED",
+        "PAUSED",
+        "CANCELING",
+        "FINALIZING",
+        "CLOSED"
+      ],
+      "title": "ExecutionLifecycle",
+      "type": "string"
+    },
+    "ExecutionQuality": {
+      "description": "Shared Oracle-owned result axis independent of lifecycle.",
+      "enum": [
+        "PENDING",
+        "PASSED",
+        "FAILED",
+        "BLOCKED",
+        "INCONCLUSIVE",
+        "INFRA_ERROR",
+        "CANCELED"
+      ],
+      "title": "ExecutionQuality",
+      "type": "string"
+    },
+    "TaskMaterializationState": {
+      "description": "Completeness gate for a TaskRun aggregate before dispatch.",
+      "enum": [
+        "MATERIALIZING",
+        "SEALED"
+      ],
+      "title": "TaskMaterializationState",
+      "type": "string"
+    },
+    "TaskTriggerSource": {
+      "description": "Bounded trigger origins used in TaskRun idempotency scope.",
+      "enum": [
+        "MANUAL",
+        "SCHEDULE",
+        "CI",
+        "WEBHOOK",
+        "API"
+      ],
+      "title": "TaskTriggerSource",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "materializationState": {
+            "const": "MATERIALIZING"
+          },
+          "materializedUnitCount": {
+            "type": "null"
+          },
+          "materializedFirstAttemptCount": {
+            "type": "null"
+          },
+          "materializationSealedAt": {
+            "type": "null"
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "materializationState": {
+            "const": "SEALED"
+          }
+        },
+        "required": [
+          "materializationState"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requestDigest": {
+            "type": "string"
+          },
+          "materializedUnitCount": {
+            "type": "integer"
+          },
+          "materializedFirstAttemptCount": {
+            "type": "integer"
+          },
+          "materializationSealedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "temporalNamespace": {
+            "type": "string"
+          },
+          "temporalWorkflowId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestDigest",
+          "materializedUnitCount",
+          "materializedFirstAttemptCount",
+          "materializationSealedAt",
+          "temporalNamespace",
+          "temporalWorkflowId"
+        ]
+      }
+    },
+    {
+      "oneOf": [
+        {
+          "properties": {
+            "temporalNamespace": {
+              "type": "string"
+            },
+            "temporalWorkflowId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "temporalNamespace",
+            "temporalWorkflowId"
+          ]
+        },
+        {
+          "properties": {
+            "temporalNamespace": {
+              "type": "null"
+            },
+            "temporalWorkflowId": {
+              "type": "null"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "description": "Durable execution batch bound to one immutable Run Manifest.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskPlanVersionId": {
+      "format": "uuid",
+      "title": "Taskplanversionid",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "triggerSource": {
+      "$ref": "#/$defs/TaskTriggerSource"
+    },
+    "triggerFingerprint": {
+      "maxLength": 320,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+      "title": "Triggerfingerprint",
+      "type": "string"
+    },
+    "requestDigest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Requestdigest"
+    },
+    "materializationState": {
+      "$ref": "#/$defs/TaskMaterializationState",
+      "default": "MATERIALIZING"
+    },
+    "materializedUnitCount": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Materializedunitcount"
+    },
+    "materializedFirstAttemptCount": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Materializedfirstattemptcount"
+    },
+    "materializationSealedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Materializationsealedat"
+    },
+    "rerunOfTaskRunId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rerunoftaskrunid"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/ExecutionLifecycle"
+    },
+    "quality": {
+      "$ref": "#/$defs/ExecutionQuality"
+    },
+    "hygiene": {
+      "$ref": "#/$defs/ExecutionHygiene"
+    },
+    "requestedBy": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Requestedby"
+    },
+    "temporalNamespace": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Temporalnamespace"
+    },
+    "temporalWorkflowId": {
+      "anyOf": [
+        {
+          "maxLength": 320,
+          "minLength": 12,
+          "pattern": "^atlas-task/[A-Za-z0-9/_-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Temporalworkflowid"
+    },
+    "requestedAt": {
+      "format": "date-time",
+      "title": "Requestedat",
+      "type": "string"
+    },
+    "queuedAt": {
+      "format": "date-time",
+      "title": "Queuedat",
+      "type": "string"
+    },
+    "startedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Startedat"
+    },
+    "finalizedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finalizedat"
+    },
+    "cleanupResolvedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cleanupresolvedat"
+    },
+    "closedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Closedat"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "title": "Updatedat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskPlanVersionId",
+    "manifestHash",
+    "triggerSource",
+    "triggerFingerprint",
+    "lifecycle",
+    "quality",
+    "hygiene",
+    "requestedBy",
+    "requestedAt",
+    "queuedAt",
+    "revision",
+    "createdAt",
+    "updatedAt"
+  ],
+  "title": "TaskRun",
+  "type": "object",
+  "x-atlas-invariants": [
+    "SEALED requires materializedUnitCount == materializedFirstAttemptCount.",
+    "materializationSealedAt must be between createdAt and updatedAt.",
+    "When present, temporalWorkflowId is deterministically derived from tenantId and id."
+  ]
+}

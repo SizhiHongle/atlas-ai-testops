@@ -37,6 +37,12 @@ from atlas_testops.application.ports.browser_runtime import (
     BrowserExecutionOutput,
     BrowserExecutionReporter,
 )
+from atlas_testops.application.ports.evidence import (
+    BrowserArtifactWriter as BrowserArtifactWriter,
+)
+from atlas_testops.application.ports.evidence import (
+    EvidenceArtifactWriteScope,
+)
 from atlas_testops.application.ports.sessions import (
     SessionArtifactScope,
     SessionArtifactVault,
@@ -110,6 +116,7 @@ _ALLOWED_TARGET_ROLES = {
     BrowserActionKind.ENTER_TEXT: frozenset({"textbox"}),
     BrowserActionKind.CHOOSE_OPTION: frozenset({"combobox"}),
 }
+_MAX_SCREENSHOT_FRAMES = 32
 
 
 def _tool_schema_digest(
@@ -179,19 +186,6 @@ class BrowserPolicyDeniedError(BrowserExecutionError):
 
 class BrowserTargetStaleError(BrowserExecutionError):
     """A proposal referenced an observation invalidated by a page change."""
-
-
-class BrowserArtifactWriter(Protocol):
-    """Redact, retain, independently hash, and verify raw browser evidence bytes."""
-
-    async def write(
-        self,
-        *,
-        kind: EvidenceArtifactKind,
-        payload: bytes,
-        mime_type: str,
-        required: bool,
-    ) -> EvidenceArtifactInput: ...
 
 
 class BrowserPlanOperation(Protocol):
@@ -693,18 +687,39 @@ class BrowserToolSession:
     async def _capture_screenshot(self, *, required: bool) -> EvidenceArtifactInput:
         if self._artifact_writer is None:
             raise BrowserExecutionError("trusted Evidence Artifact writer is unavailable")
-        captured_at = utc_now()
+        frames = self._page.frames
+        if len(frames) > _MAX_SCREENSHOT_FRAMES:
+            raise BrowserExecutionError("page exceeds the trusted screenshot frame limit")
+        redaction_policy = self._artifact_writer.screenshot_redaction_policy
+        masks = [
+            frame.locator(selector) for frame in frames for selector in redaction_policy.selectors
+        ]
         payload = await self._page.screenshot(
             animations="disabled",
             caret="hide",
             full_page=False,
+            mask=masks,
+            mask_color=redaction_policy.mask_color,
             type="png",
         )
+        captured_at = utc_now()
+        contract = self._bundle.execution_contract
         artifact = await self._artifact_writer.write(
+            scope=EvidenceArtifactWriteScope(
+                tenant_id=contract.tenant_id,
+                project_id=contract.project_id,
+                environment_id=contract.environment_id,
+                debug_run_id=contract.debug_run_id,
+                execution_contract_id=contract.id,
+                execution_contract_digest=contract.content_digest,
+                execution_created_at=contract.created_at,
+                execution_deadline=contract.execution_deadline,
+            ),
             kind=EvidenceArtifactKind.SCREENSHOT,
             payload=payload,
             mime_type="image/png",
             required=required,
+            captured_at=captured_at,
         )
         if artifact.captured_at < captured_at:
             raise BrowserExecutionError("artifact writer returned an invalid capture time")

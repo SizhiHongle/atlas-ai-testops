@@ -1,9 +1,11 @@
 """HTTP 中间件。"""
 
+from asyncio import get_running_loop, timeout_at
 from collections.abc import Awaitable, Callable
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from atlas_testops.api.problem_details import PROBLEM_CONTENT_TYPE, ProblemDetails
 from atlas_testops.core.errors import ErrorCode
@@ -15,6 +17,77 @@ from atlas_testops.core.request_context import (
 )
 
 BROWSER_RUNTIME_MAX_BODY_BYTES = 1024 * 1024
+DEBUG_LIVE_STREAM_CLOSE_GRACE_SECONDS = 1.0
+
+
+class _DebugLiveStreamSendDeadlineExceeded(Exception):
+    """Stop an SSE response whose client-facing send exceeded its deadline."""
+
+
+class DebugLiveStreamSendDeadlineMiddleware:
+    """Bound real client writes after BaseHTTPMiddleware response wrapping."""
+
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        stream_path_prefix: str,
+        maximum_connection_seconds: float,
+        close_grace_seconds: float | None = None,
+    ) -> None:
+        self._app = app
+        self._stream_path_prefix = stream_path_prefix
+        self._maximum_seconds = maximum_connection_seconds
+        self._close_grace_seconds = (
+            DEBUG_LIVE_STREAM_CLOSE_GRACE_SECONDS
+            if close_grace_seconds is None
+            else close_grace_seconds
+        )
+
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        if not self._is_debug_live_stream(scope):
+            await self._app(scope, receive, send)
+            return
+
+        deadline: float | None = None
+
+        async def send_with_deadline(message: Message) -> None:
+            nonlocal deadline
+            if message["type"] == "http.response.start" and deadline is None:
+                deadline = (
+                    get_running_loop().time()
+                    + self._maximum_seconds
+                    + self._close_grace_seconds
+                )
+            if deadline is None:
+                await send(message)
+                return
+            timer = timeout_at(deadline)
+            try:
+                async with timer:
+                    await send(message)
+            except TimeoutError:
+                if not timer.expired():
+                    raise
+                raise _DebugLiveStreamSendDeadlineExceeded from None
+
+        try:
+            await self._app(scope, receive, send_with_deadline)
+        except _DebugLiveStreamSendDeadlineExceeded:
+            return
+
+    def _is_debug_live_stream(self, scope: Scope) -> bool:
+        if scope["type"] != "http" or scope.get("method") != "GET":
+            return False
+        path = str(scope.get("path", ""))
+        return path.startswith(self._stream_path_prefix) and path.endswith(
+            "/events/stream"
+        )
 
 
 async def request_context_middleware(

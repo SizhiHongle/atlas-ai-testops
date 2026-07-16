@@ -23,7 +23,7 @@ contracts:
 backend-check:
 	cd backend && uv run ruff check .
 	cd backend && uv run mypy src tests
-	cd backend && ATLAS_TEST_DATABASE_URL='$(ATLAS_TEST_DATABASE_URL)' ATLAS_TEST_TEMPORAL_ADDRESS='$(ATLAS_TEST_TEMPORAL_ADDRESS)' uv run pytest
+	cd backend && ATLAS_TEST_DATABASE_URL='$(ATLAS_TEST_DATABASE_URL)' ATLAS_TEST_OWNER_DATABASE_URL='$(ATLAS_OWNER_DATABASE_URL)' ATLAS_TEST_TEMPORAL_ADDRESS='$(ATLAS_TEST_TEMPORAL_ADDRESS)' uv run pytest
 	cd backend && uv run python scripts/export_contracts.py --check
 	cd backend && uv run python scripts/export_openapi.py --check
 	cd backend && uv build

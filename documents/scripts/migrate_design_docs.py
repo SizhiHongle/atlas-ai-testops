@@ -174,7 +174,7 @@ CaseSelector = PinnedCaseSelector | QueryAtRunCaseSelector""",
         178: """class ExecutionUnitManifest(BaseModel):
     unit_key: str
     case_version_id: str
-    execution_contract_version_id: str
+    execution_profile_version_id: str
     fixture_blueprint_version_id: str
     identity_profile_version_id: str
     environment_id: str

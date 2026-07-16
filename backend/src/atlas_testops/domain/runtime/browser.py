@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC
 from enum import StrEnum
 from json import dumps
-from re import search
+from re import fullmatch, search
 from typing import Literal, Self
 from uuid import UUID
 
@@ -655,6 +655,40 @@ _ACTION_REPORT_KINDS = frozenset(
     }
 )
 
+_REPORT_REFERENCE_FIELDS: dict[
+    BrowserRuntimeReportKind,
+    tuple[tuple[str, str, bool], ...],
+] = {
+    BrowserRuntimeReportKind.NODE_STARTED: (
+        ("nodeId", REFERENCE_PATTERN, False),
+        ("nodeKind", REFERENCE_PATTERN, False),
+        ("versionRef", REFERENCE_PATTERN, False),
+    ),
+    BrowserRuntimeReportKind.OBSERVATION_CAPTURED: (
+        ("observationRef", OBSERVATION_REF_PATTERN, False),
+        ("pageRef", PAGE_REF_PATTERN, False),
+        ("routeKey", REFERENCE_PATTERN, True),
+    ),
+    BrowserRuntimeReportKind.ACTION_PROPOSED: (
+        ("nodeId", REFERENCE_PATTERN, False),
+        ("targetRef", TARGET_REF_PATTERN, True),
+        ("routeKey", REFERENCE_PATTERN, True),
+    ),
+    BrowserRuntimeReportKind.ASSERTION_EVALUATED: (
+        ("assertionId", REFERENCE_PATTERN, False),
+    ),
+    BrowserRuntimeReportKind.NODE_COMPLETED: (
+        ("nodeId", REFERENCE_PATTERN, False),
+    ),
+    BrowserRuntimeReportKind.EXECUTION_BLOCKED: (
+        ("failureType", REFERENCE_PATTERN, False),
+    ),
+}
+
+_REPORT_UUID_FIELDS: dict[BrowserRuntimeReportKind, tuple[str, ...]] = {
+    BrowserRuntimeReportKind.ACTION_EXECUTED: ("receiptId", "grantId"),
+}
+
 
 def _validate_report_semantics(report: AppendBrowserRuntimeReport) -> None:
     expected_keys = _REPORT_PAYLOAD_KEYS[report.kind]
@@ -679,6 +713,21 @@ def _validate_report_semantics(report: AppendBrowserRuntimeReport) -> None:
         BrowserRuntimeReportKind.EXECUTION_BLOCKED,
     } and report.actor_slot is not None:
         raise ValueError("execution reports cannot carry actorSlot")
+
+    for key, pattern, optional in _REPORT_REFERENCE_FIELDS.get(report.kind, ()):
+        value = report.payload[key]
+        if optional and value is None:
+            continue
+        if not isinstance(value, str) or fullmatch(pattern, value) is None:
+            raise ValueError(f"browser report {key} is invalid")
+    for key in _REPORT_UUID_FIELDS.get(report.kind, ()):
+        value = report.payload[key]
+        if not isinstance(value, str):
+            raise ValueError(f"browser report {key} is invalid")
+        try:
+            UUID(value)
+        except ValueError as error:
+            raise ValueError(f"browser report {key} is invalid") from error
 
     digest_keys = {
         BrowserRuntimeReportKind.EXECUTION_STARTED: ("planDigest",),
@@ -739,7 +788,9 @@ def _validate_report_semantics(report: AppendBrowserRuntimeReport) -> None:
         BrowserPolicyDecisionKind(decision)
         matched_rules = report.payload["matchedRules"]
         if not isinstance(matched_rules, list) or not all(
-            isinstance(item, str) and 1 <= len(item) <= 160 for item in matched_rules
+            isinstance(item, str)
+            and fullmatch(REFERENCE_PATTERN, item) is not None
+            for item in matched_rules
         ):
             raise ValueError("browser report matchedRules is invalid")
     elif report.kind is BrowserRuntimeReportKind.ACTION_EXECUTED:

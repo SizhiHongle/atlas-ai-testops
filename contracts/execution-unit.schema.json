@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/execution-unit/0.1/schema.json",
+  "$defs": {
+    "ExecutionHygiene": {
+      "description": "Shared resource-cleanup axis independent of result quality.",
+      "enum": [
+        "NOT_REQUIRED",
+        "PENDING",
+        "RUNNING",
+        "CLEANED",
+        "CLEANUP_FAILED",
+        "LEAKED"
+      ],
+      "title": "ExecutionHygiene",
+      "type": "string"
+    },
+    "ExecutionLifecycle": {
+      "description": "Shared TaskRun, ExecutionUnit, and UnitAttempt lifecycle axis.",
+      "enum": [
+        "QUEUED",
+        "RUNNING",
+        "PAUSE_REQUESTED",
+        "PAUSED",
+        "CANCELING",
+        "FINALIZING",
+        "CLOSED"
+      ],
+      "title": "ExecutionLifecycle",
+      "type": "string"
+    },
+    "ExecutionQuality": {
+      "description": "Shared Oracle-owned result axis independent of lifecycle.",
+      "enum": [
+        "PENDING",
+        "PASSED",
+        "FAILED",
+        "BLOCKED",
+        "INCONCLUSIVE",
+        "INFRA_ERROR",
+        "CANCELED"
+      ],
+      "title": "ExecutionQuality",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Logical immutable manifest cell whose retries append UnitAttempts.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "ordinal": {
+      "minimum": 1,
+      "title": "Ordinal",
+      "type": "integer"
+    },
+    "unitKey": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Unitkey",
+      "type": "string"
+    },
+    "caseVersionId": {
+      "format": "uuid",
+      "title": "Caseversionid",
+      "type": "string"
+    },
+    "executionProfileVersionId": {
+      "format": "uuid",
+      "title": "Executionprofileversionid",
+      "type": "string"
+    },
+    "fixtureBlueprintVersionId": {
+      "format": "uuid",
+      "title": "Fixtureblueprintversionid",
+      "type": "string"
+    },
+    "identityProfileVersionId": {
+      "format": "uuid",
+      "title": "Identityprofileversionid",
+      "type": "string"
+    },
+    "environmentId": {
+      "format": "uuid",
+      "title": "Environmentid",
+      "type": "string"
+    },
+    "browserProfileVersionId": {
+      "format": "uuid",
+      "title": "Browserprofileversionid",
+      "type": "string"
+    },
+    "dataProfileVersionId": {
+      "format": "uuid",
+      "title": "Dataprofileversionid",
+      "type": "string"
+    },
+    "parameterDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Parameterdigest",
+      "type": "string"
+    },
+    "dependencyDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Dependencydigest",
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/ExecutionLifecycle"
+    },
+    "quality": {
+      "$ref": "#/$defs/ExecutionQuality"
+    },
+    "hygiene": {
+      "$ref": "#/$defs/ExecutionHygiene"
+    },
+    "startedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Startedat"
+    },
+    "finalizedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finalizedat"
+    },
+    "cleanupResolvedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cleanupresolvedat"
+    },
+    "closedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Closedat"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "title": "Updatedat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "manifestHash",
+    "ordinal",
+    "unitKey",
+    "caseVersionId",
+    "executionProfileVersionId",
+    "fixtureBlueprintVersionId",
+    "identityProfileVersionId",
+    "environmentId",
+    "browserProfileVersionId",
+    "dataProfileVersionId",
+    "parameterDigest",
+    "dependencyDigest",
+    "lifecycle",
+    "quality",
+    "hygiene",
+    "revision",
+    "createdAt",
+    "updatedAt"
+  ],
+  "title": "ExecutionUnit",
+  "type": "object"
+}

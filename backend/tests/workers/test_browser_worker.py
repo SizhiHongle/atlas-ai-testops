@@ -245,6 +245,7 @@ async def test_run_worker_builds_default_engine_and_closes_runtime(
     route_registry = BrowserRouteRegistry()
     operation_registry = BrowserOperationRegistry()
     artifact_writer = cast(BrowserArtifactWriter, object())
+    writer_build_calls: list[BrowserWorkerSettings] = []
 
     class FakeRuntime:
         def __init__(self, **kwargs: object) -> None:
@@ -270,10 +271,21 @@ async def test_run_worker_builds_default_engine_and_closes_runtime(
         async def run(self) -> None:
             events.append("worker-run")
 
+    async def fake_build_evidence_writer(
+        received: BrowserWorkerSettings,
+    ) -> BrowserArtifactWriter:
+        writer_build_calls.append(received)
+        return artifact_writer
+
     monkeypatch.setattr(browser, "PlaywrightExecutionRuntime", FakeRuntime)
     monkeypatch.setattr(browser, "PlaywrightBrowserExecutionEngine", FakeEngine)
     monkeypatch.setattr(browser, "Client", FakeClient)
     monkeypatch.setattr(browser, "Worker", FakeWorker)
+    monkeypatch.setattr(
+        browser,
+        "build_optional_evidence_artifact_writer",
+        fake_build_evidence_writer,
+    )
     settings = configured_settings()
 
     await browser.run_worker(
@@ -281,7 +293,6 @@ async def test_run_worker_builds_default_engine_and_closes_runtime(
         session_vault=vault,
         route_registry=route_registry,
         operation_registry=operation_registry,
-        artifact_writer=artifact_writer,
     )
 
     assert runtime_arguments == {
@@ -294,6 +305,7 @@ async def test_run_worker_builds_default_engine_and_closes_runtime(
     assert engine_arguments["route_registry"] is route_registry
     assert engine_arguments["operation_registry"] is operation_registry
     assert engine_arguments["artifact_writer"] is artifact_writer
+    assert writer_build_calls == [settings]
     assert engine_arguments["action_timeout"] == timedelta(seconds=11)
     catalog = cast(BrowserToolCatalog, engine_arguments["tool_catalog"])
     assert catalog.catalog_ref == "browser-tools@1.0.0"

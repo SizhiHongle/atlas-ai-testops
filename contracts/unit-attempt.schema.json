@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/unit-attempt/0.1/schema.json",
+  "$defs": {
+    "ExecutionHygiene": {
+      "description": "Shared resource-cleanup axis independent of result quality.",
+      "enum": [
+        "NOT_REQUIRED",
+        "PENDING",
+        "RUNNING",
+        "CLEANED",
+        "CLEANUP_FAILED",
+        "LEAKED"
+      ],
+      "title": "ExecutionHygiene",
+      "type": "string"
+    },
+    "ExecutionLifecycle": {
+      "description": "Shared TaskRun, ExecutionUnit, and UnitAttempt lifecycle axis.",
+      "enum": [
+        "QUEUED",
+        "RUNNING",
+        "PAUSE_REQUESTED",
+        "PAUSED",
+        "CANCELING",
+        "FINALIZING",
+        "CLOSED"
+      ],
+      "title": "ExecutionLifecycle",
+      "type": "string"
+    },
+    "ExecutionQuality": {
+      "description": "Shared Oracle-owned result axis independent of lifecycle.",
+      "enum": [
+        "PENDING",
+        "PASSED",
+        "FAILED",
+        "BLOCKED",
+        "INCONCLUSIVE",
+        "INFRA_ERROR",
+        "CANCELED"
+      ],
+      "title": "ExecutionQuality",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "oneOf": [
+        {
+          "properties": {
+            "temporalNamespace": {
+              "type": "string"
+            },
+            "temporalWorkflowId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "temporalNamespace",
+            "temporalWorkflowId"
+          ]
+        },
+        {
+          "properties": {
+            "temporalNamespace": {
+              "type": "null"
+            },
+            "temporalWorkflowId": {
+              "type": "null"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "description": "One append-only physical execution attempt for an ExecutionUnit.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "executionUnitId": {
+      "format": "uuid",
+      "title": "Executionunitid",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "unitKey": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Unitkey",
+      "type": "string"
+    },
+    "caseVersionId": {
+      "format": "uuid",
+      "title": "Caseversionid",
+      "type": "string"
+    },
+    "attemptNumber": {
+      "minimum": 1,
+      "title": "Attemptnumber",
+      "type": "integer"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/ExecutionLifecycle"
+    },
+    "quality": {
+      "$ref": "#/$defs/ExecutionQuality"
+    },
+    "hygiene": {
+      "$ref": "#/$defs/ExecutionHygiene"
+    },
+    "temporalNamespace": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Temporalnamespace"
+    },
+    "temporalWorkflowId": {
+      "anyOf": [
+        {
+          "maxLength": 320,
+          "minLength": 12,
+          "pattern": "^atlas-task/[A-Za-z0-9/_-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Temporalworkflowid"
+    },
+    "queuedAt": {
+      "format": "date-time",
+      "title": "Queuedat",
+      "type": "string"
+    },
+    "executionDeadline": {
+      "format": "date-time",
+      "title": "Executiondeadline",
+      "type": "string"
+    },
+    "startedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Startedat"
+    },
+    "finalizedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finalizedat"
+    },
+    "cleanupResolvedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cleanupresolvedat"
+    },
+    "closedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Closedat"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "title": "Updatedat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "executionUnitId",
+    "manifestHash",
+    "unitKey",
+    "caseVersionId",
+    "attemptNumber",
+    "lifecycle",
+    "quality",
+    "hygiene",
+    "queuedAt",
+    "executionDeadline",
+    "revision",
+    "createdAt",
+    "updatedAt"
+  ],
+  "title": "UnitAttempt",
+  "type": "object",
+  "x-atlas-invariants": [
+    "When present, temporalWorkflowId is deterministically derived from tenantId and id."
+  ]
+}

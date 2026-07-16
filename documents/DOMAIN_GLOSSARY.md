@@ -1,6 +1,6 @@
 # Atlas 统一领域术语
 
-更新时间：2026-07-15
+更新时间：2026-07-16
 
 本文件是跨文档对象命名的规范来源。Word 设计稿负责解释产品和实现背景，机器可读 Schema 负责约束线协议。
 
@@ -52,11 +52,16 @@ TaskPlanVersion
 
 | 对象 | 定义 | 可变性与事实源 |
 | --- | --- | --- |
-| `TaskPlanVersion` | 已发布的任务选择、矩阵、触发和策略 | 发布后不可变，PostgreSQL |
-| `TaskRun` | 一次触发形成的任务运行与冻结 Manifest | 追加式状态，PostgreSQL；Temporal 承载耐久编排 |
-| `ExecutionUnit` | CaseVersion 与矩阵单元形成的逻辑测试槽位 | 创建后不可变，PostgreSQL |
-| `UnitAttempt` | ExecutionUnit 的一次真实执行 | 每次重新执行创建新的 UnitAttempt，PostgreSQL + Temporal |
-| `AttemptSeal` | Attempt 关闭时产生的不可变事实包 | 永久不可变，PostgreSQL 保存事实与对象存储引用 |
+| `ExecutionProfileVersion` | exact CaseVersion 的 Model / Prompt / Tool / Feature 预绑定 | P5-00B1 已落地；内容不可变，状态只可 PUBLISHED → DEPRECATED / REVOKED；不是 DebugRun `ExecutionContract` |
+| `IdentityProfileVersion` | Case actor 到 exact TestRole revision / capabilities 的无秘密映射 | P5-00B1 已落地；不保存账号、Credential、Lease 或 Session |
+| `BrowserProfileVersion` | Chromium revision、Viewport、Locale、Timezone 与 runtime attestation | P5-00B1 已落地；内容不可变，调度前仍须匹配实际 Worker 能力 |
+| `DataProfileVersion` | exact Fixture Blueprint / Plan 与无秘密 Run Inputs | P5-00B1 已落地；Profile 冻结 digest，dispatch admission 再按 exact Fixture `run_input_schema` 复验；不保存动态 Secret 或运行资源 |
+| `TaskPlanVersion` | 已发布的任务选择、矩阵、触发和策略 | P5-00B1 已接入四类正式 Profile 发布门禁；发布后不可变，PostgreSQL |
+| `TaskRun` | 一次触发形成的任务运行与冻结 Manifest | stable request digest 幂等；只有 `MATERIALIZING → SEALED` 完整证明后才能推进状态 |
+| `TaskWorkflowStartIntent` | 与 sealed TaskRun / deterministic Workflow ID 同事务生成的待启动事实 | P5-00B1 仅追加 `PENDING` 意图，不等于 Temporal 已启动，也不由本切片消费 |
+| `ExecutionUnit` | CaseVersion 与矩阵单元形成的逻辑测试槽位 | P5-00A 已落地；Manifest 身份创建后不可变，PostgreSQL |
+| `UnitAttempt` | ExecutionUnit 的一次真实执行 | 每次业务重试创建新 Attempt；P5-00B1 使用确定性 namespace / Workflow ID，Activity retry 不创建新 Attempt |
+| `AttemptSeal` | Attempt 关闭时产生的不可变事实包 | P5-00A 已提供正式宿主；Seal 待 P6 后续，永久不可变 |
 | `UnitResolutionRevision` | 对多个 Attempt 的追加式解释 | 只追加 Revision，可重建 |
 | `TaskResultSnapshot` | 绑定 Manifest 和策略版本的可复现任务结论 | 不可变快照 |
 | `TaskGateDecision` | 针对确定 Result Snapshot 作出的门禁决定 | 追加式审计事实 |
@@ -94,7 +99,7 @@ DebugRun
 | `EvidenceManifest` | 绑定 ExecutionContract、FixtureManifest、AssertionResult、Artifact 和事件链的不可变证据根 | P6-00 已落地；只有完整、已验证且所有 HARD Oracle 通过时才能得到 `PASSED` |
 
 - P6-01 Browser Worker 通过机器认证的内部 Runtime Gateway 调用 `DebugRuntimeService`，不是公共完成 API，且 Worker 不得直接访问主数据库。
-- `EvidenceManifest` 服务于 DebugRun 的发布试运行；正式任务的 `AttemptSeal` 必须等 P5 创建 `UnitAttempt` 后再落地，二者不得混为同一宿主对象。
+- `EvidenceManifest` 服务于 DebugRun 的发布试运行；P5-00A 已创建正式 `UnitAttempt`，后续 `AttemptSeal` 必须精确绑定该宿主，二者不得混为同一对象。
 
 ## Browser 执行平面对象链
 

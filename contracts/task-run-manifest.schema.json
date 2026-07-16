@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-run-manifest/0.1/schema.json",
+  "$defs": {
+    "ExecutionUnitManifest": {
+      "additionalProperties": false,
+      "description": "One exact CaseVersion and matrix cell frozen into a Run Manifest.",
+      "properties": {
+        "ordinal": {
+          "minimum": 1,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "unitKey": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Unitkey",
+          "type": "string"
+        },
+        "caseVersionId": {
+          "format": "uuid",
+          "title": "Caseversionid",
+          "type": "string"
+        },
+        "executionProfileVersionId": {
+          "format": "uuid",
+          "title": "Executionprofileversionid",
+          "type": "string"
+        },
+        "fixtureBlueprintVersionId": {
+          "format": "uuid",
+          "title": "Fixtureblueprintversionid",
+          "type": "string"
+        },
+        "identityProfileVersionId": {
+          "format": "uuid",
+          "title": "Identityprofileversionid",
+          "type": "string"
+        },
+        "environmentId": {
+          "format": "uuid",
+          "title": "Environmentid",
+          "type": "string"
+        },
+        "browserProfileVersionId": {
+          "format": "uuid",
+          "title": "Browserprofileversionid",
+          "type": "string"
+        },
+        "dataProfileVersionId": {
+          "format": "uuid",
+          "title": "Dataprofileversionid",
+          "type": "string"
+        },
+        "parameterDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Parameterdigest",
+          "type": "string"
+        },
+        "dependencyDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Dependencydigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ordinal",
+        "unitKey",
+        "caseVersionId",
+        "executionProfileVersionId",
+        "fixtureBlueprintVersionId",
+        "identityProfileVersionId",
+        "environmentId",
+        "browserProfileVersionId",
+        "dataProfileVersionId",
+        "parameterDigest",
+        "dependencyDigest"
+      ],
+      "title": "ExecutionUnitManifest",
+      "type": "object"
+    },
+    "TaskTriggerSource": {
+      "description": "Bounded trigger origins used in TaskRun idempotency scope.",
+      "enum": [
+        "MANUAL",
+        "SCHEDULE",
+        "CI",
+        "WEBHOOK",
+        "API"
+      ],
+      "title": "TaskTriggerSource",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Complete immutable execution input for one TaskRun.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.task-run-manifest/0.1",
+      "default": "atlas.task-run-manifest/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "taskPlanVersionId": {
+      "format": "uuid",
+      "title": "Taskplanversionid",
+      "type": "string"
+    },
+    "triggerSource": {
+      "$ref": "#/$defs/TaskTriggerSource"
+    },
+    "triggerFingerprint": {
+      "maxLength": 320,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+      "title": "Triggerfingerprint",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "iterationId": {
+      "anyOf": [
+        {
+          "maxLength": 160,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Iterationid"
+    },
+    "units": {
+      "items": {
+        "$ref": "#/$defs/ExecutionUnitManifest"
+      },
+      "maxItems": 100000,
+      "minItems": 1,
+      "title": "Units",
+      "type": "array"
+    },
+    "policyDigests": {
+      "additionalProperties": false,
+      "maxProperties": 64,
+      "minProperties": 1,
+      "patternProperties": {
+        "^[a-z][a-z0-9_.-]{1,127}$": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "title": "Policydigests",
+      "type": "object"
+    },
+    "compilerVersion": {
+      "maxLength": 80,
+      "minLength": 5,
+      "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+      "title": "Compilerversion",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "taskRunId",
+    "taskPlanVersionId",
+    "triggerSource",
+    "triggerFingerprint",
+    "tenantId",
+    "projectId",
+    "units",
+    "policyDigests",
+    "compilerVersion",
+    "manifestHash"
+  ],
+  "title": "TaskRunManifest",
+  "type": "object"
+}

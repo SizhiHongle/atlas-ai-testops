@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/browser-profile/0.1/schema.json",
+  "$defs": {
+    "TaskProfileStatus": {
+      "description": "Admission status shared by every immutable Task profile version.",
+      "enum": [
+        "PUBLISHED",
+        "DEPRECATED",
+        "REVOKED"
+      ],
+      "title": "TaskProfileStatus",
+      "type": "string"
+    },
+    "Viewport": {
+      "additionalProperties": false,
+      "description": "Frozen browser viewport used by one execution.",
+      "properties": {
+        "width": {
+          "maximum": 7680,
+          "minimum": 320,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "maximum": 4320,
+          "minimum": 320,
+          "title": "Height",
+          "type": "integer"
+        },
+        "deviceScaleFactor": {
+          "default": 1.0,
+          "maximum": 4.0,
+          "minimum": 0.5,
+          "title": "Devicescalefactor",
+          "type": "number"
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "title": "Viewport",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "anyOf": [
+    {
+      "properties": {
+        "runtimeImageDigest": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "runtimeImageDigest"
+      ]
+    },
+    {
+      "properties": {
+        "capabilityDigest": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "capabilityDigest"
+      ]
+    }
+  ],
+  "description": "Published browser binary, viewport, locale, and attestation snapshot.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "profileKey": {
+      "maxLength": 80,
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$",
+      "title": "Profilekey",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 80,
+      "minLength": 5,
+      "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+      "title": "Version",
+      "type": "string"
+    },
+    "versionRef": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "title": "Versionref",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/TaskProfileStatus"
+    },
+    "contentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Contentdigest",
+      "type": "string"
+    },
+    "publishedBy": {
+      "format": "uuid",
+      "title": "Publishedby",
+      "type": "string"
+    },
+    "publishedAt": {
+      "format": "date-time",
+      "title": "Publishedat",
+      "type": "string"
+    },
+    "deprecatedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deprecatedat"
+    },
+    "revokedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Revokedat"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "title": "Updatedat",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "atlas.browser-profile/0.1",
+      "default": "atlas.browser-profile/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "engine": {
+      "const": "chromium",
+      "default": "chromium",
+      "title": "Engine",
+      "type": "string"
+    },
+    "browserRevision": {
+      "maxLength": 160,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,159}$",
+      "title": "Browserrevision",
+      "type": "string"
+    },
+    "viewport": {
+      "$ref": "#/$defs/Viewport"
+    },
+    "locale": {
+      "maxLength": 35,
+      "minLength": 2,
+      "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+      "title": "Locale",
+      "type": "string"
+    },
+    "timezone": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_+./-]+$",
+      "title": "Timezone",
+      "type": "string"
+    },
+    "runtimeImageDigest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Runtimeimagedigest"
+    },
+    "capabilityDigest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Capabilitydigest"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "profileKey",
+    "version",
+    "versionRef",
+    "status",
+    "contentDigest",
+    "publishedBy",
+    "publishedAt",
+    "revision",
+    "createdAt",
+    "updatedAt",
+    "browserRevision",
+    "viewport",
+    "locale",
+    "timezone"
+  ],
+  "title": "BrowserProfileVersion",
+  "type": "object",
+  "x-atlas-invariants": [
+    "At least one runtimeImageDigest or capabilityDigest must be non-null."
+  ]
+}

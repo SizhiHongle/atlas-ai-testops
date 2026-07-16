@@ -3,6 +3,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import timedelta
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +12,7 @@ from temporalio.client import Client
 from atlas_testops import __version__
 from atlas_testops.api.internal.router import internal_api_router
 from atlas_testops.api.middleware import (
+    DebugLiveStreamSendDeadlineMiddleware,
     browser_runtime_body_limit_middleware,
     request_context_middleware,
 )
@@ -18,7 +20,9 @@ from atlas_testops.api.problem_details import register_exception_handlers
 from atlas_testops.api.router import api_router
 from atlas_testops.application.debug_run_dispatcher import DebugRunDispatcher
 from atlas_testops.application.fixture_dispatcher import FixtureRunDispatcher
+from atlas_testops.application.live import DebugLiveStreamLimiter
 from atlas_testops.application.ports.browser_runtime import BrowserContextEnvelopeCodec
+from atlas_testops.application.ports.evidence import EvidenceObjectReader
 from atlas_testops.application.ports.secrets import SecretProvider
 from atlas_testops.application.session_dispatcher import AuthSessionDispatcher
 from atlas_testops.core.config import Settings, get_settings
@@ -30,6 +34,7 @@ from atlas_testops.infrastructure.browser_auth import (
 )
 from atlas_testops.infrastructure.browser_envelope import AesGcmBrowserContextEnvelopeCodec
 from atlas_testops.infrastructure.database import Database
+from atlas_testops.infrastructure.evidence_runtime import build_evidence_object_reader
 from atlas_testops.infrastructure.passwords import PasswordService
 from atlas_testops.orchestration.browser import TemporalBrowserExecutionDispatcher
 from atlas_testops.orchestration.fixtures import TemporalFixtureRunDispatcher
@@ -46,6 +51,13 @@ async def application_lifespan(application: FastAPI) -> AsyncIterator[None]:
     if database is not None:
         await database.open()
     try:
+        if (
+            settings.evidence_store_configured
+            and application.state.evidence_object_reader is None
+        ):
+            application.state.evidence_object_reader = (
+                await build_evidence_object_reader(settings)
+            )
         if (
             settings.auth_session_dispatch_enabled
             and application.state.auth_session_dispatcher is None
@@ -117,6 +129,7 @@ def create_app(
     browser_runtime_request_signer: BrowserRuntimeRequestSigner | None = None,
     browser_context_envelope_codec: BrowserContextEnvelopeCodec | None = None,
     browser_execution_dispatcher: TemporalBrowserExecutionDispatcher | None = None,
+    evidence_object_reader: EvidenceObjectReader | None = None,
 ) -> FastAPI:
     """创建相互隔离、便于测试的 FastAPI 实例。"""
     app_settings = settings or get_settings()
@@ -159,6 +172,10 @@ def create_app(
         browser_context_envelope_codec or configured_envelope_codec
     )
     application.state.browser_execution_dispatcher = browser_execution_dispatcher
+    application.state.evidence_object_reader = evidence_object_reader
+    application.state.debug_live_stream_limiter = DebugLiveStreamLimiter(
+        app_settings.debug_live_maximum_connections
+    )
 
     application.middleware("http")(request_context_middleware)
     application.middleware("http")(browser_runtime_body_limit_middleware)
@@ -172,10 +189,94 @@ def create_app(
             allow_methods=["*"],
             allow_headers=["*"],
         )
+    application.add_middleware(
+        DebugLiveStreamSendDeadlineMiddleware,
+        stream_path_prefix=f"{app_settings.api_v1_prefix}/debug-runs/",
+        maximum_connection_seconds=app_settings.debug_live_max_connection_seconds,
+    )
 
     application.include_router(api_router, prefix=app_settings.api_v1_prefix)
     application.include_router(internal_api_router, prefix="/internal/v1")
+    _install_openapi_security_contract(
+        application,
+        api_v1_prefix=app_settings.api_v1_prefix,
+        session_cookie_name=app_settings.session_cookie_name,
+    )
     return application
+
+
+def _install_openapi_security_contract(
+    application: FastAPI,
+    *,
+    api_v1_prefix: str,
+    session_cookie_name: str,
+) -> None:
+    """Describe cookie plus Evidence Header authority without changing runtime auth."""
+
+    default_openapi = application.openapi
+
+    def secured_openapi() -> dict[str, Any]:
+        document = default_openapi()
+        components = document.setdefault("components", {})
+        schemes = components.setdefault("securitySchemes", {})
+        schemes["PlatformSession"] = {
+            "type": "apiKey",
+            "in": "cookie",
+            "name": session_cookie_name,
+            "description": "Validated Atlas Platform Session cookie.",
+        }
+        schemes["AtlasEvidenceReadGrant"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": "Authorization",
+            "description": "Use the exact form: Atlas-Evidence <opaque read token>.",
+        }
+        secured_paths: dict[str, dict[str, list[dict[str, list[str]]]]] = {
+            f"{api_v1_prefix}/debug-runs/{{runId}}/evidence": {
+                "get": [{"PlatformSession": []}],
+            },
+            f"{api_v1_prefix}/debug-runs/{{runId}}/evidence/{{artifactId}}/read-tokens": {
+                "post": [{"PlatformSession": []}],
+            },
+            f"{api_v1_prefix}/evidence/artifacts/{{artifactId}}/content": {
+                "get": [
+                    {
+                        "PlatformSession": [],
+                        "AtlasEvidenceReadGrant": [],
+                    }
+                ],
+            },
+            f"{api_v1_prefix}/debug-runs/{{runId}}/live": {
+                "get": [{"PlatformSession": []}],
+            },
+            f"{api_v1_prefix}/debug-runs/{{runId}}/events/stream": {
+                "get": [{"PlatformSession": []}],
+            },
+        }
+        paths = document.get("paths", {})
+        for path, methods in secured_paths.items():
+            path_item = paths.get(path)
+            if not isinstance(path_item, dict):
+                continue
+            for method, security in methods.items():
+                operation = path_item.get(method)
+                if not isinstance(operation, dict):
+                    continue
+                operation["security"] = security
+                if path.endswith("/content"):
+                    parameters = operation.get("parameters", [])
+                    operation["parameters"] = [
+                        parameter
+                        for parameter in parameters
+                        if not (
+                            isinstance(parameter, dict)
+                            and parameter.get("in") == "header"
+                            and parameter.get("name") == "Authorization"
+                        )
+                    ]
+        return document
+
+    application.openapi = secured_openapi  # type: ignore[method-assign]
 
 
 def _browser_runtime_security(

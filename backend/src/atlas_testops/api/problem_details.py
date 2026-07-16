@@ -39,11 +39,19 @@ class ProblemDetails(FrozenWireModel):
 
 
 def _response(problem: ProblemDetails, headers: dict[str, str] | None = None) -> JSONResponse:
+    response_headers = {
+        "Cache-Control": "private, no-store, max-age=0",
+        "Pragma": "no-cache",
+        "Vary": "Cookie, Authorization, Origin",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer",
+    }
+    response_headers.update(headers or {})
     return JSONResponse(
         status_code=problem.status,
         content=problem.model_dump(mode="json", by_alias=True),
         media_type=PROBLEM_CONTENT_TYPE,
-        headers=headers,
+        headers=response_headers,
     )
 
 

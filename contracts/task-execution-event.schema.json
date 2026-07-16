@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/execution-event/0.1/schema.json",
+  "$defs": {
+    "ExecutionHygiene": {
+      "description": "Shared resource-cleanup axis independent of result quality.",
+      "enum": [
+        "NOT_REQUIRED",
+        "PENDING",
+        "RUNNING",
+        "CLEANED",
+        "CLEANUP_FAILED",
+        "LEAKED"
+      ],
+      "title": "ExecutionHygiene",
+      "type": "string"
+    },
+    "ExecutionLifecycle": {
+      "description": "Shared TaskRun, ExecutionUnit, and UnitAttempt lifecycle axis.",
+      "enum": [
+        "QUEUED",
+        "RUNNING",
+        "PAUSE_REQUESTED",
+        "PAUSED",
+        "CANCELING",
+        "FINALIZING",
+        "CLOSED"
+      ],
+      "title": "ExecutionLifecycle",
+      "type": "string"
+    },
+    "ExecutionQuality": {
+      "description": "Shared Oracle-owned result axis independent of lifecycle.",
+      "enum": [
+        "PENDING",
+        "PASSED",
+        "FAILED",
+        "BLOCKED",
+        "INCONCLUSIVE",
+        "INFRA_ERROR",
+        "CANCELED"
+      ],
+      "title": "ExecutionQuality",
+      "type": "string"
+    },
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "description": "Append-only monotonic event projection for Task execution replay.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.execution-event/0.1",
+      "default": "atlas.execution-event/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "executionUnitId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Executionunitid"
+    },
+    "unitAttemptId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unitattemptid"
+    },
+    "seq": {
+      "minimum": 1,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "eventType": {
+      "maxLength": 160,
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9_.-]+$",
+      "title": "Eventtype",
+      "type": "string"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/ExecutionLifecycle"
+    },
+    "quality": {
+      "$ref": "#/$defs/ExecutionQuality"
+    },
+    "hygiene": {
+      "$ref": "#/$defs/ExecutionHygiene"
+    },
+    "payload": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Payload",
+      "type": "object",
+      "x-atlas-max-serialized-bytes": 32768
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "title": "Occurredat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "seq",
+    "eventType",
+    "lifecycle",
+    "quality",
+    "hygiene",
+    "occurredAt"
+  ],
+  "title": "TaskExecutionEvent",
+  "type": "object"
+}

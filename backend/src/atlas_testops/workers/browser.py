@@ -10,11 +10,11 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from atlas_testops.application.ports.browser_runtime import BrowserExecutionEngine
+from atlas_testops.application.ports.evidence import BrowserArtifactWriter
 from atlas_testops.application.ports.sessions import SessionArtifactVault
 from atlas_testops.core.config import BrowserWorkerSettings
 from atlas_testops.domain.runtime import BrowserActionKind
 from atlas_testops.infrastructure.adapters.playwright_browser import (
-    BrowserArtifactWriter,
     BrowserOperationRegistry,
     BrowserRouteRegistry,
     BrowserToolCatalog,
@@ -24,6 +24,9 @@ from atlas_testops.infrastructure.adapters.playwright_browser import (
 from atlas_testops.infrastructure.browser_auth import BrowserRuntimeRequestSigner
 from atlas_testops.infrastructure.browser_envelope import AesGcmBrowserContextEnvelopeCodec
 from atlas_testops.infrastructure.browser_gateway import HttpBrowserRuntimeGateway
+from atlas_testops.infrastructure.evidence_runtime import (
+    build_optional_evidence_artifact_writer,
+)
 from atlas_testops.infrastructure.session_runtime import build_optional_session_artifact_vault
 from atlas_testops.orchestration.browser import (
     BrowserExecutionActivities,
@@ -136,6 +139,9 @@ async def run_worker(
     vault = session_vault or await build_optional_session_artifact_vault(settings)
     if vault is None:
         raise ValueError("browser worker SessionArtifact Vault is not configured")
+    selected_artifact_writer = artifact_writer or (
+        await build_optional_evidence_artifact_writer(settings)
+    )
     runtime: PlaywrightExecutionRuntime | None = None
     selected_engine = engine
     if selected_engine is None:
@@ -151,7 +157,7 @@ async def run_worker(
             tool_catalog=catalog,
             route_registry=route_registry or BrowserRouteRegistry(),
             operation_registry=operation_registry or BrowserOperationRegistry(),
-            artifact_writer=artifact_writer,
+            artifact_writer=selected_artifact_writer,
             action_timeout=timedelta(seconds=settings.browser_action_timeout_seconds),
         )
     gateway_factory = HttpBrowserRuntimeGatewayFactory(
@@ -182,7 +188,7 @@ async def run_worker(
                 "task_queue": settings.browser_runtime_task_queue,
                 "max_concurrent_activities": settings.browser_worker_max_concurrency,
                 "browser_revision": revision,
-                "artifact_writer_configured": artifact_writer is not None,
+                "artifact_writer_configured": selected_artifact_writer is not None,
             },
         )
         await worker.run()

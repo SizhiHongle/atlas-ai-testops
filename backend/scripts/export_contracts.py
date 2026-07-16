@@ -27,6 +27,18 @@ from atlas_testops.domain.runtime import (
     EvidenceManifest,
     ExecutionContract,
 )
+from atlas_testops.domain.task import (
+    BrowserProfileVersion,
+    DataProfileVersion,
+    ExecutionProfileVersion,
+    ExecutionUnit,
+    IdentityProfileVersion,
+    TaskExecutionEvent,
+    TaskPlanVersion,
+    TaskRun,
+    TaskRunManifest,
+    UnitAttempt,
+)
 from atlas_testops.domain.workflow import WorkflowDraft, WorkflowGraph
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -51,6 +63,22 @@ BROWSER_EXECUTION_BUNDLE_SCHEMA = (
 BROWSER_RUNTIME_REPORT_SCHEMA = (
     REPOSITORY_ROOT / "contracts" / "browser-runtime-report.schema.json"
 )
+TASK_PLAN_VERSION_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "task-plan-version.schema.json"
+)
+TASK_RUN_MANIFEST_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "task-run-manifest.schema.json"
+)
+TASK_RUN_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-run.schema.json"
+EXECUTION_UNIT_SCHEMA = REPOSITORY_ROOT / "contracts" / "execution-unit.schema.json"
+UNIT_ATTEMPT_SCHEMA = REPOSITORY_ROOT / "contracts" / "unit-attempt.schema.json"
+TASK_EXECUTION_EVENT_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "task-execution-event.schema.json"
+)
+EXECUTION_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "execution-profile.schema.json"
+IDENTITY_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "identity-profile.schema.json"
+BROWSER_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "browser-profile.schema.json"
+DATA_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "data-profile.schema.json"
 
 
 def render_schema(model: type[BaseModel], schema_id: str) -> str:
@@ -139,6 +167,46 @@ def main() -> None:
         BROWSER_RUNTIME_REPORT_SCHEMA: render_schema(
             AppendBrowserRuntimeReport,
             "https://atlas.test/contracts/browser-runtime-report/0.1/schema.json",
+        ),
+        TASK_PLAN_VERSION_SCHEMA: render_schema(
+            TaskPlanVersion,
+            "https://atlas.test/contracts/task-plan-version/0.1/schema.json",
+        ),
+        TASK_RUN_MANIFEST_SCHEMA: render_schema(
+            TaskRunManifest,
+            "https://atlas.test/contracts/task-run-manifest/0.1/schema.json",
+        ),
+        TASK_RUN_SCHEMA: render_schema(
+            TaskRun,
+            "https://atlas.test/contracts/task-run/0.1/schema.json",
+        ),
+        EXECUTION_UNIT_SCHEMA: render_schema(
+            ExecutionUnit,
+            "https://atlas.test/contracts/execution-unit/0.1/schema.json",
+        ),
+        UNIT_ATTEMPT_SCHEMA: render_schema(
+            UnitAttempt,
+            "https://atlas.test/contracts/unit-attempt/0.1/schema.json",
+        ),
+        TASK_EXECUTION_EVENT_SCHEMA: render_schema(
+            TaskExecutionEvent,
+            "https://atlas.test/contracts/execution-event/0.1/schema.json",
+        ),
+        EXECUTION_PROFILE_SCHEMA: render_schema(
+            ExecutionProfileVersion,
+            "https://atlas.test/contracts/execution-profile/0.1/schema.json",
+        ),
+        IDENTITY_PROFILE_SCHEMA: render_schema(
+            IdentityProfileVersion,
+            "https://atlas.test/contracts/identity-profile/0.1/schema.json",
+        ),
+        BROWSER_PROFILE_SCHEMA: render_schema(
+            BrowserProfileVersion,
+            "https://atlas.test/contracts/browser-profile/0.1/schema.json",
+        ),
+        DATA_PROFILE_SCHEMA: render_schema(
+            DataProfileVersion,
+            "https://atlas.test/contracts/data-profile/0.1/schema.json",
         ),
     }
 

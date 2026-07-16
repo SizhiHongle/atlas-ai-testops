@@ -39,8 +39,17 @@ Atlas AI 测试平台的 Python 3.14 模块化后端。
 - AES-256-GCM BrowserContext Restore Envelope，AAD 精确绑定 Contract / Worker / Actor / Session Scope，并只在 Worker 内存中打开后恢复隔离 Playwright BrowserContext。
 - 严格 `BrowserRuntimeReport` Hash-chain / State Machine、Contract 内不可跨 Action 链复用 `actionId`、连续 Proposal / Policy / Receipt、完整 Assertion / Artifact Input Digest 绑定和 exact Finalization replay，以及 PostgreSQL 不可变 Trigger / RLS / 最小权限复核。
 - 受限 Playwright Adapter：实际 Browser Revision 校验、部署注册 exact Operation / Route、精确 HTTP / WebSocket Origin、DOM Target Handle 重验证、单次 Action Grant 与保守 `INCONCLUSIVE`；Operation 不得直接返回 Artifact，证据字节必须经过可信 `BrowserArtifactWriter`。
+- P6-02A 可信截图链：Playwright DOM Mask、canonical PNG、S3-compatible write-once 对象写入、独立 read-back SHA-256 / Size Verification，以及未配置 Evidence Store 时的 `CAPTURE_VIEW` fail-closed。
+- 不暴露 ObjectRef 的 Evidence Manifest API、hash-only 且 Actor / Platform Session / Purpose / TTL / Max Reads 绑定的短期 Read Grant，以及响应前完整字节二次校验。
+- P6-02B1 DebugRun Live 安全观察流：版本化 Snapshot / Event / Opaque Base64URL Cursor、`Last-Event-ID` 有序 replay、轻量 Snapshot / head 单 SQL、短事务轮询、Heartbeat comment、连接生命周期与进程内 Observer 容量上限；Snapshot 查询只构造安全 Run Projection，不物化完整 Test IR / PlanTemplate。
+- P5-00A 正式任务执行宿主：`TaskPlanVersion → TaskRun → ExecutionUnit → UnitAttempt`、不可变 Run Manifest、Lifecycle / Quality / Hygiene 三轴、追加 Attempt / Event exact replay，以及 `20260716_0022` 的复合 Scope FK、Repository / PostgreSQL 双层 Plan-to-Manifest provenance、JSON 缺键 / null fail-closed、gapless 父行锁、不可变 Trigger、`FORCE RLS` 与最小权限。
+- P5-00B1 调度前置边界：四类不可变 `ExecutionProfileVersion` / `IdentityProfileVersion` / `BrowserProfileVersion` / `DataProfileVersion` 正式宿主与发布门禁、`executionProfileVersionId` 统一命名、稳定 Run request digest 与 exact rerun lineage、Run / Attempt 确定性 Temporal identity 与 namespace 全局注册表、`MATERIALIZING → SEALED` 完整性证明、SEALED / Lifecycle / QUEUED Admission、受约束的后续 Attempt、Pending Workflow Start Intent，以及数据库拥有的 Run → Unit → Attempt Revision CAS。
+- Profile、TaskPlanVersion、TaskRunManifest、TaskRun、ExecutionUnit、UnitAttempt 与 TaskExecutionEvent 的机器 Schema 已导出；P5-00B1 仍未开放公共 Task API，也不消费 Start Intent 或启动 Temporal 编排。
+- 同步初始物化仍严格限制为最多 64 Units；Seal 会重算 Plan / Manifest / Unit / request digest，证明每个 Unit 和首个 Attempt 完整落地，并重验 PUBLISHED Profile、Case / Fixture exact binding、ACTIVE TEST/STAGING Environment 与当前 TestRole。超过 64 Units 的可恢复分区物化和容量验证留给后续 P5 切片，不能通过放宽当前事务伪装完成。
+- `DebugRun=TERMINATED` 不封存事件日志；SSE 会跨过 `debug_run.terminated` replay 后续 `debug_run.snapshot_outdated`，到达当前 head 后继续 Poll，直到客户端断开或 Service 事件生成预算耗尽。Route 内 `_DebugLiveStreamingResponse` 使用 `maximum_connection_seconds` 加固定 1.0 秒 Close Grace 管理生成、Source close 与 Slot release；最后安装的 pure-ASGI `DebugLiveStreamSendDeadlineMiddleware` 使用相同 maximum 与 Close Grace，包住 `BaseHTTPMiddleware` 后的真实 client-facing `send`，阻塞写入到期会被取消。
+- Live Event 使用 event-type allowlist，不原样转发事实 Payload；取消原因、Report / Chain Digest、ObjectRef、Authorization、Password、输入 Value 与未知字段不进入 SSE。`20260716_0019` 只提交 32 KiB Payload `CHECK ... NOT VALID` 可修复边界；`20260716_0020` 只先 Validate，再创建 UPDATE / DELETE 防护 Trigger；`20260716_0021` 通过 Alembic autocommit 执行 `DROP INDEX CONCURRENTLY IF EXISTS` 清理冗余 replay index，downgrade 以 `CREATE INDEX CONCURRENTLY IF NOT EXISTS` 恢复。若历史超限 Payload 使 0020 失败，版本保持 0019；修复后重试 0020，成功后再进入 0021。
 
-首个真实 SaaS `PasswordLoginFlow`、生产 Secret Provider / KMS-backed Vault、生产 Evidence / Redaction Writer 和真实 SaaS Browser Operation / Route Registry 仍需部署侧提供。容器级 Egress / DNS / UDP / WebRTC 限制、BrowserContext Envelope Key Ring Rotation、公共 Start 自动 Preparation / Bind / Dispatch 与 Multi-actor 也尚未完成；缺失时 Password Session、Artifact Capture 和 Debug execution 明确 fail-closed。架构决策见 `../documents/adr/`。
+首个真实 SaaS `PasswordLoginFlow`、生产 Secret Provider / KMS-backed Vault 和真实 SaaS Browser Operation / Route Registry 仍需部署侧提供。生产 Evidence Bucket 的 Object Lock / Versioning、Credential 分离与生命周期策略也属于部署责任。P6-02B1 只提供 DebugRun-scoped 只读 Observer；P5-00B1 已提供正式 UnitAttempt、Profile、Seal、CAS 与 Start Intent 前置事实，但 Task Temporal Workflow / Intent Consumer、公共 Task 控制面、正式 LiveSession、ControlLease、浏览器控制 Epoch / Fence、Human Takeover、持久化 ActionGrant、容器级 Egress / DNS / UDP / WebRTC 限制、BrowserContext Envelope Key Ring Rotation、公共 Start 自动 Preparation / Bind / Dispatch 与 Multi-actor 尚未完成；缺失时对应能力明确 fail-closed。架构决策见 `../documents/adr/`。
 
 ## 开发
 
@@ -78,8 +87,13 @@ uv run uvicorn atlas_testops.main:app --reload
 - 内部 Browser Ready / Start：`POST .../browser-execution:ready`、`POST .../browser-execution:start`
 - 内部 Browser Report：`POST http://127.0.0.1:8000/internal/v1/debug-runs/{runId}/browser-reports`
 - 内部 Browser Evidence Finalize：`POST .../browser-execution:finalize-evidence`
+- Evidence Manifest：`GET http://127.0.0.1:8000/v1/debug-runs/{runId}/evidence`
+- Evidence Read Grant：`POST http://127.0.0.1:8000/v1/debug-runs/{runId}/evidence/{artifactId}/read-tokens`
+- Evidence Content：`GET http://127.0.0.1:8000/v1/evidence/artifacts/{artifactId}/content?purpose=INLINE`
+- DebugRun Live Snapshot：`GET http://127.0.0.1:8000/v1/debug-runs/{runId}/live`
+- DebugRun Live SSE：`GET http://127.0.0.1:8000/v1/debug-runs/{runId}/events/stream`（重连使用 `Last-Event-ID`）
 
-上述 Browser Runtime 端点不是公共用户 API；必须同时通过短期 Execution Permit 与 `Atlas-HMAC` Request Signature，且响应禁止缓存。
+上述以“内部 Browser”标记的 Runtime 端点不是公共用户 API；必须同时通过短期 Execution Permit 与 `Atlas-HMAC` Request Signature，且响应禁止缓存。Evidence 与 DebugRun Live 端点属于 Platform Session 保护的公共控制面读取接口。
 
 ## 质量检查
 
@@ -129,7 +143,9 @@ uv run atlas-browser-worker
 
 API 需要设置 `ATLAS_BROWSER_RUNTIME_ENABLED=true`，并配置 Permit Key、Request HMAC Key 与 BrowserContext Envelope Key；Browser Worker 只获得 Request HMAC / Envelope Key、SessionArtifact Vault、受信 Tool / Policy Digest 和 API Origin，不获得主数据库 DSN。Local / Test / Development 可使用 HTTP Runtime API 调试，Staging / Production 必须配置 HTTPS Origin，否则 Worker 启动校验失败。默认 Operation / Route Registry 为空，未由部署代码注册 exact SaaS Operation / Published Route 时执行会 fail-closed。
 
-`CAPTURE_VIEW` 要求 P6-02 的生产 `BrowserArtifactWriter` 完成 Redaction、对象存储、独立 Hash 与 Verification。`BrowserPlanOperation` 不能直接返回 `EvidenceArtifactInput` 绕过 Writer；当前不会把内存 Screenshot Hash 或 Operation 自报元数据冒充可信 Evidence。
+`CAPTURE_VIEW` 由 P6-02A `BrowserArtifactWriter` 在 Playwright DOM 中先 Mask 输入控件、可编辑内容和显式敏感节点，再生成去元数据、RGB、白底 alpha flatten、固定压缩的 canonical PNG。对象以作用域化 write-once Key 写入，并在独立回读的完整 SHA-256 与大小一致后才生成 `VERIFIED` Receipt。`BrowserPlanOperation` 不能直接返回 `EvidenceArtifactInput` 绕过 Writer；Evidence Store 未配置时不会退化为内存 Screenshot Hash 或 Operation 自报元数据。
+
+Evidence Manifest 不返回 ObjectRef。先用有效 Platform Session 签发短期 Read Grant，再以 `Authorization: Atlas-Evidence <token>` 读取内容；Token 不接受 Query 传递，数据库只保存 SHA-256 Hash。Grant 绑定 Actor、Platform Session、Artifact、Purpose、TTL 与 Max Reads；API 在数据库事务外读取完整对象，并在发送响应前重新校验不可变 Receipt 的字节数和 SHA-256。所有响应均使用 `private, no-store` 与 `nosniff`。
 
 Browser Workflow 使用一个有 Heartbeat、`maximum_attempts=1` 的长时 Activity，避免对结果未知的导航、点击或输入进行盲重试。Action Report 必须连续，且同一 `actionId` 在完整 Contract Chain 中只能对应一次 Proposal / Policy / Receipt 链；Policy 后可用 `execution.blocked` 明确终止无法形成可信 Receipt 的 Action。`execution.blocked` 或任一非 `SUCCEEDED` Receipt 强制所有 Assertion 和最终 Outcome 为 `INCONCLUSIVE`。Finalize 会重算完整 Assertion / Artifact Input Digest，不接受只匹配 ID、Count 或 Content Digest 的替换输入。Playwright Request / WebSocket Origin 限制不是容器网络沙箱；生产部署仍必须额外限制 Egress、DNS、UDP 与 WebRTC。
 
@@ -156,6 +172,19 @@ ATLAS_BROWSER_RUNTIME_WORKER_IDENTITY=browser-worker
 ATLAS_BROWSER_RUNTIME_ACTIVITY_TIMEOUT_SECONDS=900
 ATLAS_BROWSER_RUNTIME_HEARTBEAT_TIMEOUT_SECONDS=20
 ATLAS_BROWSER_RUNTIME_PERMIT_TTL_SECONDS=1020
+ATLAS_DEBUG_LIVE_POLL_INTERVAL_MS=500
+ATLAS_DEBUG_LIVE_HEARTBEAT_SECONDS=10
+ATLAS_DEBUG_LIVE_MAX_CONNECTION_SECONDS=30
+ATLAS_DEBUG_LIVE_BATCH_SIZE=100
+ATLAS_DEBUG_LIVE_MAXIMUM_CONNECTIONS=64
+ATLAS_EVIDENCE_OBJECT_STORE_ENDPOINT=127.0.0.1:9000
+ATLAS_EVIDENCE_OBJECT_STORE_BUCKET=atlas-evidence-artifacts
+ATLAS_EVIDENCE_OBJECT_STORE_SECURE=false
+ATLAS_EVIDENCE_READ_GRANT_TTL_SECONDS=60
+ATLAS_EVIDENCE_READ_GRANT_MAX_READS=8
+ATLAS_EVIDENCE_READ_MAXIMUM_BYTES=67108864
+ATLAS_EVIDENCE_CAPTURE_MAXIMUM_RAW_BYTES=33554432
+ATLAS_EVIDENCE_CAPTURE_MAXIMUM_PIXELS=33177600
 ```
 
 Browser Runtime 的 Key 和执行平面配置必须按 API / Worker 最小权限拆分。以下只展示变量名，值必须由部署 Secret Manager 注入，不得提交到仓库：
@@ -177,8 +206,14 @@ ATLAS_BROWSER_POLICY_BUNDLE_REF=<exact-version-ref>
 ATLAS_BROWSER_MCP_SERVER_MANIFEST_DIGEST=sha256:<digest>
 ATLAS_BROWSER_TOOL_SCHEMA_DIGEST=sha256:<digest>
 ATLAS_BROWSER_POLICY_DIGEST=sha256:<digest>
+
+# API and Browser Worker; inject different read/write credentials per process
+ATLAS_EVIDENCE_OBJECT_STORE_ACCESS_KEY=<process-specific-access-key>
+ATLAS_EVIDENCE_OBJECT_STORE_SECRET_KEY=<process-specific-secret-key>
 ```
 
 上例的 HTTP Origin 仅用于 Local / Test / Development；Staging / Production 必须使用 `https://...`。
+
+Evidence Object Store 的 Endpoint、Access Key 与 Secret Key 必须完整且非空。`ATLAS_EVIDENCE_OBJECT_STORE_CREATE_BUCKET=true` 只允许 Local / Test / Development；Staging / Production 强制 `ATLAS_EVIDENCE_OBJECT_STORE_SECURE=true` 并拒绝自动建 Bucket。连接 / 读取 Timeout、有限 Retry 与并发上限可配置；Browser Worker 允许 `capture_view` 时必须配置 Store，API 未配置独立 Reader 时 Manifest 仍可查询，但 Read Grant 与 Content 读取返回受控 503。
 
 当前 Envelope Codec 只接受一个 Key Version；生产 Key Ring / Rotation 尚未落地，切换 Key 前必须排空旧 Envelope 或采用停机窗口。

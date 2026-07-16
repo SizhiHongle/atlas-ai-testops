@@ -653,6 +653,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/debug-runs/{runId}/events/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 订阅可恢复的 DebugRun Live 事件 */
+        get: operations["stream_debug_live_events_v1_debug_runs__runId__events_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/debug-runs/{runId}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 DebugRun 的不可变 EvidenceManifest */
+        get: operations["get_debug_run_evidence_v1_debug_runs__runId__evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/debug-runs/{runId}/evidence/{artifactId}/read-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 签发用户与 Session 绑定的短期 Evidence Read Grant */
+        post: operations["issue_evidence_read_grant_v1_debug_runs__runId__evidence__artifactId__read_tokens_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/debug-runs/{runId}/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 DebugRun Live 安全快照 */
+        get: operations["get_debug_live_snapshot_v1_debug_runs__runId__live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/debug-runs/{runId}:cancel": {
         parameters: {
             query?: never;
@@ -730,6 +798,23 @@ export interface paths {
          * @description 按稳定 Cursor 列出 Environment 的 Connector。
          */
         get: operations["list_connector_installations_v1_environments__environmentId__connector_installations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/evidence/artifacts/{artifactId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 使用短期 Read Grant 读取并重新校验 Evidence 字节 */
+        get: operations["read_evidence_content_v1_evidence_artifacts__artifactId__content_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3387,6 +3472,115 @@ export interface components {
          */
         DataNodeRunStatus: "PENDING" | "READY" | "RUNNING" | "VERIFYING" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNCERTAIN";
         /**
+         * DebugLiveEvent
+         * @description One allowlisted DebugRun event delivered through the live stream.
+         */
+        DebugLiveEvent: {
+            /** Cursor */
+            cursor: string;
+            /** Data */
+            data?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Debugrunid
+             * Format: uuid
+             */
+            debugRunId: string;
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId: string;
+            /** Eventtype */
+            eventType: string;
+            lifecycle: components["schemas"]["DebugRunLifecycle"];
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt: string;
+            outcome: components["schemas"]["DebugRunOutcome"];
+            /**
+             * Schemaversion
+             * @default atlas.debug-live-event/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.debug-live-event/0.1";
+            /** Seq */
+            seq: number;
+            snapshotStatus: components["schemas"]["DebugRunSnapshotStatus"];
+        };
+        /**
+         * DebugLiveRunProjection
+         * @description Safe DebugRun state embedded in the initial live snapshot.
+         */
+        DebugLiveRunProjection: {
+            /** Cancelrequestedat */
+            cancelRequestedAt?: string | null;
+            /** Completedat */
+            completedAt?: string | null;
+            /**
+             * Debugrunid
+             * Format: uuid
+             */
+            debugRunId: string;
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /**
+             * Executiondeadline
+             * Format: date-time
+             */
+            executionDeadline: string;
+            lifecycle: components["schemas"]["DebugRunLifecycle"];
+            outcome: components["schemas"]["DebugRunOutcome"];
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Schemaversion
+             * @default atlas.debug-live-run-projection/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.debug-live-run-projection/0.1";
+            snapshotStatus: components["schemas"]["DebugRunSnapshotStatus"];
+            /** Startedat */
+            startedAt?: string | null;
+            /**
+             * Testcaseid
+             * Format: uuid
+             */
+            testCaseId: string;
+        };
+        /**
+         * DebugLiveSnapshot
+         * @description Consistent initial projection and event high-water mark for one DebugRun.
+         */
+        DebugLiveSnapshot: {
+            /** Cursor */
+            cursor: string;
+            latestEvent?: components["schemas"]["DebugLiveEvent"] | null;
+            /**
+             * Observedat
+             * Format: date-time
+             */
+            observedAt: string;
+            run: components["schemas"]["DebugLiveRunProjection"];
+            /**
+             * Schemaversion
+             * @default atlas.debug-live-snapshot/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.debug-live-snapshot/0.1";
+        };
+        /**
          * DebugRun
          * @description Safe projection containing one immutable compiled Draft snapshot.
          */
@@ -3679,7 +3873,7 @@ export interface components {
          * @description 可以安全暴露给调用方的稳定错误码。
          * @enum {string}
          */
-        ErrorCode: "INVALID_REQUEST" | "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "AUTHENTICATION_FAILED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "POOL_EXHAUSTED" | "CONSTRAINT_UNSATISFIED" | "LEASE_EXPIRED" | "LEASE_FENCED" | "CREDENTIAL_EXPIRED" | "ORIGIN_NOT_ALLOWED" | "SECRET_GRANT_EXPIRED" | "SECRET_GRANT_REPLAYED" | "SECRET_GRANT_REVOKED" | "SESSION_CREATION_IN_PROGRESS" | "SESSION_UNAVAILABLE" | "SESSION_INTEGRITY_FAILED" | "PROVIDER_UNAVAILABLE" | "DEPENDENCY_UNAVAILABLE" | "ASSET_IMMUTABLE" | "PUBLICATION_EVIDENCE_REQUIRED" | "DRAFT_REVISION_CONFLICT" | "TRIAL_RUN_REQUIRED" | "DEBUG_RUN_OUTDATED" | "DEBUG_RUNTIME_UNAVAILABLE" | "INTERNAL_ERROR";
+        ErrorCode: "INVALID_REQUEST" | "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "AUTHENTICATION_FAILED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "POOL_EXHAUSTED" | "CONSTRAINT_UNSATISFIED" | "LEASE_EXPIRED" | "LEASE_FENCED" | "CREDENTIAL_EXPIRED" | "ORIGIN_NOT_ALLOWED" | "SECRET_GRANT_EXPIRED" | "SECRET_GRANT_REPLAYED" | "SECRET_GRANT_REVOKED" | "SESSION_CREATION_IN_PROGRESS" | "SESSION_UNAVAILABLE" | "SESSION_INTEGRITY_FAILED" | "PROVIDER_UNAVAILABLE" | "DEPENDENCY_UNAVAILABLE" | "ASSET_IMMUTABLE" | "PUBLICATION_EVIDENCE_REQUIRED" | "DRAFT_REVISION_CONFLICT" | "TRIAL_RUN_REQUIRED" | "DEBUG_RUN_OUTDATED" | "DEBUG_RUNTIME_UNAVAILABLE" | "EVIDENCE_NOT_READY" | "EVIDENCE_INTEGRITY_FAILED" | "LIVE_CURSOR_INVALID" | "LIVE_STREAM_CAPACITY_EXCEEDED" | "INTERNAL_ERROR";
         /**
          * EvidenceArtifact
          * @description Safe artifact manifest entry without storage location or signed URL.
@@ -3871,6 +4065,43 @@ export interface components {
              */
             trace: boolean;
         };
+        /**
+         * EvidenceReadGrant
+         * @description Opaque, short-lived authority to read one exact verified artifact.
+         */
+        EvidenceReadGrant: {
+            /**
+             * Artifactid
+             * Format: uuid
+             */
+            artifactId: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Issuedat
+             * Format: date-time
+             */
+            issuedAt: string;
+            /** Maxreads */
+            maxReads: number;
+            purpose: components["schemas"]["EvidenceReadPurpose"];
+            /** Readtoken */
+            readToken: string;
+        };
+        /**
+         * EvidenceReadPurpose
+         * @description Exact presentation purpose authorized by an evidence read grant.
+         * @enum {string}
+         */
+        EvidenceReadPurpose: "INLINE" | "DOWNLOAD";
         /**
          * ExecutionActorBinding
          * @description Exact role, lease fence, and opaque login session for one actor slot.
@@ -4414,6 +4645,13 @@ export interface components {
             /** Markerinput */
             markerInput?: string | null;
             mode: components["schemas"]["IdempotencyMode"];
+        };
+        /**
+         * IssueEvidenceReadGrant
+         * @description Request a bounded grant without accepting storage or scope identifiers.
+         */
+        IssueEvidenceReadGrant: {
+            purpose: components["schemas"]["EvidenceReadPurpose"];
         };
         /**
          * IssueSecretGrant
@@ -10199,6 +10437,346 @@ export interface operations {
             };
         };
     };
+    stream_debug_live_events_v1_debug_runs__runId__events_stream_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Last-Event-ID"?: string | null;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description DebugRun snapshot 后接可恢复的单调事件流 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            /** @description Live Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Live Observer 容量已满 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_debug_run_evidence_v1_debug_runs__runId__evidence_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceManifest"];
+                };
+            };
+            /** @description 身份或 Evidence Read Grant 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前身份不能签发读取授权 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 或 Evidence Artifact 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Evidence 未封存或完整性失败 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Evidence Object Store 未配置或不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    issue_evidence_read_grant_v1_debug_runs__runId__evidence__artifactId__read_tokens_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+                artifactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueEvidenceReadGrant"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceReadGrant"];
+                };
+            };
+            /** @description 身份或 Evidence Read Grant 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前身份不能签发读取授权 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 或 Evidence Artifact 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Evidence 未封存或完整性失败 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Evidence Object Store 未配置或不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_debug_live_snapshot_v1_debug_runs__runId__live_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugLiveSnapshot"];
+                };
+            };
+            /** @description Live Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Live Observer 容量已满 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     cancel_debug_run_v1_debug_runs__runId__cancel_post: {
         parameters: {
             query?: never;
@@ -10811,6 +11389,99 @@ export interface operations {
                 };
             };
             /** @description 可信 Adapter 未安装 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    read_evidence_content_v1_evidence_artifacts__artifactId__content_get: {
+        parameters: {
+            query?: {
+                purpose?: components["schemas"]["EvidenceReadPurpose"];
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                artifactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 完整校验后的 Evidence 字节 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                };
+            };
+            /** @description 身份或 Evidence Read Grant 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前身份不能签发读取授权 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 或 Evidence Artifact 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Evidence 未封存或完整性失败 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Evidence Object Store 未配置或不可用 */
             503: {
                 headers: {
                     [name: string]: unknown;

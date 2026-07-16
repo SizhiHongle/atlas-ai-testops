@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/execution-profile/0.1/schema.json",
+  "$defs": {
+    "ModelExecutionProfile": {
+      "additionalProperties": false,
+      "description": "Frozen model and Prompt identities without provider secrets.",
+      "properties": {
+        "modelProfileRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Modelprofileref",
+          "type": "string"
+        },
+        "promptBundleRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Promptbundleref",
+          "type": "string"
+        },
+        "reasoningPolicyRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Reasoningpolicyref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "modelProfileRef",
+        "promptBundleRef",
+        "reasoningPolicyRef"
+      ],
+      "title": "ModelExecutionProfile",
+      "type": "object"
+    },
+    "TaskProfileStatus": {
+      "description": "Admission status shared by every immutable Task profile version.",
+      "enum": [
+        "PUBLISHED",
+        "DEPRECATED",
+        "REVOKED"
+      ],
+      "title": "TaskProfileStatus",
+      "type": "string"
+    },
+    "ToolExecutionProfile": {
+      "additionalProperties": false,
+      "description": "Frozen tool catalog, MCP manifests, and policy bundle digests.",
+      "properties": {
+        "toolCatalogRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Toolcatalogref",
+          "type": "string"
+        },
+        "mcpServerManifestDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Mcpservermanifestdigest",
+          "type": "string"
+        },
+        "toolSchemaDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Toolschemadigest",
+          "type": "string"
+        },
+        "policyBundleRef": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Policybundleref",
+          "type": "string"
+        },
+        "policyDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Policydigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "toolCatalogRef",
+        "mcpServerManifestDigest",
+        "toolSchemaDigest",
+        "policyBundleRef",
+        "policyDigest"
+      ],
+      "title": "ToolExecutionProfile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Published Case, model, Prompt, and tool execution snapshot.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "profileKey": {
+      "maxLength": 80,
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$",
+      "title": "Profilekey",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 80,
+      "minLength": 5,
+      "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+      "title": "Version",
+      "type": "string"
+    },
+    "versionRef": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "title": "Versionref",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/TaskProfileStatus"
+    },
+    "contentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Contentdigest",
+      "type": "string"
+    },
+    "publishedBy": {
+      "format": "uuid",
+      "title": "Publishedby",
+      "type": "string"
+    },
+    "publishedAt": {
+      "format": "date-time",
+      "title": "Publishedat",
+      "type": "string"
+    },
+    "deprecatedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deprecatedat"
+    },
+    "revokedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Revokedat"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "title": "Updatedat",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "atlas.execution-profile/0.1",
+      "default": "atlas.execution-profile/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "caseVersionId": {
+      "format": "uuid",
+      "title": "Caseversionid",
+      "type": "string"
+    },
+    "caseContentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Casecontentdigest",
+      "type": "string"
+    },
+    "testIrDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Testirdigest",
+      "type": "string"
+    },
+    "planDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plandigest",
+      "type": "string"
+    },
+    "compiledDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Compileddigest",
+      "type": "string"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelExecutionProfile"
+    },
+    "tools": {
+      "$ref": "#/$defs/ToolExecutionProfile"
+    },
+    "supportedFeatures": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Supportedfeatures",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "profileKey",
+    "version",
+    "versionRef",
+    "status",
+    "contentDigest",
+    "publishedBy",
+    "publishedAt",
+    "revision",
+    "createdAt",
+    "updatedAt",
+    "caseVersionId",
+    "caseContentDigest",
+    "testIrDigest",
+    "planDigest",
+    "compiledDigest",
+    "model",
+    "tools"
+  ],
+  "title": "ExecutionProfileVersion",
+  "type": "object"
+}

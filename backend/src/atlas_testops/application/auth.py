@@ -367,6 +367,7 @@ class AuthService:
                 tenant_id=identity.tenant_id,
                 actor_id=identity.user.id,
                 request_id=request_id,
+                session_id=identity.session_id,
                 current_project_id=identity.project_id,
                 grants=tuple(
                     AccessGrant(role=membership.role, project_id=membership.project_id)

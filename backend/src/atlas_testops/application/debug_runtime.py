@@ -46,6 +46,75 @@ from atlas_testops.infrastructure.repositories.browser_runtime import (
 from atlas_testops.infrastructure.repositories.debug_runs import DebugRunRepository
 from atlas_testops.infrastructure.repositories.runtime import RuntimeRepository
 
+_BROWSER_LIVE_PAYLOAD_KEYS: dict[BrowserRuntimeReportKind, tuple[str, ...]] = {
+    BrowserRuntimeReportKind.EXECUTION_STARTED: (),
+    BrowserRuntimeReportKind.NODE_STARTED: ("nodeId", "nodeKind", "versionRef"),
+    BrowserRuntimeReportKind.OBSERVATION_CAPTURED: (
+        "observationRef",
+        "pageRef",
+        "pageRevision",
+        "routeKey",
+        "targetCount",
+    ),
+    BrowserRuntimeReportKind.ACTION_PROPOSED: (
+        "action",
+        "risk",
+        "nodeId",
+        "targetRef",
+        "routeKey",
+    ),
+    BrowserRuntimeReportKind.POLICY_DECIDED: ("decision", "matchedRules"),
+    BrowserRuntimeReportKind.ACTION_EXECUTED: (
+        "receiptId",
+        "action",
+        "status",
+        "resultingPageRevision",
+    ),
+    BrowserRuntimeReportKind.ARTIFACT_CAPTURED: (
+        "artifactId",
+        "kind",
+        "sizeBytes",
+        "integrity",
+    ),
+    BrowserRuntimeReportKind.ASSERTION_EVALUATED: ("assertionId", "status"),
+    BrowserRuntimeReportKind.NODE_COMPLETED: (
+        "nodeId",
+        "assertionResultCount",
+        "artifactCount",
+    ),
+    BrowserRuntimeReportKind.EXECUTION_BLOCKED: ("failureType",),
+    BrowserRuntimeReportKind.EXECUTION_COMPLETED: (
+        "assertionResultCount",
+        "artifactCount",
+    ),
+}
+
+
+def _build_browser_live_event_payload(
+    report: AppendBrowserRuntimeReport,
+) -> dict[str, JsonValue]:
+    safe_summary = report.payload.get("safeSummary")
+    payload: dict[str, JsonValue] = {
+        "reportId": str(report.report_id),
+        "reportSequence": report.sequence,
+        "reportKind": report.kind.value,
+        "chainDigest": report.chain_digest,
+    }
+    if report.actor_slot is not None:
+        payload["actorSlot"] = report.actor_slot
+    if report.action_id is not None:
+        payload["actionId"] = str(report.action_id)
+    if isinstance(safe_summary, str):
+        payload["safeSummary"] = safe_summary[:500]
+    for key in _BROWSER_LIVE_PAYLOAD_KEYS[report.kind]:
+        value = report.payload[key]
+        if key == "matchedRules" and isinstance(value, list):
+            payload[key] = value[:64]
+            payload["matchedRuleCount"] = len(value)
+        else:
+            payload[key] = value
+    return payload
+
 
 class DebugRuntimeService:
     """Advance DebugRun state only from database-verified runtime facts."""
@@ -475,24 +544,11 @@ class DebugRuntimeService:
                 report=report,
                 recorded_at=now,
             )
-            safe_summary = report.payload.get("safeSummary")
-            payload: dict[str, JsonValue] = {
-                "reportId": str(report.report_id),
-                "reportSequence": report.sequence,
-                "reportKind": report.kind.value,
-                "chainDigest": report.chain_digest,
-            }
-            if report.actor_slot is not None:
-                payload["actorSlot"] = report.actor_slot
-            if report.action_id is not None:
-                payload["actionId"] = str(report.action_id)
-            if isinstance(safe_summary, str):
-                payload["safeSummary"] = safe_summary[:500]
             await self._append_runtime_event(
                 connection,
                 run=run,
                 event_type=f"debug_run.browser.{report.kind.value}",
-                payload=payload,
+                payload=_build_browser_live_event_payload(report),
                 occurred_at=report.occurred_at,
                 request_id=context.request_id or "runtime-report",
             )

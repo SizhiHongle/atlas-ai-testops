@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     database_pool_max_size: int = Field(default=10, ge=1, le=100)
     database_connect_timeout_seconds: float = Field(default=5.0, gt=0, le=60)
     database_statement_timeout_ms: int = Field(default=10_000, ge=100, le=300_000)
+    debug_live_poll_interval_ms: int = Field(default=500, ge=50, le=5_000)
+    debug_live_heartbeat_seconds: int = Field(default=10, ge=1, le=60)
+    debug_live_max_connection_seconds: int = Field(default=30, ge=5, le=300)
+    debug_live_batch_size: int = Field(default=100, ge=1, le=500)
+    debug_live_maximum_connections: int = Field(default=64, ge=1, le=1_000)
     session_idle_minutes: int = Field(default=120, ge=5, le=1_440)
     session_absolute_hours: int = Field(default=12, ge=1, le=168)
     remembered_session_days: int = Field(default=30, ge=1, le=90)
@@ -92,6 +97,26 @@ class Settings(BaseSettings):
         max_length=100,
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,99}$",
     )
+    evidence_object_store_endpoint: str | None = None
+    evidence_object_store_access_key: SecretStr | None = None
+    evidence_object_store_secret_key: SecretStr | None = None
+    evidence_object_store_bucket: str = Field(
+        default="atlas-evidence-artifacts",
+        pattern=r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$",
+    )
+    evidence_object_store_secure: bool = False
+    evidence_object_store_create_bucket: bool = False
+    evidence_object_store_connect_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
+    evidence_object_store_read_timeout_seconds: float = Field(default=15.0, gt=0, le=120)
+    evidence_object_store_maximum_concurrency: int = Field(default=8, ge=1, le=32)
+    evidence_object_store_maximum_retries: int = Field(default=1, ge=0, le=3)
+    evidence_read_grant_ttl_seconds: int = Field(default=60, ge=10, le=120)
+    evidence_read_grant_max_reads: int = Field(default=8, ge=1, le=32)
+    evidence_read_maximum_bytes: int = Field(
+        default=64 * 1024 * 1024,
+        ge=1024 * 1024,
+        le=256 * 1024 * 1024,
+    )
 
     @field_validator("api_v1_prefix")
     @classmethod
@@ -109,6 +134,10 @@ class Settings(BaseSettings):
             object.__setattr__(self, "docs_enabled", False)
         if self.database_pool_max_size < self.database_pool_min_size:
             raise ValueError("database_pool_max_size must be >= database_pool_min_size")
+        if self.debug_live_heartbeat_seconds * 1_000 <= self.debug_live_poll_interval_ms:
+            raise ValueError("debug live heartbeat must exceed poll interval")
+        if self.debug_live_max_connection_seconds <= self.debug_live_heartbeat_seconds:
+            raise ValueError("debug live connection lifetime must exceed heartbeat interval")
         if self.session_idle_minutes > self.session_absolute_hours * 60:
             raise ValueError("session_idle_minutes must not exceed session_absolute_hours")
         if self.remembered_session_idle_hours > self.remembered_session_days * 24:
@@ -177,6 +206,40 @@ class Settings(BaseSettings):
                 label="browser context envelope",
                 exact_length=32,
             )
+        evidence_store_values = (
+            self.evidence_object_store_endpoint,
+            self.evidence_object_store_access_key,
+            self.evidence_object_store_secret_key,
+        )
+        configured_evidence_store = [value is not None for value in evidence_store_values]
+        if any(configured_evidence_store) and not all(configured_evidence_store):
+            raise ValueError("evidence object store configuration must be complete")
+        if all(configured_evidence_store):
+            assert self.evidence_object_store_endpoint is not None
+            assert self.evidence_object_store_access_key is not None
+            assert self.evidence_object_store_secret_key is not None
+            if not all(
+                (
+                    self.evidence_object_store_endpoint.strip(),
+                    self.evidence_object_store_access_key.get_secret_value().strip(),
+                    self.evidence_object_store_secret_key.get_secret_value().strip(),
+                )
+            ):
+                raise ValueError("evidence object store credentials must not be blank")
+        if self.evidence_object_store_create_bucket and not all(
+            configured_evidence_store
+        ):
+            raise ValueError("evidence bucket creation requires a configured store")
+        if self.environment in {"staging", "production"} and (
+            self.evidence_object_store_create_bucket
+        ):
+            raise ValueError("automatic evidence bucket creation is local-only")
+        if (
+            self.environment in {"staging", "production"}
+            and all(configured_evidence_store)
+            and not self.evidence_object_store_secure
+        ):
+            raise ValueError("evidence object store requires TLS outside local development")
         return self
 
     @property
@@ -200,6 +263,12 @@ class Settings(BaseSettings):
         """本地 HTTP 可调试，Staging 与 Production 只通过 HTTPS 发送。"""
 
         return self.environment in {"staging", "production"}
+
+    @property
+    def evidence_store_configured(self) -> bool:
+        """Return whether the API can independently verify retained evidence bytes."""
+
+        return self.evidence_object_store_endpoint is not None
 
 
 @lru_cache
@@ -342,6 +411,29 @@ class BrowserWorkerSettings(AuthSessionWorkerSettings):
         "keypress",
         "scroll",
     )
+    evidence_object_store_endpoint: str | None = None
+    evidence_object_store_access_key: SecretStr | None = None
+    evidence_object_store_secret_key: SecretStr | None = None
+    evidence_object_store_bucket: str = Field(
+        default="atlas-evidence-artifacts",
+        pattern=r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$",
+    )
+    evidence_object_store_secure: bool = False
+    evidence_object_store_create_bucket: bool = False
+    evidence_object_store_connect_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
+    evidence_object_store_read_timeout_seconds: float = Field(default=15.0, gt=0, le=120)
+    evidence_object_store_maximum_concurrency: int = Field(default=8, ge=1, le=32)
+    evidence_object_store_maximum_retries: int = Field(default=1, ge=0, le=3)
+    evidence_capture_maximum_raw_bytes: int = Field(
+        default=32 * 1024 * 1024,
+        ge=1024 * 1024,
+        le=64 * 1024 * 1024,
+    )
+    evidence_capture_maximum_pixels: int = Field(
+        default=33_177_600,
+        ge=1_000_000,
+        le=100_000_000,
+    )
 
     @model_validator(mode="after")
     def validate_browser_worker_configuration(self) -> Self:
@@ -396,6 +488,44 @@ class BrowserWorkerSettings(AuthSessionWorkerSettings):
                 label="browser context envelope",
                 exact_length=32,
             )
+        evidence_store_values = (
+            self.evidence_object_store_endpoint,
+            self.evidence_object_store_access_key,
+            self.evidence_object_store_secret_key,
+        )
+        configured_evidence_store = [value is not None for value in evidence_store_values]
+        if any(configured_evidence_store) and not all(configured_evidence_store):
+            raise ValueError("evidence object store configuration must be complete")
+        if all(configured_evidence_store):
+            assert self.evidence_object_store_endpoint is not None
+            assert self.evidence_object_store_access_key is not None
+            assert self.evidence_object_store_secret_key is not None
+            if not all(
+                (
+                    self.evidence_object_store_endpoint.strip(),
+                    self.evidence_object_store_access_key.get_secret_value().strip(),
+                    self.evidence_object_store_secret_key.get_secret_value().strip(),
+                )
+            ):
+                raise ValueError("evidence object store credentials must not be blank")
+        if self.evidence_object_store_create_bucket and not all(
+            configured_evidence_store
+        ):
+            raise ValueError("evidence bucket creation requires a configured store")
+        if self.environment in {"staging", "production"} and (
+            self.evidence_object_store_create_bucket
+        ):
+            raise ValueError("automatic evidence bucket creation is local-only")
+        if (
+            self.environment in {"staging", "production"}
+            and all(configured_evidence_store)
+            and not self.evidence_object_store_secure
+        ):
+            raise ValueError("evidence object store requires TLS outside local development")
+        if "capture_view" in self.browser_allowed_actions and not all(
+            configured_evidence_store
+        ):
+            raise ValueError("capture_view requires a configured evidence object store")
         return self
 
     @property
@@ -409,6 +539,12 @@ class BrowserWorkerSettings(AuthSessionWorkerSettings):
         """Allow plaintext control-plane traffic only in local development and tests."""
 
         return self.environment in {"local", "test", "development"}
+
+    @property
+    def evidence_store_configured(self) -> bool:
+        """Return whether the Browser Worker can write and verify evidence bytes."""
+
+        return self.evidence_object_store_endpoint is not None
 
 
 def _decode_base64_key(

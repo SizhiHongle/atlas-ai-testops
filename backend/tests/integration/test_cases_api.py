@@ -1090,7 +1090,10 @@ def mark_debug_run_passed(
                         id=artifact_id,
                         kind=EvidenceArtifactKind.SCREENSHOT,
                         object_ref=(
-                            f"evidence://tests/{tenant_id}/{run.id}/{artifact_id}.png"
+                            f"evidence://tests/tenants/{UUID(tenant_id).hex}/"
+                            f"projects/{UUID(project_id).hex}/environments/"
+                            f"{UUID(environment_id).hex}/debug-runs/{run.id.hex}/"
+                            f"contracts/{contract.id.hex}/artifacts/{artifact_id.hex}.png"
                         ),
                         content_digest=DIGEST_A,
                         size_bytes=1024,

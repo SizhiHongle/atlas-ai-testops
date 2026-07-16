@@ -1,5 +1,6 @@
 """PostgreSQL repository for immutable DebugRun snapshots and events."""
 
+from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
@@ -18,6 +19,7 @@ from atlas_testops.domain.case import (
     TestIR,
     WorkflowDraftSnapshot,
 )
+from atlas_testops.domain.runtime.live import DebugLiveRunProjection
 
 DEBUG_RUN_COLUMNS = (
     "id, tenant_id, project_id, environment_id, test_case_id, draft_id, "
@@ -33,6 +35,15 @@ DEBUG_RUN_EVENT_COLUMNS = (
     "id, tenant_id, project_id, test_case_id, debug_run_id, seq, event_type, "
     "lifecycle, outcome, snapshot_status, payload, occurred_at"
 )
+
+
+@dataclass(frozen=True, slots=True)
+class DebugRunLiveSeed:
+    """One lock-free MVCC snapshot and its exact event high-water mark."""
+
+    run: DebugLiveRunProjection
+    latest_event: DebugRunEvent | None
+    head_seq: int
 
 
 class DebugRunRepository:
@@ -264,3 +275,54 @@ class DebugRunRepository:
             (run_id, after_seq, limit + 1),
         )
         return tuple(DebugRunEvent.model_validate(row) for row in await result.fetchall())
+
+    async def get_live_seed(
+        self,
+        connection: AsyncConnection[DictRow],
+        run_id: UUID,
+    ) -> DebugRunLiveSeed | None:
+        """Read a run and its latest event in one statement without row locks."""
+
+        cursor = await connection.execute(
+            f"""
+            select jsonb_build_object(
+                     'debugRunId', run_record.id,
+                     'projectId', run_record.project_id,
+                     'testCaseId', run_record.test_case_id,
+                     'environmentId', run_record.environment_id,
+                     'lifecycle', run_record.lifecycle,
+                     'outcome', run_record.outcome,
+                     'snapshotStatus', run_record.snapshot_status,
+                     'revision', run_record.revision,
+                     'executionDeadline', run_record.execution_deadline,
+                     'cancelRequestedAt', run_record.cancel_requested_at,
+                     'startedAt', run_record.started_at,
+                     'completedAt', run_record.completed_at
+                   ) as run_projection_record,
+                   to_jsonb(latest_event) as latest_event_record,
+                   coalesce(latest_event.seq, 0) as head_seq
+            from atlas.debug_run as run_record
+            left join lateral (
+              select {DEBUG_RUN_EVENT_COLUMNS}
+              from atlas.debug_run_event
+              where debug_run_id = run_record.id
+              order by seq desc
+              limit 1
+            ) as latest_event on true
+            where run_record.id = %s
+            """,
+            (run_id,),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        latest_event_record = row["latest_event_record"]
+        return DebugRunLiveSeed(
+            run=DebugLiveRunProjection.model_validate(row["run_projection_record"]),
+            latest_event=(
+                DebugRunEvent.model_validate(latest_event_record)
+                if latest_event_record is not None
+                else None
+            ),
+            head_seq=row["head_seq"],
+        )

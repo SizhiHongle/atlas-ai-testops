@@ -28,6 +28,16 @@
 - `evidence-manifest.schema.json`：`atlas.evidence-manifest/0.1`，封存 Oracle、Artifact、事件链与完整性根，且 `PASSED` 必须完整并已验证。
 - `browser-execution-bundle.schema.json`：`atlas.browser-execution-bundle/0.1`，把已验证 ExecutionContract、Plan、Fixture Export 与加密 BrowserContext Restore Envelope 交付给 exact Worker。
 - `browser-runtime-report.schema.json`：`atlas.browser-runtime-report/0.1`，定义类型化、单调、Digest-linked 的 Browser Observation / Action / Policy / Receipt / Assertion / Artifact 报告事实；Action Report 必须连续，同一 `actionId` 不能跨 Action 链复用。
+- `execution-profile.schema.json`：`atlas.execution-profile/0.1`，冻结 CaseVersion、Test IR、Plan、Model、Prompt 与 Tool 预绑定；它不是一次具体运行的 `ExecutionContract`。
+- `identity-profile.schema.json`：`atlas.identity-profile/0.1`，冻结 Case actor 到 TestRole 的无秘密映射，不包含账号、Credential、Lease 或 Session。
+- `browser-profile.schema.json`：`atlas.browser-profile/0.1`，冻结 Browser revision、Viewport、Locale、Timezone 与 Runtime image/capability attestation digest。
+- `data-profile.schema.json`：`atlas.data-profile/0.1`，冻结 exact Fixture Blueprint、Compiled Plan 与无秘密 Run Inputs；dispatch admission 会按 exact Fixture `run_input_schema` 复验。
+- `task-plan-version.schema.json`：`atlas.task-plan/0.1`，冻结 pinned CaseVersion、矩阵、四类正式 Profile Version 与 Policy Digest；数据库验证同作用域、发布态和 Case / Fixture exact compatibility，并对结构化 JSON 缺键 / null fail-closed。
+- `task-run-manifest.schema.json`：`atlas.task-run-manifest/0.1`，冻结一次正式执行的完整 Unit 集、触发指纹、策略与可重算 Manifest Hash；Repository 与 PostgreSQL 双层校验 exact PlanVersion provenance。
+- `task-run.schema.json`：正式批次的三轴状态、稳定 request digest、`MATERIALIZING → SEALED` 完整性门禁与 namespace-scoped Temporal identity。
+- `execution-unit.schema.json`：Manifest 中一个 exact CaseVersion × Matrix Cell 的逻辑执行槽位，绑定 `executionProfileVersionId`，不复用 DebugRun-scoped ExecutionContract。
+- `unit-attempt.schema.json`：ExecutionUnit 的追加式物理尝试及确定性 Temporal identity；业务重试创建新 Attempt，Activity retry 不创建新 Attempt。
+- `task-execution-event.schema.json`：`atlas.execution-event/0.1` 的追加式、单调 Task 执行事件投影。
 - `openapi.json`：当前 FastAPI 公共 HTTP API，由前端生成 TypeScript 类型。
 
 ## 生成与校验
@@ -42,6 +52,6 @@ uv run python scripts/export_openapi.py --check
 
 生成文件使用对外 `camelCase` 字段。Python 代码继续使用 `snake_case`，Pydantic 同时接受两种输入形式。
 
-`AttemptSeal` 只能绑定正式 `UnitAttempt`；在 P5 建立该对象前不会创建无宿主空契约。Task、AttemptSeal、Result Snapshot 和 Insight 协议会在对应领域代码落地时按独立 `schemaVersion` 增加。
+`AttemptSeal` 只能绑定正式 `UnitAttempt`；P5-00A 已建立正式宿主，但 Seal、LiveSession、ControlLease 和持久化 ActionGrant 仍按后续切片独立落地，不创建空协议。Result Snapshot 和 Insight 协议会在对应领域代码落地时按独立 `schemaVersion` 增加。
 
 Browser Runtime 的内部 HTTP 端点还要求短期 Tenant / Run / Worker-scoped Execution Permit 和 HMAC Request Signature，且 Staging / Production Runtime API Origin 必须使用 HTTPS；JSON Schema 只约束消息形状，不替代传输层授权、Report Hash-chain State Machine 或数据库不可变约束。Evidence Finalization 会对完整 `AssertionResultInput` / `EvidenceArtifactInput` 重算 Canonical Digest 并与 Report Chain 的 exact 集合匹配；Artifact 还必须来自可信 `BrowserArtifactWriter`，不能由 Operation 自报。

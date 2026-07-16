@@ -22,6 +22,7 @@ class ActorContext:
     tenant_id: UUID
     actor_id: UUID | None
     request_id: str
+    session_id: UUID | None = None
     current_project_id: UUID | None = None
     grants: tuple[AccessGrant, ...] = ()
     development_override: bool = False

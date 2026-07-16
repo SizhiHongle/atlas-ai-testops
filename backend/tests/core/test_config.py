@@ -55,10 +55,84 @@ def test_rejects_invalid_pool_range() -> None:
         )
 
 
+def test_debug_live_defaults_bound_polling_and_connection_lifetime() -> None:
+    settings = Settings(environment="test")
+
+    assert settings.debug_live_poll_interval_ms == 500
+    assert settings.debug_live_heartbeat_seconds == 10
+    assert settings.debug_live_max_connection_seconds == 30
+    assert settings.debug_live_batch_size == 100
+    assert settings.debug_live_maximum_connections == 64
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {
+            "debug_live_poll_interval_ms": 1_000,
+            "debug_live_heartbeat_seconds": 1,
+        },
+        {
+            "debug_live_heartbeat_seconds": 10,
+            "debug_live_max_connection_seconds": 10,
+        },
+    ],
+)
+def test_rejects_unsafe_debug_live_timing_relationships(
+    overrides: dict[str, int],
+) -> None:
+    with pytest.raises(ValidationError):
+        Settings(environment="test", **overrides)  # type: ignore[arg-type]
+
+
 def test_production_disables_docs() -> None:
     settings = Settings(environment="production", docs_enabled=True)
 
     assert settings.docs_enabled is False
+
+
+def test_api_evidence_store_configuration_is_complete_and_local_only() -> None:
+    settings = Settings(
+        environment="test",
+        evidence_object_store_endpoint="127.0.0.1:9000",
+        evidence_object_store_access_key=SecretStr("access"),
+        evidence_object_store_secret_key=SecretStr("evidence-secret-value"),
+        evidence_object_store_create_bucket=True,
+    )
+
+    assert settings.evidence_store_configured
+    assert "evidence-secret-value" not in repr(settings)
+
+    with pytest.raises(ValidationError, match="configuration must be complete"):
+        Settings(
+            environment="test",
+            evidence_object_store_endpoint="127.0.0.1:9000",
+        )
+
+    with pytest.raises(ValidationError, match="bucket creation is local-only"):
+        Settings(
+            environment="staging",
+            evidence_object_store_endpoint="minio.internal:9000",
+            evidence_object_store_access_key=SecretStr("access"),
+            evidence_object_store_secret_key=SecretStr("secret"),
+            evidence_object_store_create_bucket=True,
+        )
+
+    with pytest.raises(ValidationError, match="requires TLS"):
+        Settings(
+            environment="production",
+            evidence_object_store_endpoint="minio.internal:9000",
+            evidence_object_store_access_key=SecretStr("access"),
+            evidence_object_store_secret_key=SecretStr("secret"),
+        )
+
+    with pytest.raises(ValidationError, match="must not be blank"):
+        Settings(
+            environment="test",
+            evidence_object_store_endpoint="127.0.0.1:9000",
+            evidence_object_store_access_key=SecretStr(" "),
+            evidence_object_store_secret_key=SecretStr("secret"),
+        )
 
 
 @pytest.mark.parametrize(
@@ -285,6 +359,65 @@ def test_database_free_browser_worker_settings_are_all_or_nothing() -> None:
             browser_mcp_server_manifest_digest=digest,
             browser_tool_schema_digest=digest,
             browser_policy_digest=digest,
+        )
+
+
+def test_browser_worker_requires_evidence_store_for_capture_view() -> None:
+    runtime_values = _browser_worker_runtime_values("https://runtime.internal")
+
+    with pytest.raises(ValidationError, match="capture_view requires"):
+        BrowserWorkerSettings.model_validate(
+            {
+                "environment": "test",
+                **runtime_values,
+                "browser_allowed_actions": ("open_route", "capture_view"),
+            }
+        )
+
+    settings = BrowserWorkerSettings.model_validate(
+        {
+            "environment": "test",
+            **runtime_values,
+            "browser_allowed_actions": ("open_route", "capture_view"),
+            "evidence_object_store_endpoint": "127.0.0.1:9000",
+            "evidence_object_store_access_key": SecretStr("access"),
+            "evidence_object_store_secret_key": SecretStr("secret"),
+        }
+    )
+
+    assert settings.evidence_store_configured
+
+
+def test_browser_worker_rejects_partial_or_remote_bucket_creation() -> None:
+    with pytest.raises(ValidationError, match="configuration must be complete"):
+        BrowserWorkerSettings(
+            environment="test",
+            evidence_object_store_endpoint="127.0.0.1:9000",
+        )
+
+    with pytest.raises(ValidationError, match="bucket creation is local-only"):
+        BrowserWorkerSettings(
+            environment="production",
+            evidence_object_store_endpoint="minio.internal:9000",
+            evidence_object_store_access_key=SecretStr("access"),
+            evidence_object_store_secret_key=SecretStr("secret"),
+            evidence_object_store_create_bucket=True,
+        )
+
+    with pytest.raises(ValidationError, match="requires TLS"):
+        BrowserWorkerSettings(
+            environment="staging",
+            evidence_object_store_endpoint="minio.internal:9000",
+            evidence_object_store_access_key=SecretStr("access"),
+            evidence_object_store_secret_key=SecretStr("secret"),
+        )
+
+    with pytest.raises(ValidationError, match="must not be blank"):
+        BrowserWorkerSettings(
+            environment="test",
+            evidence_object_store_endpoint="127.0.0.1:9000",
+            evidence_object_store_access_key=SecretStr("access"),
+            evidence_object_store_secret_key=SecretStr(""),
         )
 
 

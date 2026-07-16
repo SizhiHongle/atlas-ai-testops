@@ -1,13 +1,17 @@
 """Fail-closed Browser report transition checks in the control plane."""
 
 from datetime import UTC, datetime, timedelta
+from json import dumps
 from typing import cast
 from uuid import UUID, uuid7
 
 import pytest
 from tests.domain.runtime.test_browser_protocol import DIGEST_A, _payload
 
-from atlas_testops.application.debug_runtime import DebugRuntimeService
+from atlas_testops.application.debug_runtime import (
+    DebugRuntimeService,
+    _build_browser_live_event_payload,
+)
 from atlas_testops.core.errors import ApplicationError
 from atlas_testops.domain.runtime import (
     CHAIN_START_DIGEST,
@@ -176,3 +180,23 @@ def test_policy_can_fail_closed_to_blocked_without_fabricating_receipt() -> None
         blocked,
         action_proposal=None,
     )
+
+
+def test_live_policy_payload_truncates_maximum_valid_matched_rules() -> None:
+    matched_rules: list[str] = []
+    for index in range(256):
+        prefix = f"r{index:03d}."
+        matched_rules.append(prefix + "x" * (160 - len(prefix)))
+    report = _report(
+        BrowserRuntimeReportKind.POLICY_DECIDED,
+        sequence=3,
+        previous_chain_digest=CHAIN_START_DIGEST,
+        action_id=uuid7(),
+        payload_updates={"matchedRules": matched_rules},
+    )
+
+    live_payload = _build_browser_live_event_payload(report)
+
+    assert live_payload["matchedRules"] == matched_rules[:64]
+    assert live_payload["matchedRuleCount"] == 256
+    assert len(dumps(live_payload).encode()) <= 32_768

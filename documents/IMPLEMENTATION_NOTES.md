@@ -1,6 +1,6 @@
 # Atlas AI 测试平台实施要点
 
-更新时间：2026-07-15
+更新时间：2026-07-16
 
 ## 文档优先级
 
@@ -121,7 +121,21 @@
 - Assertion observation、Artifact capture 与 Evidence finalization 必须位于 ExecutionContract 时间窗内。EvidenceManifest 不携带对象存储地址，只保存安全 Artifact 摘要、事件链头和可验证 Digest。
 - P6 Runtime 事实表启用强制 RLS、Scope FK、不可变 Trigger 和 `SELECT/INSERT` 最小权限；PostgreSQL 再次推导 completeness、integrity 与 outcome。CaseVersion 发布必须加载实际 Manifest 复核，不能只相信 DebugRun 引用。
 - P6-01 的独立 Browser Worker 已通过受信内部协议读取执行包、推进状态、追加报告和终结证据；没有公共 Runtime 完成接口，Worker 不能直接访问主数据库。
-- AttemptSeal 归属于正式 UnitAttempt；P5 尚未创建 UnitAttempt 时不提前创建无宿主 Seal。
+- P6-02A 的 Evidence Manifest 公共读取只返回不可变安全投影，不暴露 ObjectRef。Artifact 字节读取要求普通 Platform Session 与独立 `Atlas-Evidence` Authorization Header，Grant 只保存 Token Hash，并精确绑定 Tenant / Project / Run / Contract / Artifact / Actor / Session / Purpose / TTL / Max Reads；Token 不得进入 Query、Audit、Outbox 或持久化明文。
+- Read Grant 的兑换只在短事务内原子推进 Read Count 并写 Audit；事务关闭后才访问 Object Store。API 必须先完整缓冲有界对象，再将字节数与不可变 Receipt 的 SHA-256 全量比对，任何缺失、截断、替换或超限都不得产生部分响应。
+- AttemptSeal 归属于正式 UnitAttempt；P5-00A 已创建宿主，但 P6 后续仍需以独立不可变协议落地，不能复用 DebugRun EvidenceManifest。
+
+## DebugRun Live B1 边界
+
+- P6-02B1 是 `DebugRun` 作用域的只读安全观察流，不是正式 `UnitAttempt` 现场，也不创建 `LiveSession`。公共边界固定为 `GET /v1/debug-runs/{runId}/live` 与 `GET /v1/debug-runs/{runId}/events/stream`，复用 Platform Session 和 Project 可见性；不可见与不存在必须返回同形 404。
+- 首次订阅必须用一条无行锁 SQL 在同一 MVCC Snapshot 中读取轻量 `DebugLiveRunProjection`、最新事件和事件高水位，先发 `debug_run.live.snapshot`，再从该高水位等待增量。SQL 只构造 Live 所需的 Run ID、Project / Case / Environment Scope、Lifecycle / Outcome / Snapshot Status、Revision 与时间字段，不查询或反序列化完整 Test IR、PlanTemplate、Failure Detail 等大快照。不能先查完整 Run、再用另一事务猜测 Cursor，也不能把 Snapshot 自身当作新业务事实写回事件表。
+- Cursor 使用 `atlas.debug-live-cursor/0.1` 的 canonical、无填充 Base64URL JSON，精确绑定 `debugRunId + afterSeq`。客户端只通过 SSE `Last-Event-ID` 恢复；损坏、超长、跨 Run 或超前 Cursor 必须在 HTTP headers 开始前返回 `LIVE_CURSOR_INVALID`。业务事件的 SSE `id` 使用其 Opaque Cursor；Heartbeat 是无 `id` 的 comment，绝不推进恢复位置。
+- `debug_run_event` 是唯一事实源。每批 `seq > afterSeq ORDER BY seq` 查询使用独立有界短事务，事务关闭后才把 Event yield 给网络；Poll Sleep、Heartbeat、客户端背压和连接等待均不得持有 PostgreSQL 连接或行锁。`DebugRun=TERMINATED` 只表示执行生命周期结束，不封存 `debug_run_event`；Draft 后续语义变化仍会追加 `debug_run.snapshot_outdated`，其事件 Lifecycle 仍可为 `TERMINATED`。Stream 必须 replay 到当前 head，再持续 Poll，直到客户端断开或事件生成预算耗尽。
+- Live Event 必须从 event-type allowlist 重新构造，不能原样转发 JSON Payload。取消原因、Report / Chain Digest、ObjectRef、Authorization、Password、输入 Value 和未知字段不得进入 Snapshot 或 SSE；只允许 UI 所需的低风险 Run 状态、Action / Observation / Policy / Receipt / Assertion / Artifact 摘要。
+- 每个 API 进程使用有界 `DebugLiveStreamLimiter`；容量耗尽立即返回 429 + `Retry-After`，不能排队占用数据库或 Worker 资源。Poll Interval、Heartbeat、Batch Size、最大连接时长和 Observer 上限必须使用有界部署配置。
+- `maximum_connection_seconds` 定义 Service 的事件生成预算。Route 内 `_DebugLiveStreamingResponse` 使用该 maximum 加固定 1.0 秒 Close Grace 约束生成与关闭路径，并在 `finally` 中关闭 Source、释放 Observer Slot；最后安装的 pure-ASGI `DebugLiveStreamSendDeadlineMiddleware` 使用相同的 maximum 与 1.0 秒 Close Grace，包住 `BaseHTTPMiddleware` 重包装后的真实 client-facing `send`。两层分别保证业务 Source 生命周期与最终网络写入上界，Close Grace 只用于正常结束 Body、关闭 Source 和释放 Slot，不允许生成新业务事件；停滞写入到期后由 pure-ASGI 层取消。
+- Migration 必须保留可修复且低阻塞的三阶段边界：`20260716_0019` 只为 `debug_run_event.payload::text` 增加 32768 bytes 的 `CHECK ... NOT VALID` 并提交；`20260716_0020` 只先 `VALIDATE CONSTRAINT`，再创建 `atlas.prevent_fact_mutation()` UPDATE / DELETE Trigger；`20260716_0021` 独立使用 Alembic `autocommit_block()` 执行 `DROP INDEX CONCURRENTLY IF EXISTS atlas.debug_run_event_replay_idx`，downgrade 使用 `CREATE INDEX CONCURRENTLY IF NOT EXISTS` 恢复这个已被 `(debug_run_id, seq)` Unique Constraint 覆盖的普通索引。若历史超限 Payload 使 0020 Validation 失败，事务回滚且版本保持 0019；修复数据后再重试 0020，成功后才进入 0021 的并发索引清理。不新增重复事件表、LISTEN / NOTIFY 权威源或每连接数据库 Session。
+- P5-00A 已建立正式 `UnitAttempt`；P6-02B2 后续负责 `LiveSession / ControlLease`、浏览器控制 Epoch / Fence、Pause / Resume / Takeover Command、Human Takeover、Safe Point / Quiesce，以及持久化且绑定控制 Epoch / Fence 的 `ActionGrant`。B1 SSE 不接收 Frame、Command、Action 或人工输入，不能把只读 Observer 解释为已经实现人工接管。
 
 ## Browser Worker、内部网关与 Playwright 边界
 
@@ -132,11 +146,26 @@
 - `BrowserRuntimeReport` 是单调、类型化、不可变 Hash-chain：首条只能是 `execution.started`，每个 `actionId` 在整条 Contract Chain 只能提出一次；Proposal → 同 Actor Policy → ALLOW 后同 Proposal Receipt 必须连续，唯一例外是 Policy 后用 `execution.blocked` 明确终止无法形成可信 Receipt 的 Action。Action Report 中间不能插入其他普通 Report，Denied / Blocked Action 只能进入 Blocked 路径，完整链末条只能是 `execution.completed`。
 - Playwright 只允许 frozen Tool Catalog 中真正实现的 Action，并复核 Tool / Policy / MCP Digest、Action Risk、Semantic Role、Route / Origin 与单次 Grant。Operation 和 Route 必须由部署时 exact-version Registry 注册，资产、Agent 与 HTTP 请求不能注入绝对 URL、Locator、Module、Script 或 Callable。
 - DOM Action 必须引用当前 Observation 的 retained `ElementHandle`、Page Revision 与单次 Nonce；执行前重新核对 Visible、Element Key、Accessible Name 与 Semantic Fingerprint，页面变化使旧 Target 失效。普通 Request 与 WebSocket 都限制在 Session / Published Route 的精确 Origin。
-- `CAPTURE_VIEW` 只能把原始字节交给生产 `BrowserArtifactWriter` 做 Redaction、持久化、独立 Hash 与 Verification。`BrowserPlanOperation` 不得直接构造或返回 `EvidenceArtifactInput`；即使元数据字段和 Digest 形状合法，也不能绕过 Writer 进入 Execution Output。P6-01 默认不提供该 Writer，也不把内存 Hash 或 Operation 自报冒充 `VERIFIED` Evidence；生产 Writer 属于 P6-02。
+- `CAPTURE_VIEW` 只能把原始字节交给受信 `BrowserArtifactWriter`。P6-02A 在 Playwright 截图前对输入控件、可编辑内容和显式敏感节点执行 DOM Mask，再将结果规范化为去元数据、RGB、白底 alpha flatten、固定压缩的 canonical PNG；对象写入后必须独立回读并复核完整 SHA-256 与大小，成功后才能形成 `VERIFIED` Receipt。`BrowserPlanOperation` 仍不得直接构造或返回 `EvidenceArtifactInput` 绕过 Writer。
 - Evidence Finalization 必须精确匹配 Chain Head / Count，并对 Report 中的每个 `assertionInputDigest` / `artifactInputDigest` 与 Finalize Command 中完整 `AssertionResultInput` / `EvidenceArtifactInput` 的 Canonical Digest 重新比对；只匹配 ID、Count、Content Digest 或部分字段不足以终结。Finalization Command Digest 只允许同一完整命令 exact replay。
 - Report Chain 出现 `execution.blocked`，或任一 Action Receipt 为 `FAILED / OUTCOME_UNKNOWN` 时，Finalize Command 中全部 Assertion Result 必须是 `INCONCLUSIVE`，最终 Outcome 也只能是 `INCONCLUSIVE`；后续 Assertion、Artifact 或 Operation 不能覆盖该安全结论。
-- 当前只支持单 Actor。生产 Evidence / Redaction Writer、首个真实 SaaS Operation / Route Registry、容器级 Egress / DNS / UDP / WebRTC 约束、Envelope Key Ring Rotation、公共 Start 到 Preparation / Bind / Dispatch 的自动串联和 Multi-actor 均未完成；缺少任一所需部署能力时继续 fail-closed。
+- Evidence Store 的 Endpoint / Access Key / Secret Key 必须成套配置；Staging / Production 禁止自动创建 Bucket，部署时应为 Browser Worker 与 API 使用分离的最小权限写 / 读 Credential。未配置 Store 时 `capture_view` 与对象读取分别 fail-closed，不允许退化为内存 Hash、未校验下载或公开 Bucket URL。
+- 当前只支持单 Actor。P6-02B1 已实现 DebugRun-scoped Live Snapshot / SSE，但 P6-02B2 的 UnitAttempt-scoped LiveSession、ControlLease、控制 Epoch / Fence、Human Takeover 与持久化 ActionGrant，以及首个真实 SaaS Operation / Route Registry、容器级 Egress / DNS / UDP / WebRTC 约束、Envelope Key Ring Rotation、公共 Start 到 Preparation / Bind / Dispatch 的自动串联和 Multi-actor 均未完成；缺少任一所需部署能力时继续 fail-closed。
 - 本切片没有修改任何前端页面、组件、DOM、布局、CSS 或既有交互；前端原型继续是唯一视觉与交互权威。
+
+## 正式 Task 执行宿主边界
+
+- P5-00A 固定 `TaskPlanVersion → TaskRun → ExecutionUnit → UnitAttempt` 四层宿主；P5-00B1 补齐 `ExecutionProfileVersion`、`IdentityProfileVersion`、`BrowserProfileVersion` 与 `DataProfileVersion` 正式不可变宿主。`DebugRun` 只服务发布前作者态试运行，DebugRun-scoped `ExecutionContract` 不能冒充正式 Execution Profile。
+- `TaskPlanVersion` 只保存 pinned CaseVersion、结构化 Matrix / Profile 引用与 Policy Digest；发布后不可修改。P5-00B1 要求四类 Profile 真实存在、同 Tenant / Project、处于 PUBLISHED 且与 exact Case / Fixture 兼容；`IdentityProfileVersion` 额外冻结 Case actor 的 TestRole revision / capabilities，任何账号、Credential、Lease、Session 或 Token 字段均拒绝进入 Profile。
+- `TaskRunManifest` 冻结完整 Unit 集、触发指纹、策略和 compiler version，并以 canonical `manifestHash` 绑定。Repository 与 PostgreSQL 使用同一递归 canonical JSON 规则重算 Plan、Profile、Manifest、Unit 和 stable request digest；同一 `tenant + triggerSource + triggerFingerprint` 只有 logical request digest 与不可变 `rerunOfTaskRunId` lineage 都相同才视为 replay，服务端生成的 Run ID 与时间不参与幂等身份。
+- `ExecutionUnit` 是 Manifest 中一个逻辑矩阵单元；`UnitAttempt` 是一次物理执行。业务重试追加 gapless `attemptNumber`，Activity retry 不增加 Attempt，旧 Attempt 不更新身份、不删除、不复活。首个 Attempt 随同步物化创建；后续 Attempt 必须沿用父 Run namespace，并要求父 Run 已 SEALED、Run / Unit 可派发、前序 Attempt 已 CLOSED 且结果属于可重试集合。
+- Lifecycle、Quality、Hygiene 是独立状态轴；结果可先 CLOSED，Cleanup 再从 PENDING / RUNNING / CLEANUP_FAILED 继续推进，`cleanupResolvedAt` 可以晚于 `closedAt`。`CLOSED + PASSED + LEAKED` 可以是事实，但严格 Gate 必须拒绝；CLEANUP_FAILED 进入有界长期 retry，耗尽后只能记为 LEAKED，不能洗掉历史。Task Pause 只停止新 Unit 派发，不冒充后续浏览器 Safe Point / Human Takeover。
+- Attempt 与 Event append 使用父行锁串行分配无间隙序号；状态推进只调用数据库拥有的 Revision CAS 函数，统一按 Run → Unit → Attempt 收窄，应用角色不再直接 UPDATE 三轴状态。事务内只做 PostgreSQL 验证和事实写入，不持锁等待 Temporal、HTTP、Playwright、SSE 或对象存储。
+- `task_plan_version` 与 `task_run_manifest` 使用显式结构化列，不复制一份整对象 JSONB 形成双重事实源。Matrix、Profile、Policy 和 Manifest Unit 的结构 validator 对 exact key set、缺键、SQL `NULL` 与 JSON `null` fail-closed。Unit 必须逐字段匹配 Manifest，Event 必须匹配最窄 Run / Unit / Attempt 的三轴状态。
+- P5-00B1 的同步初始物化仍固定最多 64 Units。新 Run 从 `MATERIALIZING` 开始，Seal 在同一短事务中重算所有 digest、核对 Manifest 的全部 Unit 与首个 Attempt、重验 Profile / Case / Fixture / Environment / TestRole，随后切换 `SEALED` 并追加唯一 `PENDING` Workflow Start Intent；未 Seal、历史 `legacy_unsealed` 或依赖漂移的 Run 不能推进状态。Task Admission 同事务重读父 Run / Unit，只对 SEALED 且 QUEUED / RUNNING 的 Run 和仍为 QUEUED 的 Unit 放行，Pause / Cancel / Finalize / Closed 不会继续派发。
+- Run 与 Attempt 的 Temporal Workflow ID 由 Tenant ID + 对象 ID 确定性生成，并写入 `(namespace, workflowId)` 全局 Registry；Start Intent 只是待启动事实，不代表 Temporal Workflow 已启动。P5-00B1 不消费 Intent，不包含 Temporal Workflow / Activity、公共 Task API、Schedule / CI Adapter、AttemptSeal、LiveSession、ControlLease、ActionGrant 或 Result Snapshot。
+- 协议仍保留 100,000 Units 的领域结构上限，但数据库当前只接受 64 Units。超过 64 Units 的可恢复分区物化、分片恢复与容量验证属于后续 P5 切片，不能通过扩大同步事务或跳过 Seal 实现。
+- 本切片不修改 Launch、Task Control、Live Theatre 的页面结构、DOM、布局、CSS 或交互，前端既有原型仍是唯一权威。
 
 ## 不可破坏的领域链
 

@@ -9,10 +9,12 @@ from atlas_testops.api.v1.case_versions import router as case_versions_router
 from atlas_testops.api.v1.cases import router as cases_router
 from atlas_testops.api.v1.connectors import router as connectors_router
 from atlas_testops.api.v1.debug_runs import router as debug_runs_router
+from atlas_testops.api.v1.evidence import router as evidence_router
 from atlas_testops.api.v1.fixture_assets import router as fixture_assets_router
 from atlas_testops.api.v1.fixture_runs import router as fixture_runs_router
 from atlas_testops.api.v1.health import router as health_router
 from atlas_testops.api.v1.identity import router as identity_router
+from atlas_testops.api.v1.live import router as live_router
 from atlas_testops.api.v1.platform import router as platform_router
 
 api_router = APIRouter(
@@ -27,6 +29,8 @@ api_router.include_router(platform_router, tags=["platform"])
 api_router.include_router(cases_router, tags=["test-cases"])
 api_router.include_router(case_versions_router, tags=["case-versions"])
 api_router.include_router(debug_runs_router, tags=["debug-runs"])
+api_router.include_router(evidence_router, tags=["evidence"])
+api_router.include_router(live_router, tags=["debug-live"])
 api_router.include_router(connectors_router, tags=["connectors"])
 api_router.include_router(fixture_assets_router, tags=["fixture-assets"])
 api_router.include_router(fixture_runs_router, tags=["fixture-runs"])

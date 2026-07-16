@@ -326,6 +326,87 @@ def test_evidence_reports_reject_untyped_identifiers_and_metadata(
         )
 
 
+@pytest.mark.parametrize(
+    "matched_rule",
+    ["策略.允许", " leading-space", "rule with space", "r" * 161],
+)
+def test_policy_report_rejects_non_reference_matched_rules(
+    matched_rule: str,
+) -> None:
+    payload = _payload(BrowserRuntimeReportKind.POLICY_DECIDED)
+    payload["matchedRules"] = [matched_rule]
+
+    with pytest.raises(ValidationError, match="matchedRules"):
+        build_browser_runtime_report(
+            execution_contract_id=uuid7(),
+            execution_contract_digest=DIGEST_A,
+            report_id=uuid7(),
+            sequence=2,
+            kind=BrowserRuntimeReportKind.POLICY_DECIDED,
+            actor_slot="operator",
+            action_id=uuid7(),
+            payload=payload,  # type: ignore[arg-type]
+            occurred_at=datetime.now(UTC),
+            previous_chain_digest=DIGEST_B,
+        )
+
+
+@pytest.mark.parametrize(
+    ("kind", "key", "value"),
+    [
+        (BrowserRuntimeReportKind.NODE_STARTED, "nodeId", "node\ncontrol"),
+        (BrowserRuntimeReportKind.NODE_STARTED, "nodeKind", "节点"),
+        (BrowserRuntimeReportKind.NODE_STARTED, "versionRef", "v" * 161),
+        (
+            BrowserRuntimeReportKind.OBSERVATION_CAPTURED,
+            "observationRef",
+            "observation_short",
+        ),
+        (BrowserRuntimeReportKind.OBSERVATION_CAPTURED, "pageRef", "page_short"),
+        (BrowserRuntimeReportKind.OBSERVATION_CAPTURED, "routeKey", "bad route"),
+        (BrowserRuntimeReportKind.ACTION_PROPOSED, "nodeId", "node\x00control"),
+        (BrowserRuntimeReportKind.ACTION_PROPOSED, "targetRef", "target_short"),
+        (BrowserRuntimeReportKind.ACTION_PROPOSED, "routeKey", "route 🚫"),
+        (BrowserRuntimeReportKind.ACTION_EXECUTED, "receiptId", "not-a-uuid"),
+        (BrowserRuntimeReportKind.ACTION_EXECUTED, "grantId", "not-a-uuid"),
+        (BrowserRuntimeReportKind.ASSERTION_EVALUATED, "assertionId", "断言"),
+        (BrowserRuntimeReportKind.NODE_COMPLETED, "nodeId", "node with spaces"),
+        (BrowserRuntimeReportKind.EXECUTION_BLOCKED, "failureType", "bad\nvalue"),
+    ],
+)
+def test_live_projected_report_fields_reject_unbounded_identifiers(
+    kind: BrowserRuntimeReportKind,
+    key: str,
+    value: object,
+) -> None:
+    payload = _payload(kind)
+    payload[key] = value
+    is_action = kind in {
+        BrowserRuntimeReportKind.ACTION_PROPOSED,
+        BrowserRuntimeReportKind.POLICY_DECIDED,
+        BrowserRuntimeReportKind.ACTION_EXECUTED,
+    }
+    actor_slot = (
+        "operator"
+        if is_action or kind is BrowserRuntimeReportKind.OBSERVATION_CAPTURED
+        else None
+    )
+
+    with pytest.raises(ValidationError, match=key):
+        build_browser_runtime_report(
+            execution_contract_id=uuid7(),
+            execution_contract_digest=DIGEST_A,
+            report_id=uuid7(),
+            sequence=2,
+            kind=kind,
+            actor_slot=actor_slot,
+            action_id=uuid7() if is_action else None,
+            payload=payload,  # type: ignore[arg-type]
+            occurred_at=datetime.now(UTC),
+            previous_chain_digest=DIGEST_B,
+        )
+
+
 def test_bundle_rejects_missing_fixture_export() -> None:
     bundle, _codec = _runtime(build_valid_graph(), build_intent_factory())
     with pytest.raises(ValidationError, match="fixture exports"):

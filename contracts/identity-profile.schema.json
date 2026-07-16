@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/identity-profile/0.1/schema.json",
+  "$defs": {
+    "IdentityActorBinding": {
+      "additionalProperties": false,
+      "description": "Exact Case actor role binding without account or credential material.",
+      "properties": {
+        "actorSlot": {
+          "maxLength": 80,
+          "minLength": 2,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{1,79}$",
+          "title": "Actorslot",
+          "type": "string"
+        },
+        "roleId": {
+          "format": "uuid",
+          "title": "Roleid",
+          "type": "string"
+        },
+        "roleKey": {
+          "maxLength": 80,
+          "minLength": 2,
+          "pattern": "^[a-z][a-z0-9._-]{1,79}$",
+          "title": "Rolekey",
+          "type": "string"
+        },
+        "roleRevision": {
+          "minimum": 1,
+          "title": "Rolerevision",
+          "type": "integer"
+        },
+        "capabilities": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Capabilities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "actorSlot",
+        "roleId",
+        "roleKey",
+        "roleRevision"
+      ],
+      "title": "IdentityActorBinding",
+      "type": "object"
+    },
+    "TaskProfileStatus": {
+      "description": "Admission status shared by every immutable Task profile version.",
+      "enum": [
+        "PUBLISHED",
+        "DEPRECATED",
+        "REVOKED"
+      ],
+      "title": "TaskProfileStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Published exact Case actor-role snapshot without runtime identities.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "profileKey": {
+      "maxLength": 80,
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$",
+      "title": "Profilekey",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 80,
+      "minLength": 5,
+      "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+      "title": "Version",
+      "type": "string"
+    },
+    "versionRef": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "title": "Versionref",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/TaskProfileStatus"
+    },
+    "contentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Contentdigest",
+      "type": "string"
+    },
+    "publishedBy": {
+      "format": "uuid",
+      "title": "Publishedby",
+      "type": "string"
+    },
+    "publishedAt": {
+      "format": "date-time",
+      "title": "Publishedat",
+      "type": "string"
+    },
+    "deprecatedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deprecatedat"
+    },
+    "revokedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Revokedat"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "title": "Updatedat",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "atlas.identity-profile/0.1",
+      "default": "atlas.identity-profile/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "caseVersionId": {
+      "format": "uuid",
+      "title": "Caseversionid",
+      "type": "string"
+    },
+    "caseContentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Casecontentdigest",
+      "type": "string"
+    },
+    "actors": {
+      "items": {
+        "$ref": "#/$defs/IdentityActorBinding"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Actors",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "profileKey",
+    "version",
+    "versionRef",
+    "status",
+    "contentDigest",
+    "publishedBy",
+    "publishedAt",
+    "revision",
+    "createdAt",
+    "updatedAt",
+    "caseVersionId",
+    "caseContentDigest",
+    "actors"
+  ],
+  "title": "IdentityProfileVersion",
+  "type": "object"
+}

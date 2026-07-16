@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/data-profile/0.1/schema.json",
+  "$defs": {
+    "JsonValue": {},
+    "TaskProfileStatus": {
+      "description": "Admission status shared by every immutable Task profile version.",
+      "enum": [
+        "PUBLISHED",
+        "DEPRECATED",
+        "REVOKED"
+      ],
+      "title": "TaskProfileStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Published exact Fixture blueprint and secret-free run input snapshot.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "profileKey": {
+      "maxLength": 80,
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$",
+      "title": "Profilekey",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 80,
+      "minLength": 5,
+      "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+      "title": "Version",
+      "type": "string"
+    },
+    "versionRef": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "title": "Versionref",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/TaskProfileStatus"
+    },
+    "contentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Contentdigest",
+      "type": "string"
+    },
+    "publishedBy": {
+      "format": "uuid",
+      "title": "Publishedby",
+      "type": "string"
+    },
+    "publishedAt": {
+      "format": "date-time",
+      "title": "Publishedat",
+      "type": "string"
+    },
+    "deprecatedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deprecatedat"
+    },
+    "revokedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Revokedat"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "title": "Updatedat",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "atlas.data-profile/0.1",
+      "default": "atlas.data-profile/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "blueprintVersionId": {
+      "format": "uuid",
+      "title": "Blueprintversionid",
+      "type": "string"
+    },
+    "blueprintVersionRef": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "title": "Blueprintversionref",
+      "type": "string"
+    },
+    "blueprintContentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Blueprintcontentdigest",
+      "type": "string"
+    },
+    "planDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plandigest",
+      "type": "string"
+    },
+    "runInputs": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "maxProperties": 128,
+      "title": "Runinputs",
+      "type": "object"
+    },
+    "inputDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Inputdigest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "profileKey",
+    "version",
+    "versionRef",
+    "status",
+    "contentDigest",
+    "publishedBy",
+    "publishedAt",
+    "revision",
+    "createdAt",
+    "updatedAt",
+    "blueprintVersionId",
+    "blueprintVersionRef",
+    "blueprintContentDigest",
+    "planDigest",
+    "inputDigest"
+  ],
+  "title": "DataProfileVersion",
+  "type": "object"
+}

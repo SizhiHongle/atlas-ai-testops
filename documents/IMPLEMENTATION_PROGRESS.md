@@ -1,6 +1,6 @@
 # Atlas AI 测试平台实施进度
 
-更新时间：2026-07-15
+更新时间：2026-07-16
 
 ## 使用规则
 
@@ -13,11 +13,11 @@
 
 ## 当前状态
 
-- 当前阶段：`P6 Browser / Oracle / Evidence Runtime（基础中）`
-- 当前切片：`P6-01 无数据库 Browser Worker 与受限 Playwright 执行（已完成）`
-- 总体状态：P4 发布闭环、P6-00 受信运行事实与 P6-01 Browser 执行平面已落地；下一步补齐生产 Evidence / Redaction 与 Live 能力，前端继续只按既有原型槽位接线
+- 当前阶段：`P5 Task Runtime（基础中）`
+- 当前切片：`P5-00B1 调度前置事实、Seal 与 Revision CAS（已验收）`
+- 总体状态：P5 已建立正式执行宿主、四类 Profile Version、stable request digest、deterministic Temporal identity、materialization seal、Revision CAS 与 Pending Start Intent；Temporal Intent Consumer / Workflow、公共 Command API、大批次分区物化、AttemptSeal 和 P6-02B2 控制权仍待后续，前端继续只按既有原型槽位接线
 - 当前分支：`main`
-- 当前进入基线提交：`befc631`
+- 当前进入基线提交：`3a8d74e`
 
 ## 阶段看板
 
@@ -28,8 +28,8 @@
 | P2 | TestRole、AccountPool、TestAccount、Lease 与 Auth Session | 已完成 | P2-01 至 P2-06 已验收；身份、租约、Secret Grant、加密 Session 与清理链已闭环 |
 | P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 已完成 | P3-00 至 P3-03 已验收；资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与三类发布证据闭环 |
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 后端完成 | P4-00 至 P4-03 已验收；作者态、不可变 DebugRun、精确绑定、Reviewer 发布门禁与 CaseVersion 冻结闭环已落地 |
-| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 未开始 | — |
-| P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 已完成可信事实层；P6-01 独立无数据库 Browser Worker、受信网关、Context Restore、报告链与受限 Playwright Adapter 已验收；Live / 生产 Evidence Writer / AttemptSeal 待后续 |
+| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 宿主与 P5-00B1 Profile / request digest / Workflow identity / Seal / CAS 已验收；Intent Consumer、编排、大批次物化与公共控制面待后续 |
+| P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面与 P6-02A 可信截图写入 / 受控读取已验收；P6-02B1 DebugRun Live 安全观察流已实现，P6-02B2 控制权与 AttemptSeal 可基于正式 UnitAttempt 继续落地 |
 | P7 | Result Fact、Snapshot、Classification 与 Gate | 未开始 | — |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 未开始 | — |
 | P9 | 隔离、并发、故障注入、黄金链路与 SLO 验收 | 未开始 | — |
@@ -240,6 +240,51 @@
 - 前端仅新增生成 TypeScript 类型以及 `lib/api/cases.ts` 的 CaseVersion SWR / publish adapter；未修改 Cases、Case Canvas、Debug、Publish 原型页面、DOM、布局、CSS 或既有交互。
 - 真实 PostgreSQL 测试覆盖无成功试运行、自审、过期 DebugRun、重复版本 / 证据、幂等重放、跨 Tenant 404、发布后 Draft 继续演进而历史版本不变、节点 / Edge 不可变与无 DELETE 权限；迁移完成 `0015 → 0014 → 0015` 往返，全量门禁通过 310 tests，覆盖率 90.49%。
 
+## P5-00A 范围
+
+### 已实现
+
+- 建立 `TaskPlan`、`atlas.task-plan/0.1` `TaskPlanVersion`、`atlas.task-run-manifest/0.1` `TaskRunManifest`、`TaskRun`、`ExecutionUnit`、`UnitAttempt` 与 `TaskExecutionEvent` 领域契约；正式对象链固定为 `TaskPlanVersion → TaskRun → ExecutionUnit → UnitAttempt`，不复用作者态 `DebugRun`。
+- Manifest 冻结 CaseVersion、Execution Contract、Fixture Blueprint、Environment、Identity / Browser / Data Profile 的精确 ID 值及 Parameter / Dependency / Policy Digest，并通过 canonical hash 绑定完整 Unit 集。Repository 与 PostgreSQL 双层要求 Policy 覆盖 Plan 的全部同值键、Case 与四个矩阵轴均来自 exact PlanVersion，且 ExecutionContract / Fixture 与 Case Profile 一致；允许编译器增加 resolved policy digest，不虚构完整笛卡尔积。其中 CaseVersion、Environment、Fixture Blueprint Version 已由真实同作用域 FK 验证，另外四类版本 ID 当前是不可变 typed pinned reference slots，尚无正式宿主与发布门禁。业务重试追加新的 `UnitAttempt`，Activity retry 仍属于同一 Attempt。
+- Lifecycle、Quality、Hygiene 使用三条独立状态轴。结果允许先进入 CLOSED，Hygiene 随后继续 PENDING / RUNNING / CLEANUP_FAILED retry，最终 CLEANED 或 LEAKED 时才写 `cleanupResolvedAt`，且该时间可晚于 `closedAt`；CLOSED 后 Lifecycle、Quality、身份和既有里程碑仍不可回写。Task 级 Pause 表示停止新派发，不等同于后续浏览器 Safe Point Pause。
+- `20260716_0022` 建立 `task_plan`、`task_plan_version`、`task_run`、`task_run_manifest`、`execution_unit`、`unit_attempt` 与 `task_run_event`。PlanVersion 写入时复核 PUBLISHED CaseVersion、ACTIVE TEST/STAGING Environment 与 PUBLISHED Fixture Blueprint 的同作用域宿主；复合 FK、Plan-to-Manifest provenance、Manifest-to-Unit 精确绑定、确定性父行锁、Attempt / Event 无间隙序号、不可变 Trigger、`FORCE RLS` 和无 DELETE 最小权限由 PostgreSQL 执行。Matrix、Profile、Policy 与 Manifest Unit JSONB validator 使用 exact key set，并对缺键、SQL / JSON `NULL` fail-closed。Event 在 Run→Unit→Attempt 顺序锁定最窄 Scope，并以实际里程碑作为 occurredAt 下界。
+- `TaskRunRepository` 在调用方数据库事务内按固定顺序创建完整初始聚合，先读取并验证 exact PlanVersion provenance；当前按设计稿 P1 小批次边界最多同步物化 64 Units，超限在首条 SQL 前 fail-closed。Repository 支持 Plan / Version / Run / Manifest / Unit / Attempt 查询、追加 Attempt 和单调 Event replay，同一 immutable fact 只允许 exact replay，冲突不会覆盖已保存历史。事务中不调用 Temporal、HTTP、Playwright 或对象存储。
+- 导出 TaskPlanVersion、TaskRunManifest、TaskRun、ExecutionUnit、UnitAttempt 与 TaskExecutionEvent JSON Schema；本切片不增加公共 HTTP API，因此 OpenAPI 与前端生成类型不发生 P5 变化。
+- 真实 PostgreSQL 测试覆盖 published CaseVersion 到 Attempt 的完整反向链、PlanVersion 真实依赖门禁、Plan-to-Manifest policy / matrix provenance、原始 SQL 缺键与 JSON `null` 绕过拒绝、trigger replay、Attempt #2、Attempt / Event gap 与冲突、CLOSED 后 Cleanup 推进及事件、窄作用域事件状态/锁/时间下界、跨 Tenant RLS、跨 Project Scope、Version / Manifest / Unit / Attempt / Event 不可变、七表 `FORCE RLS` 与应用角色无 DELETE；迁移完成 `0022 → 0021 → 0022` 往返。
+- 全仓门禁通过 586 tests，覆盖率 90.33%；Ruff、mypy、Contract / OpenAPI 漂移、Python sdist / wheel、前端 API 类型、TypeScript 与 production build 全部通过。
+- 未修改任何前端页面、组件、DOM、布局、CSS 或既有交互；Launch、Task Control 与 Live Theatre 仍以前端已设计原型为唯一权威。
+
+### 后续边界
+
+- P5-00A 只建立事实宿主和持久化边界，不伪造 Temporal 调度、Command API、Schedule / CI Adapter、AttemptSeal、LiveSession、ControlLease 或 Result Snapshot。
+- P5-00B1 已补齐原计划中的四类正式 Profile、稳定 request digest、Temporal Workflow identity、同步 materialization seal 与统一 Revision CAS；超过 64 Units 的可恢复分区物化、Intent Consumer、Temporal 编排、Schedule / CI / API 入口仍属于后续切片。随后 P6-02B2 的人工控制事实才能精确绑定 `UnitAttempt`。
+
+## P5-00B1 范围
+
+### 已实现
+
+- 新增 `atlas.execution-profile/0.1`、`atlas.identity-profile/0.1`、`atlas.browser-profile/0.1` 与 `atlas.data-profile/0.1` 四类机器契约和不可变领域宿主；统一将正式 Task 引用命名为 `executionProfileVersionId`，不复用 DebugRun-scoped `ExecutionContract`。
+- Profile content digest 覆盖 exact Tenant / Project / version identity 与冻结 contract。Execution Profile 绑定 published CaseVersion 的 content / Test IR / Plan / compiled digest；Identity Profile 绑定 Case actor 与当前 TestRole revision / capabilities；Browser Profile 绑定 Chromium revision / Viewport / Locale / Timezone 与 runtime attestation；Data Profile 绑定 published Fixture Blueprint / compiled plan 与无秘密 Run Inputs。
+- `20260716_0023` 建立四类 Profile 表、Identity actor binding、Workflow identity registry 与 Workflow start intent；所有新表启用并强制 Tenant RLS，应用角色仅获 Profile SELECT / INSERT、Registry / Intent SELECT，无 DELETE 权限。Profile JSON 递归拒绝 Password、Token、Credential、Account、Session、Lease 等敏感字段形状；Identity actor 集一旦达到 Profile content digest 即封口，不能继续追加破坏不可变内容。
+- TaskPlanVersion / Manifest 的正式字段由 `executionContractVersionId` 迁移为 `executionProfileVersionId`。PostgreSQL 使用与 Python 对齐的 recursive canonical JSON + SHA-256 重算 Profile、PlanVersion、Unit key / dependency、Manifest hash 与 stable request digest，不接受调用方只提供任意格式正确的 digest。
+- TaskRun 以 `(tenantId, triggerSource, triggerFingerprint)` insert-or-get；request digest 只覆盖 logical trigger input，不包含服务端 Run ID 与时间。同一自然键只有 digest 与 `rerunOfTaskRunId` lineage 都相同才视为 replay，冲突不会覆盖既有事实。
+- Run / Attempt Workflow ID 由 Tenant ID 与对象 ID 确定性生成，并通过 `(namespace, workflowId)` Registry 在 Run / Attempt / Tenant 之间统一占位。历史 P5-00A 行标记为 `legacy_unsealed=true`，保留原业务 revision，但不能 Seal、不能推进状态，也不会伪装成已调度。
+- 同步聚合仍限 64 Units。`seal_task_run_materialization` 在 Run 行锁内重算 digest，核对全部 Unit 和 exactly-one first Attempt，重验 PUBLISHED Profile、Case / Fixture、ACTIVE TEST/STAGING Environment 与 TestRole snapshot，成功后写 `SEALED` 计数并原子追加唯一 `PENDING` Start Intent；本切片不消费 Intent 或调用 Temporal。
+- 三个 SECURITY DEFINER 状态函数统一使用 Run → Unit → Attempt 锁序和 expected Revision CAS；应用角色对三张状态表的直接列 UPDATE 已撤销。Task Admission 同事务要求父 Run SEALED 且可派发、Unit 仍为 QUEUED，再复验 Profile / Environment / Role drift 与 Run Inputs schema；后续 Attempt 还要求父 Run namespace、可派发生命周期与已 CLOSED 的可重试前序 Attempt，exact replay 与 Revision race 均 fail-closed。
+- 新增四类 Profile、Task admission、trusted state repository / service、migration contract 与真实 PostgreSQL 全链用例；未修改任何前端页面、组件、DOM、布局、CSS 或既有交互。
+
+### 已验收
+
+- 完整 `make verify` 通过 651 项测试，覆盖率 90.35%；Ruff、严格 mypy（248 个 source files）、机器 Schema / OpenAPI 漂移检查、Python sdist / wheel、前端 API 类型、TypeScript 与 production build 全部通过。
+- 最终 migration 在隔离 PostgreSQL 中完成从空库升级、空库与 populated database 的 `0023 → 0022 → 0023` 往返，并通过 Task execution hosts 全链、跨版本 Debug Live 历史修复、RLS 与最小权限测试。验证期间修复了 backfill trigger、canonical JSON、内部行锁权限、受信函数公开列投影和 v2 → v1 downgrade JSON 兼容转换。
+- 3 个真实 Chromium / localhost 用例全部通过，覆盖 DOM 重排后目标稳定、Browser revision 校验与敏感区域截图脱敏。未修改任何前端原型页面、组件、DOM、布局、CSS 或既有交互。
+
+### 后续边界
+
+- `task_workflow_start_intent` 在 B1 中只允许不可变 `PENDING` 事实；Claim / Lease / Retry / Started / Failed 状态机、Temporal Workflow / Activity 和恢复扫描属于下一切片。
+- 超过 64 Units 的 Manifest 仍由数据库 fail-closed。后续必须实现可恢复分区物化、分片 checkpoint、Seal 恢复和容量测试，不能扩大当前同步事务。
+- 公共 Task Plan / Run / Command / Event API、Schedule / CI / Webhook Adapter、AttemptSeal、Result Snapshot、LiveSession 与 ControlLease 均未在 B1 中伪造完成。
+
 ## P6-00 范围
 
 ### 已完成
@@ -250,7 +295,7 @@
 - 新增内部 `DebugRuntimeService`，按 `CREATED → BINDING → READY → RUNNING → FINALIZING → TERMINATED` 推进 DebugRun，并在每一步原子写入 DebugRunEvent、Audit 与 Outbox。绑定与终结均支持同一精确命令幂等重放；不同 Contract 或 Evidence 命令被拒绝。
 - CaseVersion 发布不再只相信 DebugRun 上的 Manifest ID / Digest，而是加载实际 EvidenceManifest，复核 ExecutionContract、Test IR、Plan、Fixture、Outcome、Completeness 与 Integrity 全部一致。旧 P6 前无证据 `PASSED` 和迁移时仍活动的旧 Run 会安全回退为 `INCONCLUSIVE`。
 - P6-00 当时没有公共 Runtime 完成 API，也未提供 Browser Worker、Live Action/Event、Artifact 字节验证或 View Token；P6-01 已补齐受信内部 Worker 协议，公共完成 API 仍保持关闭。
-- `AttemptSeal` 明确延后到 P5 创建正式 `UnitAttempt` 后，不创建属于 DebugRun 的无宿主空协议。
+- `AttemptSeal` 明确不属于 DebugRun；P5-00A 已建立正式 `UnitAttempt` 宿主，Seal 仍在后续 P6 切片按独立不可变协议落地。
 - 前端仅更新 OpenAPI 生成类型；未修改任何现有页面、组件、DOM、布局、CSS 或交互，继续以前端原型为唯一视觉与交互权威。
 
 ## P6-01 范围
@@ -270,7 +315,7 @@
 
 ### 当前 fail-closed 边界
 
-- 生产 `BrowserArtifactWriter` / Evidence Redaction、对象存储写入、独立 Hash 与 Integrity Verification 尚未实现，属于 P6-02；未配置时 `CAPTURE_VIEW` 拒绝执行。
+- P6-01 验收时生产 `BrowserArtifactWriter` / Evidence Redaction、对象存储写入、独立 Hash 与 Integrity Verification 尚未实现；P6-02A 已补齐该主链，未完整配置可信 Evidence Store 时 `CAPTURE_VIEW` 仍拒绝执行。
 - 默认 Browser Operation / Route Registry 为空；首个真实 SaaS exact Operation 与 Published Route 必须由部署代码注册，不能用通用动态脚本替代。
 - Playwright HTTP / WebSocket Routing 不是完整网络沙箱。生产容器仍需部署 Egress、DNS、UDP / WebRTC 限制。
 - BrowserContext Envelope 目前只支持一个活动 Key Version；生产 Key Ring、Rotation 与旧 Key 有界解密窗口尚未落地。
@@ -285,12 +330,55 @@
 
 ### 下一步
 
-1. P6-02 落地生产 Evidence / Redaction Writer、Evidence Object 验证、Live Event / Action、短期 View / Read Token 和断线重放；只映射到前端现有 Debug / Live / Evidence 槽位，不重画或调整原型结构。
+1. 在 P6-02B2 基于 P5-00A 已建立的正式 UnitAttempt 落地 LiveSession、ControlLease、浏览器控制 Epoch / Fence、Human Takeover 与持久化 ActionGrant；P6-02B1 已提供的 DebugRun Live 只映射到前端现有 Debug / Live / Evidence 槽位，不重画或调整原型结构。
 2. 串联公共 DebugRun Start → Runtime Preparation → ExecutionContract Bind → Browser Dispatch，并保持同一命令的幂等恢复语义。
 3. 接入首个真实 SaaS Browser Operation / Published Route，并在部署层实施容器 Egress / DNS / UDP / WebRTC 策略与 Envelope Key Ring Rotation。
-4. P5 建立 TaskPlan / TaskRun / ExecutionUnit / UnitAttempt 后，再在 P6 后续切片创建 AttemptSeal，并在 P7 形成 Result Snapshot / Gate；Multi-actor 同时等待正式调度与控制权协议。
+4. P5-00A 已建立 TaskPlan / TaskRun / ExecutionUnit / UnitAttempt；后续在 P6 创建 AttemptSeal，并在 P7 形成 Result Snapshot / Gate。Multi-actor 仍等待正式调度与控制权协议。
 5. 接入首个真实 SaaS Fixture Provider 与 `PasswordLoginFlow`、生产 Secret Provider 和 KMS-backed `SessionArtifactVault`；缺少受信部署配置时继续 fail-closed。
 6. 为各 Tenant 配置生产 Temporal Schedule，周期调度 Fixture Cleanup Sweep、`AccountHealthWorkflow`、Connector Reconcile、Credential Expiry Monitor 和 Session Janitor Workflow。
+
+## P6-02A 范围
+
+### 已实现
+
+- Browser Worker 的可信截图路径会先在 Playwright DOM 中遮罩 `input`、`textarea`、`select`、可编辑内容与显式 `data-atlas-sensitive` 元素，再捕获 PNG；Writer 使用固定 RGB、白底 alpha flatten、去元数据和固定压缩级别生成 canonical PNG，并限制原始字节与像素规模。
+- `PngEvidenceArtifactWriter` 使用作用域化唯一对象键写入 S3-compatible Object Store；只有在独立回读完整对象并重新核对 SHA-256 与大小后，才返回 `integrity=VERIFIED` 的 `EvidenceArtifactInput`。上传、回读或校验失败时不生成可信 Receipt，并尽力删除本次对象；生产 Bucket 仍必须启用 Object Lock / Versioning。
+- API 新增 `GET /v1/debug-runs/{runId}/evidence` 安全投影、`POST /v1/debug-runs/{runId}/evidence/{artifactId}/read-tokens` 与 `GET /v1/evidence/artifacts/{artifactId}/content`。Manifest 不暴露 ObjectRef；对象读取发生在短数据库事务之外，完整字节在响应前再次校验固定大小与 SHA-256。
+- `20260715_0018` 新增强制 RLS 的 `evidence_read_grant`。Opaque `evr_` Token 只在签发响应出现，PostgreSQL 只保存 SHA-256 Hash；Grant 精确绑定 Tenant、Project、Environment、DebugRun、ExecutionContract、Artifact、Actor、Platform Session 与 `INLINE / DOWNLOAD` Purpose，并以 10–120 秒 TTL、1–32 次最大读取和单步 Revision / Read Count 状态机限制使用。
+- 读取同时要求普通 Platform Session 与 `Authorization: Atlas-Evidence <token>`，不接受 Query Token。新签发会撤销同 Artifact / Actor / Session / Purpose 的旧活动 Grant；过期、撤销、Purpose 不匹配、Session / Actor 不匹配、读取次数耗尽或跨 Scope 使用均 fail-closed。
+- API 与 Browser Worker 的 Evidence Store 配置必须完整提供非空 Endpoint、Access Key 和 Secret Key；Staging / Production 强制 TLS 并拒绝自动创建 Bucket。连接 / 读取超时、有限重试、并发上限与 MinIO Transport Error 均受控；`capture_view` 未连接可信 Store 时拒绝启动或执行，读取未配置、对象缺失、完整性失败与 Store 不可用分别返回受控 503 / 409，不返回未验证字节。
+- 本切片没有修改任何前端页面、组件、DOM、布局、CSS 或既有交互；后续接线仍以前端既有 Debug / Live / Evidence 原型为准。
+
+### 验证状态
+
+- Alembic `20260715_0018 → 20260715_0017 → 20260715_0018` 往返通过；真实 PostgreSQL 覆盖 Actor + Tenant RLS、Session 有效 / 撤销、并发单次兑换、并发替换仅保留一个活动 Grant、列级 UPDATE、无 DELETE 与 ObjectRef Scope Constraint。
+- 真实 Chromium 覆盖主页面与 iframe 的 DOM Mask、普通区域不误遮罩、canonical PNG、对象回读与 Receipt SHA-256；应用与 API 测试覆盖双认证、拒绝 Query Token、通用 401、无 Token Audit / Outbox、事务外对象 I/O、409 / 503 与 no-store 安全响应。
+- `make verify` 通过：467 tests、覆盖率 90.05%、ruff、严格 mypy、Schema / OpenAPI 漂移、Python sdist / wheel、TypeScript 与前端生产构建全部成功；前端只有自动生成的 API 类型变化，页面与原型未改。
+
+## P6-02B1 范围
+
+### 已实现
+
+- 建立 `atlas.debug-live-cursor/0.1`、`atlas.debug-live-run-projection/0.1`、`atlas.debug-live-event/0.1` 与 `atlas.debug-live-snapshot/0.1` 冻结契约。当前宿主明确是 `DebugRun`，不是尚未建立的 `UnitAttempt` 或正式 `LiveSession`。
+- API 新增 `GET /v1/debug-runs/{runId}/live` 安全快照与 `GET /v1/debug-runs/{runId}/events/stream` SSE。两者复用 Platform Session / Project 可见性边界；OpenAPI 明确声明 `PlatformSession`，响应使用 private `no-store`、`no-transform`、`nosniff`，SSE 同时禁用代理缓冲。
+- 首次订阅以单条无行锁 SQL 在同一 MVCC Snapshot 中读取轻量 `DebugLiveRunProjection`、最新事件和精确 `headSeq`，先发送 `debug_run.live.snapshot`。查询只构造 Live 所需字段，不加载或反序列化完整 DebugRun 的 Test IR / PlanTemplate 等大快照；Opaque Cursor 是绑定 exact DebugRun 与 `afterSeq` 的 canonical Base64URL JSON。重连只接受 `Last-Event-ID`，按 `seq > afterSeq ORDER BY seq` 重放，跨 Run、损坏、超长或超前 Cursor 均在开始流式响应前返回 400。
+- 每次事件拉取使用独立短事务，关闭事务后才向网络 yield；无事件等待、慢消费者背压和 Heartbeat 均不占 PostgreSQL 连接或行锁。Heartbeat 只发送 SSE comment，不带 `id`、不推进 Cursor。`DebugRun=TERMINATED` 不封存事件日志，之后仍可能因 Draft 语义变化追加 `debug_run.snapshot_outdated`；SSE 必须跨过 `debug_run.terminated` replay 到当前 head，并继续 Poll，直到客户端断开或最长连接时限到达。
+- Live Event 不原样转发 `debug_run_event.payload`，而是按事件类型使用精确 allowlist 构造安全投影。取消 `reason`、Report / Chain Digest、ObjectRef、Authorization、Password、输入 Value 和未知字段均不进入 SSE；已落地的 Browser Report 只补充 Live UI 所需的低风险 Action、Observation、Policy、Receipt、Assertion 与 Artifact 摘要。
+- `DebugLiveStreamLimiter` 对单 API 进程的 Observer 数量设置硬上限，容量耗尽立即返回带 `Retry-After` 的 429，不排队占用连接；默认 Poll、Heartbeat、最长连接时长、Batch Size 与最大 Observer 均由有界配置控制。Service 的 `maximum_connection_seconds` 是事件生成预算；Route 内 `_DebugLiveStreamingResponse` 使用该预算加固定 1.0 秒 Close Grace 约束生成与关闭路径，并在 `finally` 中关闭 Source、归还 Observer Slot。最后安装的 pure-ASGI `DebugLiveStreamSendDeadlineMiddleware` 使用相同的 maximum 与 1.0 秒 Close Grace，包住 `BaseHTTPMiddleware` 重包装后的真实 client-facing `send`；网络写到期仍阻塞时由这一层取消。两层职责不同，Grace 期间均不生成新的业务事件。
+- Migration 分三阶段加固既有 `debug_run_event`：`20260716_0019` 只增加 32 KiB JSON Payload `CHECK ... NOT VALID` 并提交可修复边界，不扫描历史数据；`20260716_0020` 只先 `VALIDATE CONSTRAINT`，成功后再创建阻止 `UPDATE / DELETE` 的不可变 Trigger；`20260716_0021` 独立进入 Alembic `autocommit_block()`，以 `DROP INDEX CONCURRENTLY IF EXISTS` 删除已被 `(debug_run_id, seq)` Unique Constraint 覆盖的冗余 replay index，downgrade 则以 `CREATE INDEX CONCURRENTLY IF NOT EXISTS` 恢复。若历史超限 Payload 使 0020 失败，事务回滚且数据库版本保持 0019，可修复历史数据后重试 0020；只有验证与 Trigger 成功后才进入 0021 的非阻塞索引清理。B1 继续以现有权威事件日志为事实源，不新增重复事件表、通知事实源或长期数据库会话。
+- 本切片没有修改前端页面、组件、DOM、布局、CSS 或既有交互；后续接线严格以前端已设计的 Debug / Live / Evidence 原型为准。
+
+### 验证状态
+
+- Domain、Application 与 API 测试覆盖 Cursor round-trip / 损坏 / 跨 Run / 超前、轻量 Snapshot 高水位、`Last-Event-ID` 有序 replay、跨 `debug_run.terminated` 继续读取后续 `snapshot_outdated`、Heartbeat 不推进 Cursor、事务外等待、Route 关闭路径与 pure-ASGI 实际 `send` 的 Hard Deadline / Close Grace、事件 allowlist、取消原因脱敏、容量 429、SSE `id / event / data` 帧与 404 权限边界。
+- 真实 PostgreSQL 集成测试覆盖轻量单 SQL `headSeq`、跨终止事件的无缺口 replay、终止后 `snapshot_outdated`、跨 Project / Tenant 404、32 KiB Payload 拒绝与事件 UPDATE / DELETE Trigger；Validation 失败后版本保持 0019、修复历史 Payload、重试成功，以及完整 `0018 ↔ 0021` Alembic 往返和 0021 concurrent drop / recreate 均已通过。
+- 最终 `make verify` 已完整通过：Ruff all、严格 mypy 233 files、pytest 521 passed / coverage 90.18%、真实 PostgreSQL retry + `0018 ↔ 0021` roundtrip、Contracts Checks、Python sdist / wheel、Frontend `check:api`、`tsc` 与 Vinext Production Build 全部成功；前端原型页面未修改。
+
+### P6-02B2 / P5 后续仍待落地
+
+- P5-00A 已建立 `TaskRun / ExecutionUnit / UnitAttempt` 正式宿主，但尚未接入耐久编排。B1 仍不创建 `LiveSession`、`AttemptSeal` 或其他现场事实；P6-02B2 将直接绑定正式 UnitAttempt，不能退回 DebugRun 多态宿主。
+- Browser `ControlLease`、控制权 Epoch / Fence、Pause / Resume / Takeover Command、Human Takeover、Safe Point / Quiesce、持久化且绑定 Epoch / Fence 的 `ActionGrant` 均未实现。当前 SSE 是只读 Observer 通道，不接受 Frame、Command、Action 或人工输入，也不把 P6-01 Worker 内部单次 Action 校验误称为持久化人工控制协议。
+- 首个真实 SaaS Operation / Published Route、容器级 Egress / DNS / UDP / WebRTC、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch、Multi-actor 和正式 AttemptSeal 仍按既有计划后续落地，缺少对应部署能力时继续 fail-closed。
 
 ## 验证记录
 
@@ -362,6 +450,14 @@
 | 2026-07-15 | P6-01 Browser 执行平面 | Permit + HMAC 内部网关、Temporal Activity、Context Envelope、Report Chain、受限 Playwright | 通过；真实 PostgreSQL / Temporal / Chromium 覆盖精确绑定、幂等、DOM 目标稳定、Origin、失败闭合与 Worker 无数据库装配 |
 | 2026-07-15 | P6-01 Migration | `20260715_0017` downgrade `0016` → upgrade `0017` | 通过；Append-only Report、Evidence Finalization Digest、Trigger、RLS、Privilege 与 CaseVersion Evidence 流程往返成功 |
 | 2026-07-15 | P6-01 全量门禁 | `make verify` | 通过；389 tests、覆盖率 90.10%、ruff、严格 mypy、Schema / OpenAPI 漂移、Python sdist / wheel、TypeScript 与前端生产构建全部成功 |
+| 2026-07-15 | P6-02A Evidence 安全链 | DOM / iframe Mask、canonical PNG、hash-only scoped Read Grant、完整字节二次校验 | 通过；真实 Chromium 与 PostgreSQL 覆盖 Session / Actor RLS、并发签发 / 兑换、篡改、超时、双认证与 no-store |
+| 2026-07-15 | P6-02A Migration | `20260715_0018` downgrade `0017` → upgrade `0018` | 通过；ObjectRef Scope、强制 Actor + Tenant RLS、不可变 Trigger、列级 UPDATE、无 DELETE 与完整 downgrade 往返成功 |
+| 2026-07-15 | P6-02A 全量门禁 | `make verify` | 通过；467 tests、覆盖率 90.05%、ruff、严格 mypy、Schema / OpenAPI 漂移、Python sdist / wheel、TypeScript 与前端生产构建全部成功 |
+| 2026-07-16 | P6-02B1 Live 安全观察流 | 轻量 DebugRun Snapshot、Opaque Cursor、`Last-Event-ID` replay、短事务 SSE、Heartbeat comment、Route lifecycle deadline + pure-ASGI client-facing `send` deadline、Payload allowlist、Observer 容量 | 通过；覆盖跨 `terminated` 的后续事件、敏感字段不透出、404 权限同形、429、停滞真实 `send` 的取消与 OpenAPI Platform Session 契约 |
+| 2026-07-16 | P6-02B1 PostgreSQL / Migration | `20260716_0019` `CHECK ... NOT VALID`；`20260716_0020` Validate + Immutable Trigger；`20260716_0021` autocommit concurrent replay index cleanup | 通过；Validation 失败 → 保持 0019 → 修复历史 Payload → 重试成功、真实 `0018 ↔ 0021` 往返及 concurrent drop / recreate 均已验证 |
+| 2026-07-16 | P6-02B1 全量门禁 | `make verify` | 通过；Ruff all、严格 mypy 233 files、pytest 521 passed / coverage 90.18%、真实 PostgreSQL retry + `0018 ↔ 0021` roundtrip、Contracts Checks、Python sdist / wheel、Frontend `check:api`、`tsc` 与 Vinext Production Build 全部成功 |
+| 2026-07-16 | P5-00A 正式执行宿主 | TaskPlanVersion / Run Manifest / TaskRun / ExecutionUnit / UnitAttempt / TaskExecutionEvent、Repository exact replay | 通过；领域与仓储定向测试、机器 Schema 漂移检查及真实 PostgreSQL 完整反向链验收 |
+| 2026-07-16 | P5-00A PostgreSQL / Migration | `20260716_0022`，`0021 → 0022 → 0021 → 0022` | 通过；复合 Scope、Manifest 绑定、Attempt / Event gapless、不可变 Trigger、`FORCE RLS`、最小权限和完整 downgrade 均已验证 |
 
 ## 当前风险与外部输入
 
@@ -372,5 +468,6 @@
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
 - P3-03 已完成取消后补偿、Reconcile、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Evidence；生产环境仍需按 Tenant 配置 Temporal Schedule 和真实 Provider，缺失时继续 fail-closed。
-- P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；生产 Evidence / Redaction Writer、对象字节验证、Live / View Token、真实 SaaS Operation / Route Registry、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
+- P5-00B1 已建立正式 Profile、Seal、CAS 与 Pending Start Intent，但 Intent Consumer、Task Temporal Workflow / Activity、Command API、Schedule / CI Adapter、超过 64 Units 的可恢复分区物化与恢复扫描尚未实现；Pending Intent 不会被描述成 Workflow 已启动或 Task 已执行。
+- P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；P6-02A Evidence Writer / 受控读取与 P6-02B1 DebugRun Live Snapshot / SSE 已完成。P6-02B2 的 UnitAttempt-scoped LiveSession、ControlLease、控制 Epoch / Fence、Human Takeover 与持久化 ActionGrant，以及真实 SaaS Operation / Route Registry、生产 Bucket Object Lock / Versioning、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
 - 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

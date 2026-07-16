@@ -4589,6 +4589,223 @@
         "title": "DataNodeRunStatus",
         "type": "string"
       },
+      "DebugLiveEvent": {
+        "additionalProperties": false,
+        "description": "One allowlisted DebugRun event delivered through the live stream.",
+        "properties": {
+          "cursor": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Cursor",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Data",
+            "type": "object"
+          },
+          "debugRunId": {
+            "format": "uuid",
+            "title": "Debugrunid",
+            "type": "string"
+          },
+          "eventId": {
+            "format": "uuid",
+            "title": "Eventid",
+            "type": "string"
+          },
+          "eventType": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9_.-]+$",
+            "title": "Eventtype",
+            "type": "string"
+          },
+          "lifecycle": {
+            "$ref": "#/components/schemas/DebugRunLifecycle"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/DebugRunOutcome"
+          },
+          "schemaVersion": {
+            "const": "atlas.debug-live-event/0.1",
+            "default": "atlas.debug-live-event/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "seq": {
+            "minimum": 1.0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "snapshotStatus": {
+            "$ref": "#/components/schemas/DebugRunSnapshotStatus"
+          }
+        },
+        "required": [
+          "eventId",
+          "debugRunId",
+          "seq",
+          "eventType",
+          "lifecycle",
+          "outcome",
+          "snapshotStatus",
+          "occurredAt",
+          "cursor"
+        ],
+        "title": "DebugLiveEvent",
+        "type": "object"
+      },
+      "DebugLiveRunProjection": {
+        "additionalProperties": false,
+        "description": "Safe DebugRun state embedded in the initial live snapshot.",
+        "properties": {
+          "cancelRequestedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelrequestedat"
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completedat"
+          },
+          "debugRunId": {
+            "format": "uuid",
+            "title": "Debugrunid",
+            "type": "string"
+          },
+          "environmentId": {
+            "format": "uuid",
+            "title": "Environmentid",
+            "type": "string"
+          },
+          "executionDeadline": {
+            "format": "date-time",
+            "title": "Executiondeadline",
+            "type": "string"
+          },
+          "lifecycle": {
+            "$ref": "#/components/schemas/DebugRunLifecycle"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/DebugRunOutcome"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schemaVersion": {
+            "const": "atlas.debug-live-run-projection/0.1",
+            "default": "atlas.debug-live-run-projection/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "snapshotStatus": {
+            "$ref": "#/components/schemas/DebugRunSnapshotStatus"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          },
+          "testCaseId": {
+            "format": "uuid",
+            "title": "Testcaseid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "debugRunId",
+          "projectId",
+          "testCaseId",
+          "environmentId",
+          "lifecycle",
+          "outcome",
+          "snapshotStatus",
+          "revision",
+          "executionDeadline"
+        ],
+        "title": "DebugLiveRunProjection",
+        "type": "object"
+      },
+      "DebugLiveSnapshot": {
+        "additionalProperties": false,
+        "description": "Consistent initial projection and event high-water mark for one DebugRun.",
+        "properties": {
+          "cursor": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Cursor",
+            "type": "string"
+          },
+          "latestEvent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DebugLiveEvent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observedAt": {
+            "format": "date-time",
+            "title": "Observedat",
+            "type": "string"
+          },
+          "run": {
+            "$ref": "#/components/schemas/DebugLiveRunProjection"
+          },
+          "schemaVersion": {
+            "const": "atlas.debug-live-snapshot/0.1",
+            "default": "atlas.debug-live-snapshot/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run",
+          "cursor",
+          "observedAt"
+        ],
+        "title": "DebugLiveSnapshot",
+        "type": "object"
+      },
       "DebugRun": {
         "additionalProperties": false,
         "description": "Safe projection containing one immutable compiled Draft snapshot.",
@@ -5286,6 +5503,10 @@
           "TRIAL_RUN_REQUIRED",
           "DEBUG_RUN_OUTDATED",
           "DEBUG_RUNTIME_UNAVAILABLE",
+          "EVIDENCE_NOT_READY",
+          "EVIDENCE_INTEGRITY_FAILED",
+          "LIVE_CURSOR_INVALID",
+          "LIVE_STREAM_CAPACITY_EXCEEDED",
           "INTERNAL_ERROR"
         ],
         "title": "ErrorCode",
@@ -5662,6 +5883,66 @@
         },
         "title": "EvidencePolicy",
         "type": "object"
+      },
+      "EvidenceReadGrant": {
+        "additionalProperties": false,
+        "description": "Opaque, short-lived authority to read one exact verified artifact.",
+        "properties": {
+          "artifactId": {
+            "format": "uuid",
+            "title": "Artifactid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "title": "Expiresat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issuedAt": {
+            "format": "date-time",
+            "title": "Issuedat",
+            "type": "string"
+          },
+          "maxReads": {
+            "maximum": 32.0,
+            "minimum": 1.0,
+            "title": "Maxreads",
+            "type": "integer"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/EvidenceReadPurpose"
+          },
+          "readToken": {
+            "pattern": "^evr_[A-Za-z0-9_-]{32,200}$",
+            "title": "Readtoken",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "artifactId",
+          "purpose",
+          "readToken",
+          "issuedAt",
+          "expiresAt",
+          "maxReads"
+        ],
+        "title": "EvidenceReadGrant",
+        "type": "object"
+      },
+      "EvidenceReadPurpose": {
+        "description": "Exact presentation purpose authorized by an evidence read grant.",
+        "enum": [
+          "INLINE",
+          "DOWNLOAD"
+        ],
+        "title": "EvidenceReadPurpose",
+        "type": "string"
       },
       "ExecutionActorBinding": {
         "additionalProperties": false,
@@ -6857,6 +7138,20 @@
           "mode"
         ],
         "title": "IdempotencyPolicy",
+        "type": "object"
+      },
+      "IssueEvidenceReadGrant": {
+        "additionalProperties": false,
+        "description": "Request a bounded grant without accepting storage or scope identifiers.",
+        "properties": {
+          "purpose": {
+            "$ref": "#/components/schemas/EvidenceReadPurpose"
+          }
+        },
+        "required": [
+          "purpose"
+        ],
+        "title": "IssueEvidenceReadGrant",
         "type": "object"
       },
       "IssueSecretGrant": {
@@ -10591,6 +10886,20 @@
         ],
         "title": "WorkflowPhase",
         "type": "string"
+      }
+    },
+    "securitySchemes": {
+      "AtlasEvidenceReadGrant": {
+        "description": "Use the exact form: Atlas-Evidence <opaque read token>.",
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      },
+      "PlatformSession": {
+        "description": "Validated Atlas Platform Session cookie.",
+        "in": "cookie",
+        "name": "atlas_session",
+        "type": "apiKey"
       }
     }
   },
@@ -16935,6 +17244,583 @@
         ]
       }
     },
+    "/v1/debug-runs/{runId}/events/stream": {
+      "get": {
+        "operationId": "stream_debug_live_events_v1_debug_runs__runId__events_stream_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "maxLength": 512,
+              "title": "Last-Event-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "DebugRun snapshot 后接可恢复的单调事件流"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Live Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "DebugRun 不存在或不可见"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Live Observer 容量已满"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "订阅可恢复的 DebugRun Live 事件",
+        "tags": [
+          "debug-live"
+        ]
+      }
+    },
+    "/v1/debug-runs/{runId}/evidence": {
+      "get": {
+        "operationId": "get_debug_run_evidence_v1_debug_runs__runId__evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceManifest"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "身份或 Evidence Read Grant 无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前身份不能签发读取授权"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "DebugRun 或 Evidence Artifact 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Evidence 未封存或完整性失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Evidence Object Store 未配置或不可用"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "读取 DebugRun 的不可变 EvidenceManifest",
+        "tags": [
+          "evidence"
+        ]
+      }
+    },
+    "/v1/debug-runs/{runId}/evidence/{artifactId}/read-tokens": {
+      "post": {
+        "operationId": "issue_evidence_read_grant_v1_debug_runs__runId__evidence__artifactId__read_tokens_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "artifactId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artifactid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueEvidenceReadGrant"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceReadGrant"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "身份或 Evidence Read Grant 无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前身份不能签发读取授权"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "DebugRun 或 Evidence Artifact 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Evidence 未封存或完整性失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Evidence Object Store 未配置或不可用"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "签发用户与 Session 绑定的短期 Evidence Read Grant",
+        "tags": [
+          "evidence"
+        ]
+      }
+    },
+    "/v1/debug-runs/{runId}/live": {
+      "get": {
+        "operationId": "get_debug_live_snapshot_v1_debug_runs__runId__live_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugLiveSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Live Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "DebugRun 不存在或不可见"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Live Observer 容量已满"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "读取 DebugRun Live 安全快照",
+        "tags": [
+          "debug-live"
+        ]
+      }
+    },
     "/v1/debug-runs/{runId}:cancel": {
       "post": {
         "operationId": "cancel_debug_run_v1_debug_runs__runId__cancel_post",
@@ -17953,6 +18839,175 @@
         "summary": "列出 ConnectorInstallation",
         "tags": [
           "connectors"
+        ]
+      }
+    },
+    "/v1/evidence/artifacts/{artifactId}/content": {
+      "get": {
+        "operationId": "read_evidence_content_v1_evidence_artifacts__artifactId__content_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artifactId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artifactid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/EvidenceReadPurpose",
+              "default": "INLINE"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "完整校验后的 Evidence 字节"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "身份或 Evidence Read Grant 无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前身份不能签发读取授权"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "DebugRun 或 Evidence Artifact 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Evidence 未封存或完整性失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Evidence Object Store 未配置或不可用"
+          }
+        },
+        "security": [
+          {
+            "AtlasEvidenceReadGrant": [],
+            "PlatformSession": []
+          }
+        ],
+        "summary": "使用短期 Read Grant 读取并重新校验 Evidence 字节",
+        "tags": [
+          "evidence"
         ]
       }
     },
