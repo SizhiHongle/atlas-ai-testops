@@ -20,6 +20,7 @@ from atlas_testops.domain.fixture import (
     DataBlueprintContract,
     FixtureManifest,
 )
+from atlas_testops.domain.insight import InsightSnapshot
 from atlas_testops.domain.result import (
     AttemptClosureNotice,
     AttemptFixtureBinding,
@@ -117,6 +118,7 @@ FAILURE_CLASSIFICATION_REVISION_SCHEMA = (
     REPOSITORY_ROOT / "contracts" / "failure-classification-revision.schema.json"
 )
 TASK_GATE_DECISION_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-gate-decision.schema.json"
+INSIGHT_SNAPSHOT_SCHEMA = REPOSITORY_ROOT / "contracts" / "insight-snapshot.schema.json"
 
 
 def render_schema(model: type[BaseModel], schema_id: str) -> str:
@@ -305,6 +307,10 @@ def main() -> None:
         TASK_GATE_DECISION_SCHEMA: render_schema(
             TaskGateDecision,
             "https://atlas.test/contracts/task-gate-decision/0.1/schema.json",
+        ),
+        INSIGHT_SNAPSHOT_SCHEMA: render_schema(
+            InsightSnapshot,
+            "https://atlas.test/contracts/insight-snapshot/0.1/schema.json",
         ),
     }
 

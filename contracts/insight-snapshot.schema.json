@@ -1,0 +1,563 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/insight-snapshot/0.1/schema.json",
+  "$defs": {
+    "InsightDatasetCut": {
+      "additionalProperties": false,
+      "description": "Reproducible source set and authorization fence for one brief.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.insight-dataset-cut/0.1",
+          "default": "atlas.insight-dataset-cut/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "asOf": {
+          "format": "date-time",
+          "title": "Asof",
+          "type": "string"
+        },
+        "sourceSnapshotIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "title": "Sourcesnapshotids",
+          "type": "array"
+        },
+        "sourceSnapshotHashes": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "title": "Sourcesnapshothashes",
+          "type": "array"
+        },
+        "gateDecisionIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "title": "Gatedecisionids",
+          "type": "array"
+        },
+        "gateDecisionHashes": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "title": "Gatedecisionhashes",
+          "type": "array"
+        },
+        "sourceSetDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Sourcesetdigest",
+          "type": "string"
+        },
+        "projectionWatermark": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projectionwatermark"
+        },
+        "queryHash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Queryhash",
+          "type": "string"
+        },
+        "authScopeHash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Authscopehash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "asOf",
+        "sourceSnapshotIds",
+        "sourceSnapshotHashes",
+        "gateDecisionIds",
+        "gateDecisionHashes",
+        "sourceSetDigest",
+        "queryHash",
+        "authScopeHash"
+      ],
+      "title": "InsightDatasetCut",
+      "type": "object"
+    },
+    "InsightMetricDefinition": {
+      "additionalProperties": false,
+      "description": "One immutable, platform-owned metric semantic contract.",
+      "properties": {
+        "metricKey": {
+          "$ref": "#/$defs/InsightMetricKey"
+        },
+        "version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Version",
+          "type": "string"
+        },
+        "grain": {
+          "const": "UNIT",
+          "default": "UNIT",
+          "title": "Grain",
+          "type": "string"
+        },
+        "population": {
+          "const": "MANIFEST_UNITS",
+          "default": "MANIFEST_UNITS",
+          "title": "Population",
+          "type": "string"
+        },
+        "aggregation": {
+          "const": "RATIO_OF_SUMS",
+          "default": "RATIO_OF_SUMS",
+          "title": "Aggregation",
+          "type": "string"
+        },
+        "eventTime": {
+          "const": "QUALITY_FINALIZED_AT",
+          "default": "QUALITY_FINALIZED_AT",
+          "title": "Eventtime",
+          "type": "string"
+        },
+        "sourceFinality": {
+          "const": "FULLY_RESOLVED_OR_REEVALUATED",
+          "default": "FULLY_RESOLVED_OR_REEVALUATED",
+          "title": "Sourcefinality",
+          "type": "string"
+        },
+        "minimumSample": {
+          "const": 30,
+          "default": 30,
+          "title": "Minimumsample",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "metricKey"
+      ],
+      "title": "InsightMetricDefinition",
+      "type": "object"
+    },
+    "InsightMetricDeltas": {
+      "additionalProperties": false,
+      "description": "Signed current-minus-baseline changes in basis points.",
+      "properties": {
+        "trustedPassRate": {
+          "anyOf": [
+            {
+              "maximum": 10000,
+              "minimum": -10000,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Trustedpassrate"
+        },
+        "autonomousTrustedPassRate": {
+          "anyOf": [
+            {
+              "maximum": 10000,
+              "minimum": -10000,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Autonomoustrustedpassrate"
+        },
+        "methodHealthRate": {
+          "anyOf": [
+            {
+              "maximum": 10000,
+              "minimum": -10000,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Methodhealthrate"
+        }
+      },
+      "required": [
+        "trustedPassRate",
+        "autonomousTrustedPassRate",
+        "methodHealthRate"
+      ],
+      "title": "InsightMetricDeltas",
+      "type": "object"
+    },
+    "InsightMetricKey": {
+      "description": "Platform-signed V1 metrics; callers cannot submit arbitrary formulas.",
+      "enum": [
+        "quality.trusted_pass_rate",
+        "quality.autonomous_trusted_pass_rate",
+        "quality.method_health_rate"
+      ],
+      "title": "InsightMetricKey",
+      "type": "string"
+    },
+    "InsightMetricPoint": {
+      "additionalProperties": false,
+      "description": "Exact ratio point with a display-only basis-point projection.",
+      "properties": {
+        "metricKey": {
+          "$ref": "#/$defs/InsightMetricKey"
+        },
+        "metricVersion": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Metricversion",
+          "type": "string"
+        },
+        "numerator": {
+          "minimum": 0,
+          "title": "Numerator",
+          "type": "integer"
+        },
+        "denominator": {
+          "minimum": 0,
+          "title": "Denominator",
+          "type": "integer"
+        },
+        "basisPoints": {
+          "anyOf": [
+            {
+              "maximum": 10000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Basispoints"
+        },
+        "sampleStatus": {
+          "$ref": "#/$defs/InsightSampleStatus"
+        }
+      },
+      "required": [
+        "metricKey",
+        "numerator",
+        "denominator",
+        "basisPoints",
+        "sampleStatus"
+      ],
+      "title": "InsightMetricPoint",
+      "type": "object"
+    },
+    "InsightRiskSignal": {
+      "additionalProperties": false,
+      "description": "Deterministic latest non-accepted Gate observation, without causal claims.",
+      "properties": {
+        "taskRunId": {
+          "format": "uuid",
+          "title": "Taskrunid",
+          "type": "string"
+        },
+        "resultSnapshotId": {
+          "format": "uuid",
+          "title": "Resultsnapshotid",
+          "type": "string"
+        },
+        "taskPlanId": {
+          "format": "uuid",
+          "title": "Taskplanid",
+          "type": "string"
+        },
+        "taskPlanName": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Taskplanname",
+          "type": "string"
+        },
+        "gateDecision": {
+          "$ref": "#/$defs/TaskGateVerdict"
+        },
+        "reasonCount": {
+          "minimum": 0,
+          "title": "Reasoncount",
+          "type": "integer"
+        },
+        "observedAt": {
+          "format": "date-time",
+          "title": "Observedat",
+          "type": "string"
+        }
+      },
+      "required": [
+        "taskRunId",
+        "resultSnapshotId",
+        "taskPlanId",
+        "taskPlanName",
+        "gateDecision",
+        "reasonCount",
+        "observedAt"
+      ],
+      "title": "InsightRiskSignal",
+      "type": "object"
+    },
+    "InsightSampleStatus": {
+      "description": "Explicit sample sufficiency without converting no-data into zero.",
+      "enum": [
+        "NO_DATA",
+        "LOW_SAMPLE",
+        "ENOUGH"
+      ],
+      "title": "InsightSampleStatus",
+      "type": "string"
+    },
+    "InsightTerrainItem": {
+      "additionalProperties": false,
+      "description": "One TaskPlan quality slice rendered in the existing terrain slots.",
+      "properties": {
+        "taskPlanId": {
+          "format": "uuid",
+          "title": "Taskplanid",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "taskRunCount": {
+          "minimum": 1,
+          "title": "Taskruncount",
+          "type": "integer"
+        },
+        "executionUnitCount": {
+          "minimum": 1,
+          "title": "Executionunitcount",
+          "type": "integer"
+        },
+        "trustedPassRate": {
+          "$ref": "#/$defs/InsightMetricPoint"
+        },
+        "latestTaskRunId": {
+          "format": "uuid",
+          "title": "Latesttaskrunid",
+          "type": "string"
+        },
+        "latestResultSnapshotId": {
+          "format": "uuid",
+          "title": "Latestresultsnapshotid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "taskPlanId",
+        "label",
+        "taskRunCount",
+        "executionUnitCount",
+        "trustedPassRate",
+        "latestTaskRunId",
+        "latestResultSnapshotId"
+      ],
+      "title": "InsightTerrainItem",
+      "type": "object"
+    },
+    "InsightWindowSummary": {
+      "additionalProperties": false,
+      "description": "Ratio-of-sums metric output for one materialized UTC window.",
+      "properties": {
+        "startAt": {
+          "format": "date-time",
+          "title": "Startat",
+          "type": "string"
+        },
+        "endAt": {
+          "format": "date-time",
+          "title": "Endat",
+          "type": "string"
+        },
+        "taskRunCount": {
+          "minimum": 0,
+          "title": "Taskruncount",
+          "type": "integer"
+        },
+        "executionUnitCount": {
+          "minimum": 0,
+          "title": "Executionunitcount",
+          "type": "integer"
+        },
+        "trustedPassRate": {
+          "$ref": "#/$defs/InsightMetricPoint"
+        },
+        "autonomousTrustedPassRate": {
+          "$ref": "#/$defs/InsightMetricPoint"
+        },
+        "methodHealthRate": {
+          "$ref": "#/$defs/InsightMetricPoint"
+        }
+      },
+      "required": [
+        "startAt",
+        "endAt",
+        "taskRunCount",
+        "executionUnitCount",
+        "trustedPassRate",
+        "autonomousTrustedPassRate",
+        "methodHealthRate"
+      ],
+      "title": "InsightWindowSummary",
+      "type": "object"
+    },
+    "TaskGateVerdict": {
+      "description": "Three-valued release decision; uncertainty never becomes acceptance.",
+      "enum": [
+        "ACCEPTED",
+        "REJECTED",
+        "INCONCLUSIVE"
+      ],
+      "title": "TaskGateVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable pinned brief used for deep links, audit, and export inputs.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.insight-snapshot/0.1",
+      "default": "atlas.insight-snapshot/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "windowDays": {
+      "enum": [
+        7,
+        30,
+        90
+      ],
+      "title": "Windowdays",
+      "type": "integer"
+    },
+    "metricPolicyVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Metricpolicyversion",
+      "type": "string"
+    },
+    "metricDefinitions": {
+      "items": {
+        "$ref": "#/$defs/InsightMetricDefinition"
+      },
+      "title": "Metricdefinitions",
+      "type": "array"
+    },
+    "current": {
+      "$ref": "#/$defs/InsightWindowSummary"
+    },
+    "baseline": {
+      "$ref": "#/$defs/InsightWindowSummary"
+    },
+    "deltas": {
+      "$ref": "#/$defs/InsightMetricDeltas"
+    },
+    "terrain": {
+      "items": {
+        "$ref": "#/$defs/InsightTerrainItem"
+      },
+      "maxItems": 4,
+      "title": "Terrain",
+      "type": "array"
+    },
+    "activeRisk": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InsightRiskSignal"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "datasetCut": {
+      "$ref": "#/$defs/InsightDatasetCut"
+    },
+    "generatedAt": {
+      "format": "date-time",
+      "title": "Generatedat",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "requestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Requesthash",
+      "type": "string"
+    },
+    "clientMutationId": {
+      "maxLength": 200,
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "title": "Clientmutationid",
+      "type": "string"
+    },
+    "createdBy": {
+      "format": "uuid",
+      "title": "Createdby",
+      "type": "string"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "snapshotHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Snapshothash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenantId",
+    "projectId",
+    "windowDays",
+    "metricDefinitions",
+    "current",
+    "baseline",
+    "deltas",
+    "terrain",
+    "datasetCut",
+    "generatedAt",
+    "id",
+    "requestHash",
+    "clientMutationId",
+    "createdBy",
+    "createdAt",
+    "snapshotHash"
+  ],
+  "title": "InsightSnapshot",
+  "type": "object"
+}

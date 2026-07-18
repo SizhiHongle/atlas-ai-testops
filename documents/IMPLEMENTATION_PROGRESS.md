@@ -13,11 +13,11 @@
 
 ## 当前状态
 
-- 当前阶段：`P7 Result Snapshot、Classification 与 Gate（基础中）`
-- 当前切片：`P7-02A FailureCluster / FailureClassification 基础事实（已完成并通过真实 PostgreSQL / Temporal 验收）`
-- 总体状态：P5 已建立正式执行宿主、四类 Profile Version、stable request digest、deterministic Temporal identity、materialization seal、Revision CAS、durable Start Intent、最多 64 Units 的真实 Root / Attempt Workflow、查询、immutable Ticket、durable `CANCEL / PAUSE / RESUME`、有界 `INFRA_ERROR` 自动重试和 exact infra-failure child Run。P5-00E1/E2 已开放 TaskPlan 编写、不可变发布与 compatible-only Manual Launch。P6-03A/P6-03B 已建立完整 Attempt Fact 与 Unit Resolution 写入根；P7-01A 至 P7-01B2 已建立 `QUALITY_FINAL / FULLY_RESOLVED / REEVALUATED` TaskResultSnapshot 链；P7-02A 已建立 exact Snapshot-bound FailureCluster、保守 Rule Classification、证据引用与追加式人工复核。Worker 与 Consumer 仍默认关闭，仓库仍不内置真实 SaaS production Adapter；Gate、公共 Result API 与前端数据接入尚未开放；前端原型未改
+- 当前阶段：`P8 Comparable Insight Snapshot（基础中）`
+- 当前切片：`P8 V1 Quality Brief / DatasetCut / Snapshot / Insights 原型槽位接线`
+- 总体状态：P5 已建立正式执行宿主与最多 64 Units 的耐久编排；P6 已建立可信 Browser / Evidence / Attempt Result 事实链和只读 Live；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate、公开查询 API 与既有 Results 槽位接线。P8 V1 已基于 stable Result/Gate facts 实现固定 MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums current/baseline、可复现 DatasetCut、不可变 InsightSnapshot 与既有 Insights 槽位接线。Worker / Consumer 仍默认关闭，仓库仍不内置真实 SaaS production Adapter；Live control、Schedule / CI / Webhook、超过 64 Units 分区化和生产硬化继续按后续阶段落地
 - 当前分支：`main`
-- 当前进入基线提交：`3eb2a42`
+- 当前进入基线提交：`20b3e28`
 
 ## 阶段看板
 
@@ -30,8 +30,8 @@
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 后端完成 | P4-00 至 P4-03 已验收；作者态、不可变 DebugRun、精确绑定、Reviewer 发布门禁与 CaseVersion 冻结闭环已落地 |
 | P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00E2 已验收；不可变 Ticket、ticket-bound Port、durable command、自动 infra retry、manual infra-failure child Run、TaskPlan 公共 API 与首次 Manual Launch 均有 PostgreSQL 证据。真实 SaaS Adapter、Schedule / CI、超过 64 Units 分区化与 Takeover 待后续 |
 | P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面、P6-02A 可信截图写入 / 受控读取、P6-03A AttemptSeal / ResultRef 与 P6-03B ClosureNotice / UnitResolutionRevision 已验收；P6-02B1 DebugRun Live 安全观察流已实现；P6-02B2 控制权待后续 |
-| P7 | Result Fact、Snapshot、Classification 与 Gate | 基础中 | P6-03A/P6-03B 已建立完整 Attempt Fact 与 Unit Resolution；P7-01A 至 P7-01B2 已实现三阶段 Snapshot；P7-02A 已实现 `0038`、FailureCluster、Rule Classification、Evidence Ref 与人工 append-only review。Gate、读取投影和公共查询 API 待后续 |
-| P8 | Insight Projector、Metric、Snapshot 与 Export | 未开始 | — |
+| P7 | Result Fact、Snapshot、Classification 与 Gate | 已完成 | P6-03A/P6-03B 与 P7-01A 至 P7-03 已实现三阶段 Snapshot、FailureCluster / Classification、`0039` TaskGateDecision、公开 Result API、ETag 与既有 Results 槽位真实数据映射 |
+| P8 | Insight Projector、Metric、Snapshot 与 Export | 基础中 | V1 fixed MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums、DatasetCut、`0040` immutable InsightSnapshot、preview/pin/exact API 与既有 Insights 槽位映射已实现；Projector generation、Signal/Review 与异步 Export 待扩展 |
 | P9 | 隔离、并发、故障注入、黄金链路与 SLO 验收 | 未开始 | — |
 
 ## P0-01 范围
@@ -692,6 +692,8 @@
 | 2026-07-18 | P7-01B1 FULLY_RESOLVED Snapshot | 向后兼容的 Snapshot 0.2、Manifest-ordered Quality + Hygiene 双输入根、terminal Hygiene readiness、DataHygiene-only overlay、Task close / late Fixture 双触发、`0036` append-only guard | 通过；真实 PostgreSQL 已验证 `0035 → 0036` 兼容既有 0.1 Fact、合法 `QUALITY_FINAL → FULLY_RESOLVED`、exact replay、存在 FULLY Fact 时 downgrade fail-closed，以及独立空库 `0036 → 0035 → 0036` 往返；完整门禁 1011 passed / coverage 90.01%，真实 Temporal、Ruff、严格 mypy 324 files、Contracts / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
 | 2026-07-18 | P7-01B2 显式 REEVALUATED Snapshot | Snapshot 0.3、不可变 Reevaluation Command、exact Full source + frozen Policy binding、无自动重评、`0037` append-only guard | 通过；真实 PostgreSQL 已验证现有数据 `0036 → 0037`、显式 Full rev2 → Reevaluated rev3、exact replay、命令事实、最小权限、populated downgrade fail-closed，以及独立空库 `0037 → 0036 → 0037` 往返；完整门禁 1021 passed / coverage 90.11%，真实 Temporal、Ruff、严格 mypy 327 files、Contracts / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
 | 2026-07-18 | P7-02A FailureCluster / FailureClassification | exact Snapshot-bound manifest-ordered Cluster、保守规则归因、immutable Evidence Ref、basis-point confidence、人工 append-only review、RBAC / Idempotency / Audit / Outbox、`0038` database guard | 通过；真实 PostgreSQL 已验证 Cluster / Classification canonical hash parity、exact replay、人工确认 revision、最小权限与 advisory-lock 并发边界；全新临时数据库从零升级到 `0038` 成功；完整门禁 1032 passed / coverage 90.08%，Ruff、严格 mypy 332 files、Contracts / OpenAPI 漂移与 Python sdist / wheel 全部通过；没有增加公共 Result API，前端原型未改 |
+| 2026-07-18 | P7-02B / P7-03 Trusted Result Decision | exact Snapshot + complete Classification set、fail-closed three-valued Gate、Result / Resolution / Cluster / Review / Gate API、ETag、既有 Results 槽位接线、`0039` guard | 通过；真实 PostgreSQL 验证 Gate hash parity、永久 replay、RLS 与最小权限；完整门禁 1048 passed / coverage 90.13%、Ruff、严格 mypy 342 files、Contracts / OpenAPI、Python 包与前端类型/生产构建全部通过；原型 DOM、布局、样式和交互未改 |
+| 2026-07-18 | P8 V1 Comparable Insight Snapshot | fixed MetricDefinition、qualityFinalizedAt、ratio-of-sums、current/baseline、DatasetCut、terrain / Gate risk、preview / pin / exact API、`0040` guard、既有 Insights 槽位接线 | 通过；真实 PostgreSQL 完整 Task → Result → Classification → Gate → Insight preview / pin / replay 链、RLS、append-only 与 `0040 ↔ 0039` 空表往返通过；完整门禁 1063 passed / coverage 90.16%、Ruff、严格 mypy 352 files、Contracts / OpenAPI、Python sdist / wheel、前端 API 漂移 / 类型 / production build 全部通过；未改原型结构 |
 
 ## P6-03A 范围
 
@@ -813,6 +815,31 @@
 - 真实 PostgreSQL 已完成 `0037 → 0038`、REEVALUATED Snapshot → Cluster → Rule Classification → Human Confirmed Revision 全链，并验证表级不可 UPDATE / DELETE；另在全新临时数据库从零升级到 `0038`。完整门禁为 1032 passed / coverage 90.08%，Ruff、严格 mypy 332 files、Contracts / OpenAPI 漂移检查和 Python sdist / wheel 均通过。
 - 下一步建议进入 P7-02B fail-closed TaskGateDecision：必须绑定明确的 `resultSnapshotId + failureClassificationRevisionIds + classificationSetHash`，并由数据库证明覆盖该 Snapshot 的完整 Cluster 集合；只消费人工确认或政策明确允许的 judgment state，缺失 / 过期 / 低证据 Classification 默认阻断。之后再稳定 Result Center 读取投影和公共 API，并严格映射既有前端原型数据槽位。
 
+## P7-02B / P7-03 范围
+
+### 已实现
+
+- `atlas.task-gate-decision/0.1` 与 `20260718_0039` 冻结 exact Result Snapshot、完整 current Cluster / latest Classification 集合和 `classificationSetHash`。缺失、低证据、未决 Hygiene、无效 Evidence、人工影响或不稳定执行均默认 `INCONCLUSIVE`；明确失败/泄漏才 `REJECTED`，全部严格通过才 `ACCEPTED`。
+- 开放 snapshot-explicit Result / Unit Resolution / Cluster 查询、append-only Classification review 与 Gate evaluation。读接口提供强 ETag、304 和 Snapshot/Watermark headers；写接口保持 RBAC、幂等、Audit / Outbox 与数据库 canonical guard。
+- 既有 Task / Results 原型槽位映射真实 TaskRun、Snapshot、Gate、Cluster 与 Classification；无 Session / 数据时保留演示回退。未修改 DOM、布局、样式、className 或既有交互。
+
+## P8 V1 范围
+
+### 已实现
+
+- 建立平台签发的 trusted pass、autonomous trusted pass 与 method health 三项固定 Unit-grain MetricDefinition。归窗使用 immutable TaskRun `finalizedAt` 作为 `qualityFinalizedAt`；聚合只重新求和 numerator / denominator，0 分母返回 `NO_DATA`，不平均百分比。
+- `InsightBrief` 输出 7 / 30 / 90 天 UTC current 与相邻 baseline、signed basis-point delta、最多四个 TaskPlan terrain 和 latest non-accepted Gate 风险信号。只有 `FULLY_RESOLVED / REEVALUATED` Result Snapshot 可进入 source cut。
+- `InsightDatasetCut` 固定 ordered Result Snapshot 与 Gate Decision IDs / hashes、sourceSetDigest、projection watermark、queryHash、authScopeHash 与 asOf。`atlas.insight-snapshot/0.1` pin 后不可变，semantic hash 不依赖存储 identity。
+- `20260718_0040` 建立 append-only `insight_snapshot`。数据库在固定 asOf 与 qualityFinalizedAt 窗口内重新选择每个 TaskRun 的 latest stable Result、latest exact Gate，复核 source set、watermark、文档镜像与 canonical snapshot hash；启用 FORCE RLS、SELECT / INSERT 最小权限和 populated downgrade fail-closed。
+- 开放 brief preview、Snapshot pin 与 exact read，提供强 ETag、DatasetCut / query / watermark headers和永久 mutation replay。`insight-snapshot.schema.json`、OpenAPI 与前端类型同步导出。
+- 既有 Insights terrain、stable pass、method health 与 risk task 槽位只替换真实数据；DOM、布局、样式、className 和交互结构保持原型不变。
+
+### 验证状态与下一步
+
+- 15 项 P8 定向测试覆盖 ratio-of-sums、NO_DATA / LOW_SAMPLE、permutation invariance、current/baseline、source / Gate cut、hash、防篡改、API/ETag、Repository 与 Migration 静态守卫。
+- 真实 PostgreSQL 完整 Task → Result → Classification → Gate → Insight preview / pin / permanent replay 链通过，并验证跨 Tenant RLS、不可 UPDATE / DELETE 和 `0040 → 0039 → 0040` 空表往返。
+- 完整门禁 1063 passed / coverage 90.16%，Ruff、严格 mypy 352 files、Contracts / OpenAPI 漂移、Python sdist / wheel、前端 API 漂移 / TypeScript / production build 全部通过。
+
 ## 当前风险与外部输入
 
 - 首个真实 SaaS Connector、`PasswordLoginFlow` 和测试账号来源尚未提供；当前交付 Mock Provider、Generic Password Adapter 与可注入的 Playwright Target。
@@ -822,6 +849,6 @@
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
 - P3-03 已完成取消后补偿、Reconcile、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Evidence；生产环境仍需按 Tenant 配置 Temporal Schedule 和真实 Provider，缺失时继续 fail-closed。
-- P5-00B1 至 P5-00E2 已建立正式 Profile、Seal / CAS、durable Start、最多 64 Units Root / Attempt 编排、查询、immutable Ticket、reliable Cancel / Pause / Resume、有界基础设施自动重试、exact infra-failure child Run、TaskPlan Catalog / immutable publication 与首次 Manual Launch。P6-03A/P6-03B 已提供完整 Attempt Fact 与 Unit Resolution 写入根，P7-01A 至 P7-01B2 已提供三阶段 TaskResultSnapshot，P7-02A 已提供 Snapshot-bound FailureCluster 与 append-only FailureClassification；但仓库仍无正式 production `TaskUnitExecutionPort`、Schedule / CI Adapter、超过 64 Units 的可恢复分区物化、TaskGateDecision、公共 Result 查询与 Live control。只有数据库中存在 exact Seal Fact 时才允许 Task Workflow 表达 `PASSED`，ClosureNotice 只能使 Resolution 得到 `INCONCLUSIVE / NOT_EVALUATED`。
+- P5-00B1 至 P5-00E2 已建立正式 Profile、Seal / CAS、durable Start、最多 64 Units Root / Attempt 编排、查询、immutable Ticket、reliable Cancel / Pause / Resume、有界基础设施自动重试、exact infra-failure child Run、TaskPlan Catalog / immutable publication 与首次 Manual Launch。P6 已提供完整 Attempt Fact 与 Unit Resolution，P7 已完成三阶段 TaskResultSnapshot、FailureCluster / Classification、TaskGateDecision 与公共 Result 查询，P8 V1 已完成 comparable Brief / DatasetCut / immutable Snapshot；但仓库仍无正式 production `TaskUnitExecutionPort`、Schedule / CI / Webhook Adapter、超过 64 Units 的可恢复分区物化和 UnitAttempt-scoped Live control。只有数据库中存在 exact Seal Fact 时才允许 Task Workflow 表达 `PASSED`，ClosureNotice 只能使 Resolution 得到 `INCONCLUSIVE / NOT_EVALUATED`。
 - P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；P6-02A Evidence Writer / 受控读取与 P6-02B1 DebugRun Live Snapshot / SSE 已完成。P6-02B2 的 UnitAttempt-scoped LiveSession、ControlLease、控制 Epoch / Fence、Human Takeover 与持久化 ActionGrant，以及真实 SaaS Operation / Route Registry、生产 Bucket Object Lock / Versioning、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
 - 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

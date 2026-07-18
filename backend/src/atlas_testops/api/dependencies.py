@@ -18,6 +18,7 @@ from atlas_testops.application.fixture_assets import FixtureAssetService
 from atlas_testops.application.fixture_dispatcher import FixtureRunDispatcher
 from atlas_testops.application.fixture_runs import FixtureRunService
 from atlas_testops.application.identity import IdentityService
+from atlas_testops.application.insights import InsightService
 from atlas_testops.application.leases import LeaseService
 from atlas_testops.application.live import DebugLiveService, DebugLiveStreamLimiter
 from atlas_testops.application.platform import PlatformService
@@ -309,6 +310,18 @@ def get_result_gate_service(database: DatabaseDependency) -> ResultGateService:
 ResultGateServiceDependency = Annotated[
     ResultGateService,
     Depends(get_result_gate_service),
+]
+
+
+def get_insight_service(database: DatabaseDependency) -> InsightService:
+    """Create the comparable, snapshot-explicit Insight service."""
+
+    return InsightService(database)
+
+
+InsightServiceDependency = Annotated[
+    InsightService,
+    Depends(get_insight_service),
 ]
 
 

@@ -14,6 +14,7 @@ from atlas_testops.api.v1.fixture_assets import router as fixture_assets_router
 from atlas_testops.api.v1.fixture_runs import router as fixture_runs_router
 from atlas_testops.api.v1.health import router as health_router
 from atlas_testops.api.v1.identity import router as identity_router
+from atlas_testops.api.v1.insights import router as insights_router
 from atlas_testops.api.v1.live import router as live_router
 from atlas_testops.api.v1.platform import router as platform_router
 from atlas_testops.api.v1.results import router as results_router
@@ -35,6 +36,7 @@ api_router.include_router(debug_runs_router, tags=["debug-runs"])
 api_router.include_router(task_plans_router, tags=["task-plans"])
 api_router.include_router(task_runs_router, tags=["task-runs"])
 api_router.include_router(results_router, tags=["results"])
+api_router.include_router(insights_router, tags=["insights"])
 api_router.include_router(evidence_router, tags=["evidence"])
 api_router.include_router(live_router, tags=["debug-live"])
 api_router.include_router(connectors_router, tags=["connectors"])

@@ -23,6 +23,7 @@ from tests.integration.test_task_orchestration_pg import _persist_sealed_aggrega
 
 from atlas_testops.application.access import ActorContext
 from atlas_testops.application.fixture_runs import FixtureWorkerService
+from atlas_testops.application.insights import InsightService
 from atlas_testops.application.result_classification import ResultClassificationService
 from atlas_testops.application.result_gate import ResultGateService
 from atlas_testops.application.result_hygiene import ResultHygieneProjectionService
@@ -31,7 +32,9 @@ from atlas_testops.application.result_queries import ResultQueryService
 from atlas_testops.application.result_reevaluation import ResultReevaluationService
 from atlas_testops.application.task_orchestration import TaskWorkerService
 from atlas_testops.core.config import Settings
+from atlas_testops.core.errors import ApplicationError, ErrorCode
 from atlas_testops.domain.fixture import FixtureRun
+from atlas_testops.domain.insight import RequestInsightSnapshot
 from atlas_testops.domain.result import (
     ClassificationJudgmentState,
     DataHygiene,
@@ -473,6 +476,77 @@ async def _exercise_cleanup_truth(
         assert len(cluster_page.items) == 1
         assert cluster_page.items[0].classification == reviewed.value
         assert cluster_page.next_cursor is None
+
+        insight_service = InsightService(database)
+        insight_preview = await insight_service.preview(
+            actor,
+            aggregate.run.project_id,
+            window_days=30,
+            as_of=None,
+        )
+        insight_request = RequestInsightSnapshot(
+            window_days=30,
+            client_mutation_id="task-fixture-hygiene-insight-pin-001",
+        )
+        insight = await insight_service.pin_snapshot(
+            actor,
+            aggregate.run.project_id,
+            insight_request,
+            idempotency_key=insight_request.client_mutation_id,
+        )
+        insight_replay = await insight_service.pin_snapshot(
+            actor,
+            aggregate.run.project_id,
+            insight_request,
+            idempotency_key=insight_request.client_mutation_id,
+        )
+        loaded_insight = await insight_service.get_snapshot(actor, insight.value.id)
+        hidden_actor = ActorContext(
+            tenant_id=uuid7(),
+            actor_id=uuid7(),
+            request_id=f"hidden-insight:{insight.value.id}",
+            development_override=True,
+        )
+        with pytest.raises(ApplicationError) as hidden_error:
+            await insight_service.get_snapshot(hidden_actor, insight.value.id)
+
+        async with database.transaction(context) as connection:
+            insight_rows = await (
+                await connection.execute(
+                    """
+                    select count(*) as snapshot_count
+                    from atlas.insight_snapshot
+                    where id = %s
+                    """,
+                    (insight.value.id,),
+                )
+            ).fetchone()
+            insight_privileges = await (
+                await connection.execute(
+                    """
+                    select has_table_privilege(
+                      current_user,
+                      'atlas.insight_snapshot',
+                      'UPDATE, DELETE'
+                    ) as snapshot_mutation
+                    """
+                )
+            ).fetchone()
+
+        assert insight_preview.current.execution_unit_count == 1
+        assert insight_preview.dataset_cut.source_snapshot_ids == (
+            reevaluated.value.id,
+        )
+        assert insight_preview.dataset_cut.gate_decision_ids == (gate.value.id,)
+        assert insight_preview.active_risk is not None
+        assert insight_preview.active_risk.gate_decision is TaskGateVerdict.INCONCLUSIVE
+        assert insight.status_code == 201 and insight.replayed is False
+        assert insight_replay.status_code == 200 and insight_replay.replayed is True
+        assert insight_replay.value == loaded_insight == insight.value
+        assert hidden_error.value.error_code is ErrorCode.NOT_FOUND
+        assert insight_rows is not None and insight_rows["snapshot_count"] == 1
+        assert insight_privileges is not None
+        assert insight_privileges["snapshot_mutation"] is False
     finally:
         await database.close()
 

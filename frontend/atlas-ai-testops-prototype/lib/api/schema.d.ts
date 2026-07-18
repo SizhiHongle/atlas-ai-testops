@@ -999,6 +999,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/insight-snapshots/{snapshotId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取一个 exact pinned InsightSnapshot */
+        get: operations["get_insight_snapshot_v1_insight_snapshots__snapshotId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects": {
         parameters: {
             query?: never;
@@ -1118,6 +1135,40 @@ export interface paths {
         put?: never;
         /** 启动 FixtureRun */
         post: operations["start_fixture_run_v1_projects__projectId__fixture_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/insight-snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 固定 exact DatasetCut 的不可变 InsightSnapshot */
+        post: operations["pin_insight_snapshot_v1_projects__projectId__insight_snapshots_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/insights/brief": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 预览可比 current/baseline 质量简报 */
+        get: operations["preview_insight_brief_v1_projects__projectId__insights_brief_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5494,6 +5545,329 @@ export interface components {
             mode: components["schemas"]["IdempotencyMode"];
         };
         /**
+         * InsightBrief
+         * @description Comparable current/baseline quality brief over one exact DatasetCut.
+         */
+        InsightBrief: {
+            activeRisk?: components["schemas"]["InsightRiskSignal"] | null;
+            baseline: components["schemas"]["InsightWindowSummary"];
+            current: components["schemas"]["InsightWindowSummary"];
+            datasetCut: components["schemas"]["InsightDatasetCut"];
+            deltas: components["schemas"]["InsightMetricDeltas"];
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /** Metricdefinitions */
+            metricDefinitions: components["schemas"]["InsightMetricDefinition"][];
+            /**
+             * Metricpolicyversion
+             * @default 0.1.0
+             * @constant
+             */
+            metricPolicyVersion: "0.1.0";
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Schemaversion
+             * @default atlas.insight-brief/0.1
+             * @enum {string}
+             */
+            schemaVersion: "atlas.insight-brief/0.1" | "atlas.insight-snapshot/0.1";
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Terrain */
+            terrain: components["schemas"]["InsightTerrainItem"][];
+            /**
+             * Windowdays
+             * @enum {integer}
+             */
+            windowDays: 7 | 30 | 90;
+        };
+        /**
+         * InsightDatasetCut
+         * @description Reproducible source set and authorization fence for one brief.
+         */
+        InsightDatasetCut: {
+            /**
+             * Asof
+             * Format: date-time
+             */
+            asOf: string;
+            /** Authscopehash */
+            authScopeHash: string;
+            /** Gatedecisionhashes */
+            gateDecisionHashes: string[];
+            /** Gatedecisionids */
+            gateDecisionIds: string[];
+            /** Projectionwatermark */
+            projectionWatermark?: string | null;
+            /** Queryhash */
+            queryHash: string;
+            /**
+             * Schemaversion
+             * @default atlas.insight-dataset-cut/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.insight-dataset-cut/0.1";
+            /** Sourcesetdigest */
+            sourceSetDigest: string;
+            /** Sourcesnapshothashes */
+            sourceSnapshotHashes: string[];
+            /** Sourcesnapshotids */
+            sourceSnapshotIds: string[];
+        };
+        /**
+         * InsightMetricDefinition
+         * @description One immutable, platform-owned metric semantic contract.
+         */
+        InsightMetricDefinition: {
+            /**
+             * Aggregation
+             * @default RATIO_OF_SUMS
+             * @constant
+             */
+            aggregation: "RATIO_OF_SUMS";
+            /**
+             * Eventtime
+             * @default QUALITY_FINALIZED_AT
+             * @constant
+             */
+            eventTime: "QUALITY_FINALIZED_AT";
+            /**
+             * Grain
+             * @default UNIT
+             * @constant
+             */
+            grain: "UNIT";
+            metricKey: components["schemas"]["InsightMetricKey"];
+            /**
+             * Minimumsample
+             * @default 30
+             * @constant
+             */
+            minimumSample: 30;
+            /**
+             * Population
+             * @default MANIFEST_UNITS
+             * @constant
+             */
+            population: "MANIFEST_UNITS";
+            /**
+             * Sourcefinality
+             * @default FULLY_RESOLVED_OR_REEVALUATED
+             * @constant
+             */
+            sourceFinality: "FULLY_RESOLVED_OR_REEVALUATED";
+            /**
+             * Version
+             * @default 1.0.0
+             * @constant
+             */
+            version: "1.0.0";
+        };
+        /**
+         * InsightMetricDeltas
+         * @description Signed current-minus-baseline changes in basis points.
+         */
+        InsightMetricDeltas: {
+            /** Autonomoustrustedpassrate */
+            autonomousTrustedPassRate: number | null;
+            /** Methodhealthrate */
+            methodHealthRate: number | null;
+            /** Trustedpassrate */
+            trustedPassRate: number | null;
+        };
+        /**
+         * InsightMetricKey
+         * @description Platform-signed V1 metrics; callers cannot submit arbitrary formulas.
+         * @enum {string}
+         */
+        InsightMetricKey: "quality.trusted_pass_rate" | "quality.autonomous_trusted_pass_rate" | "quality.method_health_rate";
+        /**
+         * InsightMetricPoint
+         * @description Exact ratio point with a display-only basis-point projection.
+         */
+        InsightMetricPoint: {
+            /** Basispoints */
+            basisPoints: number | null;
+            /** Denominator */
+            denominator: number;
+            metricKey: components["schemas"]["InsightMetricKey"];
+            /**
+             * Metricversion
+             * @default 1.0.0
+             * @constant
+             */
+            metricVersion: "1.0.0";
+            /** Numerator */
+            numerator: number;
+            sampleStatus: components["schemas"]["InsightSampleStatus"];
+        };
+        /**
+         * InsightRiskSignal
+         * @description Deterministic latest non-accepted Gate observation, without causal claims.
+         */
+        InsightRiskSignal: {
+            gateDecision: components["schemas"]["TaskGateVerdict"];
+            /**
+             * Observedat
+             * Format: date-time
+             */
+            observedAt: string;
+            /** Reasoncount */
+            reasonCount: number;
+            /**
+             * Resultsnapshotid
+             * Format: uuid
+             */
+            resultSnapshotId: string;
+            /**
+             * Taskplanid
+             * Format: uuid
+             */
+            taskPlanId: string;
+            /** Taskplanname */
+            taskPlanName: string;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+        };
+        /**
+         * InsightSampleStatus
+         * @description Explicit sample sufficiency without converting no-data into zero.
+         * @enum {string}
+         */
+        InsightSampleStatus: "NO_DATA" | "LOW_SAMPLE" | "ENOUGH";
+        /**
+         * InsightSnapshot
+         * @description Immutable pinned brief used for deep links, audit, and export inputs.
+         */
+        InsightSnapshot: {
+            activeRisk?: components["schemas"]["InsightRiskSignal"] | null;
+            baseline: components["schemas"]["InsightWindowSummary"];
+            /** Clientmutationid */
+            clientMutationId: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Createdby
+             * Format: uuid
+             */
+            createdBy: string;
+            current: components["schemas"]["InsightWindowSummary"];
+            datasetCut: components["schemas"]["InsightDatasetCut"];
+            deltas: components["schemas"]["InsightMetricDeltas"];
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Metricdefinitions */
+            metricDefinitions: components["schemas"]["InsightMetricDefinition"][];
+            /**
+             * Metricpolicyversion
+             * @default 0.1.0
+             * @constant
+             */
+            metricPolicyVersion: "0.1.0";
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Requesthash */
+            requestHash: string;
+            /**
+             * Schemaversion
+             * @default atlas.insight-snapshot/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.insight-snapshot/0.1";
+            /** Snapshothash */
+            snapshotHash: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Terrain */
+            terrain: components["schemas"]["InsightTerrainItem"][];
+            /**
+             * Windowdays
+             * @enum {integer}
+             */
+            windowDays: 7 | 30 | 90;
+        };
+        /**
+         * InsightTerrainItem
+         * @description One TaskPlan quality slice rendered in the existing terrain slots.
+         */
+        InsightTerrainItem: {
+            /** Executionunitcount */
+            executionUnitCount: number;
+            /** Label */
+            label: string;
+            /**
+             * Latestresultsnapshotid
+             * Format: uuid
+             */
+            latestResultSnapshotId: string;
+            /**
+             * Latesttaskrunid
+             * Format: uuid
+             */
+            latestTaskRunId: string;
+            /**
+             * Taskplanid
+             * Format: uuid
+             */
+            taskPlanId: string;
+            /** Taskruncount */
+            taskRunCount: number;
+            trustedPassRate: components["schemas"]["InsightMetricPoint"];
+        };
+        /**
+         * InsightWindowSummary
+         * @description Ratio-of-sums metric output for one materialized UTC window.
+         */
+        InsightWindowSummary: {
+            autonomousTrustedPassRate: components["schemas"]["InsightMetricPoint"];
+            /**
+             * Endat
+             * Format: date-time
+             */
+            endAt: string;
+            /** Executionunitcount */
+            executionUnitCount: number;
+            methodHealthRate: components["schemas"]["InsightMetricPoint"];
+            /**
+             * Startat
+             * Format: date-time
+             */
+            startAt: string;
+            /** Taskruncount */
+            taskRunCount: number;
+            trustedPassRate: components["schemas"]["InsightMetricPoint"];
+        };
+        /**
          * IssueEvidenceReadGrant
          * @description Request a bounded grant without accepting storage or scope identifiers.
          */
@@ -6178,6 +6552,22 @@ export interface components {
             judgmentState: "HUMAN_CONFIRMED" | "HUMAN_REJECTED" | "HUMAN_REVISED";
             /** Supportingevidencerefs */
             supportingEvidenceRefs: components["schemas"]["FailureEvidenceRef"][];
+        };
+        /**
+         * RequestInsightSnapshot
+         * @description Idempotent command to pin one exact quality brief.
+         */
+        RequestInsightSnapshot: {
+            /** Asof */
+            asOf?: string | null;
+            /** Clientmutationid */
+            clientMutationId: string;
+            /**
+             * Windowdays
+             * @default 30
+             * @enum {integer}
+             */
+            windowDays: 7 | 30 | 90;
         };
         /**
          * RequestTaskGateEvaluation
@@ -14341,6 +14731,84 @@ export interface operations {
             };
         };
     };
+    get_insight_snapshot_v1_insight_snapshots__snapshotId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-None-Match"?: string | null;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                snapshotId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightSnapshot"];
+                };
+            };
+            /** @description ETag 未变化 */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Insight 窗口或 asOf 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Project 或 InsightSnapshot 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     list_projects_v1_projects_get: {
         parameters: {
             query?: {
@@ -15437,6 +15905,180 @@ export interface operations {
             };
             /** @description Fixture Worker 或 Connector 不可用 */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    pin_insight_snapshot_v1_projects__projectId__insight_snapshots_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestInsightSnapshot"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightSnapshot"];
+                };
+            };
+            /** @description Insight 窗口或 asOf 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前身份不能固定洞察 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Project 或 InsightSnapshot 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 幂等身份与既有 Snapshot 冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    preview_insight_brief_v1_projects__projectId__insights_brief_get: {
+        parameters: {
+            query?: {
+                windowDays?: number;
+                asOf?: string | null;
+            };
+            header?: {
+                "If-None-Match"?: string | null;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightBrief"];
+                };
+            };
+            /** @description ETag 未变化 */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Insight 窗口或 asOf 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Project 或 InsightSnapshot 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -67,6 +67,7 @@ import {
   type DataBlueprintCatalogItem
 } from "../lib/api/fixture";
 import { useIdentityWallet } from "../lib/api/identity";
+import { useInsightBrief } from "../lib/api/insights";
 import {
   useFailureClusters,
   useTaskResult,
@@ -76,6 +77,31 @@ import {
 } from "../lib/api/results";
 
 type ViewId = "space" | "identities" | "atoms" | "compose" | "cases" | "launch" | "live" | "results" | "insights";
+
+const fallbackInsightTerrain = [
+  { label: "客户筛选", rate: "97.8%" },
+  { label: "权限边界", rate: "92.4%" },
+  { label: "来访关系", rate: "99.1%" },
+  { label: "身份租约", rate: "96.6%" }
+] as const;
+
+function formatInsightRate(
+  basisPoints: number | null | undefined,
+  fallback: string
+): string {
+  return basisPoints === null || basisPoints === undefined
+    ? fallback
+    : `${(basisPoints / 100).toFixed(1)}%`;
+}
+
+function formatInsightDelta(
+  basisPoints: number | null | undefined,
+  fallback: string
+): string {
+  if (basisPoints === null || basisPoints === undefined) return fallback;
+  const sign = basisPoints > 0 ? "+" : "";
+  return `较上周期 ${sign}${(basisPoints / 100).toFixed(1)}%`;
+}
 
 type AtomSpec = {
   id: string;
@@ -817,6 +843,10 @@ export default function Home() {
     platformSession?.project.id ?? null
   );
   const [view, setView] = useState<ViewId>("space");
+  const { data: insightBrief } = useInsightBrief(
+    platformSession?.project.id ?? null,
+    view === "insights"
+  );
   const [mobileNav, setMobileNav] = useState(false);
   const [selectedAtom, setSelectedAtom] = useState("customer");
   const [selectedIdentity, setSelectedIdentity] = useState("sales");
@@ -1044,7 +1074,40 @@ export default function Home() {
         ? "提交方法修订"
         : "创建环境事件"
     : selectedCluster === "api" ? "创建产品缺陷" : selectedCluster === "selector" ? "提交方法修订" : "创建环境事件";
-  const latestRiskTask = baseTaskRuns.find((task) => task.status === "attention")
+  const insightTerrain = fallbackInsightTerrain.map((fallback, index) => {
+    const item = insightBrief?.terrain[index];
+    return item
+      ? {
+          label: item.label,
+          rate: formatInsightRate(item.trustedPassRate.basisPoints, fallback.rate)
+        }
+      : fallback;
+  });
+  const insightExecutionCount = (
+    insightBrief?.current.executionUnitCount ?? 1_284
+  ).toLocaleString("zh-CN");
+  const insightTrustedPassRate = formatInsightRate(
+    insightBrief?.current.trustedPassRate.basisPoints,
+    "96.8%"
+  );
+  const insightTrustedPassDelta = formatInsightDelta(
+    insightBrief?.deltas.trustedPassRate,
+    "较上周期 +1.4%"
+  );
+  const insightMethodHealth = insightBrief?.current.methodHealthRate.basisPoints == null
+    ? "94"
+    : String(Math.round(insightBrief.current.methodHealthRate.basisPoints / 100));
+  const insightMethodPopulation = insightBrief
+    ? `${insightBrief.current.methodHealthRate.denominator} 个 ExecutionUnit`
+    : "36 条已发布方法";
+  const insightRiskTitle = insightBrief?.activeRisk?.taskPlanName
+    ?? "客户权限发布门禁";
+  const insightRiskDetail = insightBrief?.activeRisk
+    ? `${insightBrief.activeRisk.reasonCount} 条门禁原因，当前判断为 ${insightBrief.activeRisk.gateDecision}。`
+    : "5 个失败已拆分为产品、测试方法与环境信号。";
+  const latestRiskTask = baseTaskRuns.find(
+    (task) => task.backendId === insightBrief?.activeRisk?.taskRunId
+  ) ?? baseTaskRuns.find((task) => task.status === "attention")
     ?? taskRuns[1];
 
   useEffect(() => {
@@ -1689,13 +1752,13 @@ export default function Home() {
     <section className="scene insights-scene">
       <SceneIntro eyebrow="QUALITY TERRAIN · 30 DAYS" title="把失败放回它发生的旅程里。" description="洞察跨越多个 Task 观察质量趋势；发布判断仍然回到每一次冻结任务的真实结果。" action={<button className="black-action" onClick={() => openTask(latestRiskTask)}>查看最新风险任务 <ArrowUpRight size={15} /></button>} />
       <div className="terrain-stage">
-        <div className="terrain-title"><span>R26.07 · QUALITY SIGNALS</span><strong>1,284</strong><small>次 Execution · 30 天质量地形</small></div>
+        <div className="terrain-title"><span>R26.07 · QUALITY SIGNALS</span><strong>{insightExecutionCount}</strong><small>次 Execution · 30 天质量地形</small></div>
         <div className="quality-sphere">
           <div className="sphere-surface" /><div className="sphere-ring ring-a" /><div className="sphere-ring ring-b" /><div className="sphere-grid grid-a" /><div className="sphere-grid grid-b" />
           <svg viewBox="0 0 620 620" aria-hidden="true"><path d="M105 340 C178 184 303 160 370 246 S482 408 535 252" /><path d="M145 430 C258 330 338 370 476 180" /></svg>
-          <button className="terrain-node terrain-node-one"><i /><span>客户筛选</span><b>97.8%</b></button><button className="terrain-node terrain-node-two risk"><i /><span>权限边界</span><b>92.4%</b></button><button className="terrain-node terrain-node-three"><i /><span>来访关系</span><b>99.1%</b></button><button className="terrain-node terrain-node-four"><i /><span>身份租约</span><b>96.6%</b></button>
+          <button className="terrain-node terrain-node-one"><i /><span>{insightTerrain[0].label}</span><b>{insightTerrain[0].rate}</b></button><button className="terrain-node terrain-node-two risk"><i /><span>{insightTerrain[1].label}</span><b>{insightTerrain[1].rate}</b></button><button className="terrain-node terrain-node-three"><i /><span>{insightTerrain[2].label}</span><b>{insightTerrain[2].rate}</b></button><button className="terrain-node terrain-node-four"><i /><span>{insightTerrain[3].label}</span><b>{insightTerrain[3].rate}</b></button>
         </div>
-        <aside className="terrain-metrics"><div><span>稳定通过</span><strong>96.8%</strong><small>较上周期 +1.4%</small></div><div><span>方法健康度</span><strong>94</strong><small>36 条已发布方法</small></div><div className="risk-cluster"><CircleAlert size={20} /><span>ACTIVE RISK CLUSTER</span><h3>客户权限发布门禁</h3><p>5 个失败已拆分为产品、测试方法与环境信号。</p><button onClick={() => openTask(latestRiskTask)}>进入任务结果 <ArrowRight size={14} /></button></div></aside>
+        <aside className="terrain-metrics"><div><span>稳定通过</span><strong>{insightTrustedPassRate}</strong><small>{insightTrustedPassDelta}</small></div><div><span>方法健康度</span><strong>{insightMethodHealth}</strong><small>{insightMethodPopulation}</small></div><div className="risk-cluster"><CircleAlert size={20} /><span>ACTIVE RISK CLUSTER</span><h3>{insightRiskTitle}</h3><p>{insightRiskDetail}</p><button onClick={() => openTask(latestRiskTask)}>进入任务结果 <ArrowRight size={14} /></button></div></aside>
         <div className="replay-card"><div><span>TRACE REPLAY · FROZEN</span><h3>{replayVersion?.caseName ?? selectedCase.name} · {replayVersion?.version ?? "—"}</h3></div><div className="replay-path">{replayWorkflow.slice(0, 6).map((step) => <button className={step.atomId === "filter" || step.atomId === "asset-filter" ? "risk" : ""} key={step.id}><i /><span>{step.name}</span><small>{step.atomId === "filter" || step.atomId === "asset-filter" ? "signal" : "stable"}</small></button>)}</div><button className="replay-play" aria-label="回放正式 Execution" onClick={replaySelectedExecution}><Play size={16} /></button></div>
       </div>
     </section>
