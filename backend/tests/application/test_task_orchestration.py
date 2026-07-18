@@ -65,6 +65,7 @@ from atlas_testops.infrastructure.database import Database, DatabaseContext
 from atlas_testops.infrastructure.repositories.task_runs import (
     ImmutableCreateKind,
     ImmutableCreateResult,
+    TaskRunCompletionProjection,
 )
 from atlas_testops.infrastructure.task_commands import TaskRunCommandRepository
 from atlas_testops.orchestration.task_intents import TaskRunWorkflowInput
@@ -78,6 +79,7 @@ from atlas_testops.orchestration.tasks import (
     TaskBatchPrepareInput,
     TaskRunCommandSignal,
     TaskRunFinishInput,
+    TaskRunProjectedFinishInput,
     TaskRunWorkflowPayload,
     UnitAttemptWorkflowInput,
 )
@@ -140,6 +142,7 @@ class _TaskRepository:
         self.events: list[TaskExecutionEvent] = []
         self.list_event_calls: list[tuple[int, int]] = []
         self.trace: list[str] = []
+        self.completion_projection: TaskRunCompletionProjection | None = None
 
     async def get_run(self, _connection: object, run_id: object) -> TaskRun | None:
         return self.run if self.run.id == run_id else None
@@ -158,6 +161,20 @@ class _TaskRepository:
     ) -> tuple[ExecutionUnit, ...]:
         return tuple(unit for unit in self.units if unit.task_run_id == run_id)
 
+    async def list_units_page(
+        self,
+        _connection: object,
+        *,
+        task_run_id: object,
+        after_ordinal: int,
+        limit: int,
+    ) -> tuple[ExecutionUnit, ...]:
+        return tuple(
+            unit
+            for unit in self.units
+            if unit.task_run_id == task_run_id and unit.ordinal > after_ordinal
+        )[:limit]
+
     async def list_first_attempts(
         self,
         _connection: object,
@@ -168,6 +185,29 @@ class _TaskRepository:
             for attempt in self.attempts
             if attempt.task_run_id == run_id and attempt.attempt_number == 1
         )
+
+    async def list_first_attempts_page(
+        self,
+        _connection: object,
+        *,
+        task_run_id: object,
+        after_ordinal: int,
+        limit: int,
+    ) -> tuple[UnitAttempt, ...]:
+        unit_ordinals = {
+            unit.id: unit.ordinal
+            for unit in self.units
+            if unit.task_run_id == task_run_id
+        }
+        return tuple(
+            attempt
+            for attempt in self.attempts
+            if (
+                attempt.task_run_id == task_run_id
+                and attempt.attempt_number == 1
+                and unit_ordinals[attempt.execution_unit_id] > after_ordinal
+            )
+        )[:limit]
 
     async def list_attempts_for_run(
         self,
@@ -276,6 +316,31 @@ class _TaskRepository:
             for event in sorted(self.events, key=lambda item: item.seq)
             if event.task_run_id == task_run_id and event.seq > after_seq
         )[:limit]
+
+    async def list_root_finalization_events(
+        self,
+        _connection: object,
+        task_run_id: object,
+    ) -> tuple[TaskExecutionEvent, ...]:
+        return tuple(
+            event
+            for event in self.events
+            if (
+                event.task_run_id == task_run_id
+                and event.event_type == "task_run.finalized"
+                and event.execution_unit_id is None
+                and event.unit_attempt_id is None
+            )
+        )
+
+    async def get_completion_projection(
+        self,
+        _connection: object,
+        task_run_id: object,
+    ) -> TaskRunCompletionProjection:
+        if self.run.id != task_run_id or self.completion_projection is None:
+            raise RuntimeError("completion projection is not configured")
+        return self.completion_projection
 
     def replace_run(self, run: TaskRun) -> None:
         self.run = run
@@ -439,6 +504,20 @@ class _CommandRepository:
         task_run_id: UUID,
     ) -> TaskRunCommandIntent | None:
         if self.command is None or self.command.task_run_id != task_run_id:
+            return None
+        return self.command
+
+    async def get_pending_cancel_for_run(
+        self,
+        _connection: object,
+        *,
+        task_run_id: UUID,
+    ) -> TaskRunCommandIntent | None:
+        if (
+            self.command is None
+            or self.command.task_run_id != task_run_id
+            or self.command.command_type is not TaskRunCommandType.CANCEL
+        ):
             return None
         return self.command
 
@@ -834,14 +913,139 @@ async def test_load_dispatch_plan_checks_exact_identity_and_orders_first_attempt
 
 
 @pytest.mark.anyio
-async def test_load_dispatch_plan_enforces_the_64_unit_ceiling() -> None:
+async def test_load_dispatch_plan_pages_after_the_64_unit_boundary() -> None:
     within_service, _, within_tasks, _, _ = _fixture(unit_count=64)
     plan = await within_service.load_dispatch_plan(_root_request(within_tasks.run))
     assert len(plan.units) == 64
 
     oversized_service, _, oversized_tasks, _, _ = _fixture(unit_count=65)
-    with pytest.raises(RuntimeError, match="TASK_MATERIALIZATION_INCOMPLETE"):
-        await oversized_service.load_dispatch_plan(_root_request(oversized_tasks.run))
+    first = await oversized_service.load_dispatch_plan(_root_request(oversized_tasks.run))
+    assert len(first.units) == 64
+    assert first.total_units == 65
+    assert first.has_more is True
+
+    second_request = replace(
+        _root_request(oversized_tasks.run),
+        dispatch_after_ordinal=64,
+    )
+    second = await oversized_service.load_dispatch_plan(second_request)
+    assert [unit.ordinal for unit in second.units] == [65]
+    assert second.after_ordinal == 64
+    assert second.total_units == 65
+    assert second.has_more is False
+
+
+@pytest.mark.anyio
+async def test_finish_partitioned_run_uses_complete_database_projection_and_replays() -> None:
+    service, _, tasks, state, _ = _fixture(unit_count=65)
+    tasks.completion_projection = TaskRunCompletionProjection(
+        total_units=65,
+        closed_units=65,
+        total_attempts=65,
+        closed_attempts=65,
+        finalized_event_count=65,
+        finalized_unit_count=65,
+        completed_units=65,
+        unsealed_units=65,
+        failed_units=0,
+        inconclusive_units=0,
+        canceled_units=0,
+        skipped_units=0,
+        invalid_events=0,
+    )
+    request = TaskRunProjectedFinishInput(
+        request=_root_request(tasks.run),
+        cancel_requested=False,
+    )
+
+    result = await service.finish_partitioned_run(request)
+    event_count = len(tasks.events)
+    state_calls = list(state.calls)
+    replay = await service.finish_partitioned_run(request)
+
+    assert replay == result
+    assert result.status == "FINISHED_UNSEALED"
+    assert result.completed_units == 65
+    assert tasks.run.lifecycle is ExecutionLifecycle.CLOSED
+    assert len(tasks.events) == event_count
+    assert state.calls == state_calls
+
+
+@pytest.mark.anyio
+async def test_finish_partitioned_run_recovers_cancel_command_lost_across_history() -> None:
+    commands = _CommandRepository()
+    service, _, tasks, _, _ = _fixture(
+        unit_count=65,
+        command_repository=commands,
+    )
+    canceling = _running(tasks.run).model_copy(
+        update={"lifecycle": ExecutionLifecycle.CANCELING}
+    )
+    tasks.replace_run(canceling)
+    commands.command = _control_command(canceling, TaskRunCommandType.CANCEL)
+    tasks.completion_projection = TaskRunCompletionProjection(
+        total_units=65,
+        closed_units=65,
+        total_attempts=65,
+        closed_attempts=65,
+        finalized_event_count=65,
+        finalized_unit_count=65,
+        completed_units=0,
+        unsealed_units=0,
+        failed_units=0,
+        inconclusive_units=0,
+        canceled_units=0,
+        skipped_units=65,
+        invalid_events=0,
+    )
+
+    result = await service.finish_partitioned_run(
+        TaskRunProjectedFinishInput(
+            request=_root_request(tasks.run),
+            cancel_requested=False,
+        )
+    )
+
+    assert result.status == "CANCELED"
+    assert result.skipped_units == 65
+    assert commands.command is not None
+    assert commands.calls == [
+        {
+            "intent_id": commands.command.id,
+            "command_digest": commands.command.command_digest,
+        }
+    ]
+
+
+@pytest.mark.anyio
+async def test_finish_partitioned_run_rejects_incomplete_projection() -> None:
+    service, _, tasks, _, _ = _fixture(unit_count=65)
+    tasks.completion_projection = TaskRunCompletionProjection(
+        total_units=65,
+        closed_units=64,
+        total_attempts=65,
+        closed_attempts=65,
+        finalized_event_count=64,
+        finalized_unit_count=64,
+        completed_units=64,
+        unsealed_units=64,
+        failed_units=0,
+        inconclusive_units=0,
+        canceled_units=0,
+        skipped_units=0,
+        invalid_events=0,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="TASK_RUN_COMPLETION_PROJECTION_INCOMPLETE",
+    ):
+        await service.finish_partitioned_run(
+            TaskRunProjectedFinishInput(
+                request=_root_request(tasks.run),
+                cancel_requested=False,
+            )
+        )
 
 
 @pytest.mark.anyio

@@ -43,6 +43,7 @@ BEGIN_TASK_UNIT_ATTEMPT_ACTIVITY = "atlas.begin-task-unit-attempt/0.1"
 EXECUTE_TASK_UNIT_ATTEMPT_ACTIVITY = "atlas.execute-task-unit-attempt/0.1"
 FINISH_TASK_UNIT_ATTEMPT_ACTIVITY = "atlas.finish-task-unit-attempt/0.1"
 FINISH_TASK_RUN_ACTIVITY = "atlas.finish-task-run/0.1"
+FINISH_PARTITIONED_TASK_RUN_ACTIVITY = "atlas.finish-partitioned-task-run/0.1"
 
 TASK_UNIT_ATTEMPT_INPUT_SCHEMA = "atlas.unit-attempt-workflow-input/0.1"
 TASK_UNIT_EXECUTION_REQUEST_SCHEMA = "atlas.task-unit-execution-request/0.1"
@@ -51,7 +52,8 @@ TASK_RUN_COMMAND_SIGNAL_LEGACY_SCHEMA = "atlas.task-run-command-signal/0.1"
 TASK_RUN_COMMAND_SIGNAL_SCHEMA = "atlas.task-run-command-signal/0.2"
 TASK_RUN_COMMAND_SIGNAL = "atlas.apply-task-run-command/0.1"
 
-TASK_RUN_MAXIMUM_UNITS = 64
+TASK_RUN_MAXIMUM_UNITS = 100_000
+TASK_RUN_DISPATCH_PAGE_SIZE = 64
 TASK_RUN_CHILD_BATCH_SIZE = 8
 _DATABASE_ACTIVITY_TIMEOUT = timedelta(seconds=30)
 _DATABASE_RETRY_POLICY = RetryPolicy(
@@ -140,7 +142,7 @@ class TaskUnitDispatchPayload:
 
 @dataclass(frozen=True, slots=True)
 class TaskDispatchPlanPayload:
-    """Authoritative sealed Run projection loaded by one short Activity."""
+    """One authoritative sealed Run page loaded by one short Activity."""
 
     tenant_id: str
     project_id: str
@@ -149,6 +151,9 @@ class TaskDispatchPlanPayload:
     manifest_hash: str
     units: tuple[TaskUnitDispatchPayload, ...]
     cancel_requested: bool = False
+    after_ordinal: int = 0
+    total_units: int | None = None
+    has_more: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -248,6 +253,7 @@ class TaskAttemptBatchSettleInput:
 
     request: TaskRunWorkflowInput
     outcomes: tuple[TaskAttemptWorkflowPayload, ...]
+    cancel_requested: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -281,6 +287,15 @@ class TaskRunFinishInput:
     outcomes: tuple[TaskAttemptWorkflowPayload, ...]
     cancel_requested: bool
     skipped_units: int
+    commands: tuple[TaskRunCommandSignal, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class TaskRunProjectedFinishInput:
+    """Request database-projected closure after every bounded page is settled."""
+
+    request: TaskRunWorkflowInput
+    cancel_requested: bool
     commands: tuple[TaskRunCommandSignal, ...] = ()
 
 
@@ -339,6 +354,11 @@ class TaskOrchestrationService(Protocol):
     async def finish_run(
         self,
         request: TaskRunFinishInput,
+    ) -> TaskRunWorkflowPayload: ...
+
+    async def finish_partitioned_run(
+        self,
+        request: TaskRunProjectedFinishInput,
     ) -> TaskRunWorkflowPayload: ...
 
 
@@ -514,6 +534,26 @@ class TaskOrchestrationActivities:
             raise _non_retryable_invariant(error) from None
         except TypeError, ValueError:
             raise _non_retryable_activity_payload("TASK_RUN_FINISH_RESULT_INVALID") from None
+        except Exception:
+            raise _retryable_database_failure() from None
+
+    @activity.defn(name=FINISH_PARTITIONED_TASK_RUN_ACTIVITY)
+    async def finish_partitioned_run(
+        self,
+        request: TaskRunProjectedFinishInput,
+    ) -> TaskRunWorkflowPayload:
+        try:
+            result = _decode_run_result(
+                await self._service.finish_partitioned_run(request)
+            )
+            _validate_projected_run_result(request, result)
+            return result
+        except TaskOrchestrationInvariantError as error:
+            raise _non_retryable_invariant(error) from None
+        except TypeError, ValueError:
+            raise _non_retryable_activity_payload(
+                "TASK_PARTITIONED_RUN_FINISH_RESULT_INVALID"
+            ) from None
         except Exception:
             raise _retryable_database_failure() from None
 
@@ -765,6 +805,9 @@ class AtlasTaskRunWorkflow:
         except TypeError, ValueError:
             raise _non_retryable_workflow_validation("TASK_ROOT_WORKFLOW_INPUT_INVALID") from None
         self._request = request
+        self._cancel_requested = (
+            self._cancel_requested or request.continuation_cancel_requested
+        )
         for command in self._pending_commands.values():
             if _command_matches_root(command, request):
                 self._record_command(command)
@@ -800,6 +843,8 @@ class AtlasTaskRunWorkflow:
         except TypeError, ValueError:
             raise _non_retryable_workflow_validation("TASK_ROOT_DISPATCH_PLAN_INVALID") from None
         self._cancel_requested = self._cancel_requested or plan.cancel_requested
+        total_units = plan.total_units if plan.total_units is not None else len(plan.units)
+        partitioned = total_units > TASK_RUN_DISPATCH_PAGE_SIZE
 
         pending = list(plan.units)
         unsettled: (
@@ -921,7 +966,18 @@ class AtlasTaskRunWorkflow:
             if checkpoint.state == "CANCELING":
                 self._cancel_requested = True
 
-        if self._cancel_requested:
+        if self._cancel_requested and partitioned:
+            final_by_ordinal = await self._settle_canceled_page(
+                request,
+                pending=pending,
+                unsettled=unsettled,
+                final_by_ordinal=final_by_ordinal,
+                latest_by_ordinal=latest_by_ordinal,
+            )
+            pending = []
+            unsettled = None
+            outcomes = final_by_ordinal
+        elif self._cancel_requested:
             outcomes = dict(final_by_ordinal)
             outcomes.update(latest_by_ordinal)
             for unit in pending:
@@ -931,10 +987,57 @@ class AtlasTaskRunWorkflow:
         else:
             outcomes = final_by_ordinal
         ordered_outcomes = tuple(outcomes[index] for index in sorted(outcomes))
+        expected_first_ordinal = plan.after_ordinal + 1
         if tuple(item.ordinal for item in ordered_outcomes) != tuple(
-            range(1, len(ordered_outcomes) + 1)
+            range(expected_first_ordinal, expected_first_ordinal + len(ordered_outcomes))
         ):
             raise _non_retryable_workflow_validation("TASK_ROOT_OUTCOME_ORDER_INVALID")
+        if plan.has_more:
+            if (
+                len(ordered_outcomes) != len(plan.units)
+                or self._active_child_tasks
+                or unsettled is not None
+            ):
+                raise _non_retryable_workflow_validation(
+                    "TASK_ROOT_CONTINUATION_STATE_INVALID"
+                )
+            workflow.continue_as_new(
+                replace(
+                    request,
+                    dispatch_after_ordinal=plan.units[-1].ordinal,
+                    continuation_cancel_requested=self._cancel_requested,
+                )
+            )
+            raise AssertionError("Temporal Continue-As-New unexpectedly returned")
+
+        if partitioned:
+            projected_input = TaskRunProjectedFinishInput(
+                request=request,
+                cancel_requested=self._cancel_requested,
+                commands=self._cancel_commands(request),
+            )
+            raw_finished = await _execute_finish_partitioned_run_activity(
+                projected_input
+            )
+            latest_projected_input = replace(
+                projected_input,
+                cancel_requested=self._cancel_requested,
+                commands=self._cancel_commands(request),
+            )
+            if latest_projected_input != projected_input:
+                projected_input = latest_projected_input
+                raw_finished = await _execute_finish_partitioned_run_activity(
+                    projected_input
+                )
+            try:
+                finished = _decode_run_result(raw_finished)
+                _validate_projected_run_result(projected_input, finished)
+            except TypeError, ValueError:
+                raise _non_retryable_workflow_validation(
+                    "TASK_ROOT_WORKFLOW_RESULT_INVALID"
+                ) from None
+            return finished
+
         skipped_units = len(plan.units) - len(ordered_outcomes)
         finish_input = self._finish_input(
             request,
@@ -963,6 +1066,64 @@ class AtlasTaskRunWorkflow:
         except TypeError, ValueError:
             raise _non_retryable_workflow_validation("TASK_ROOT_WORKFLOW_RESULT_INVALID") from None
         return finished
+
+    async def _settle_canceled_page(
+        self,
+        request: TaskRunWorkflowInput,
+        *,
+        pending: list[TaskUnitDispatchPayload],
+        unsettled: tuple[
+            tuple[TaskUnitDispatchPayload, ...],
+            tuple[TaskAttemptWorkflowPayload, ...],
+        ]
+        | None,
+        final_by_ordinal: dict[int, TaskAttemptWorkflowPayload],
+        latest_by_ordinal: dict[int, TaskAttemptWorkflowPayload],
+    ) -> dict[int, TaskAttemptWorkflowPayload]:
+        """Durably close every Unit in the current page before continuation."""
+
+        while unsettled is not None or pending:
+            if unsettled is not None:
+                batch, batch_outcomes = unsettled
+            else:
+                batch = tuple(pending[:TASK_RUN_CHILD_BATCH_SIZE])
+                batch_outcomes = tuple(
+                    (
+                        _pending_retry_canceled(unit)
+                        if (
+                            (previous := latest_by_ordinal.get(unit.ordinal)) is not None
+                            and previous.unit_attempt_id != unit.unit_attempt_id
+                        )
+                        else _pending_dispatch_canceled(unit)
+                    )
+                    for unit in batch
+                )
+            settled_input = TaskAttemptBatchSettleInput(
+                request=request,
+                outcomes=batch_outcomes,
+                cancel_requested=True,
+            )
+            settled = _decode_attempt_batch_settle_payload(
+                await self._execute_database_activity(
+                    SETTLE_TASK_ATTEMPT_BATCH_ACTIVITY,
+                    settled_input,
+                )
+            )
+            _validate_attempt_batch_settlement(settled_input, settled)
+            if settled.state != "SETTLED":
+                raise _non_retryable_workflow_validation(
+                    "TASK_ROOT_CANCEL_DRAIN_DEFERRED"
+                )
+            for outcome in settled.final_outcomes:
+                final_by_ordinal[outcome.ordinal] = outcome
+            if tuple(pending[: len(batch)]) != batch:
+                raise _non_retryable_workflow_validation(
+                    "TASK_ROOT_PENDING_BATCH_CONFLICT"
+                )
+            pending = pending[len(batch) :]
+            pending.extend(settled.retry_attempts)
+            unsettled = None
+        return final_by_ordinal
 
     async def _wait_for_batch_not_before(
         self,
@@ -998,14 +1159,20 @@ class AtlasTaskRunWorkflow:
             outcomes=outcomes,
             cancel_requested=self._cancel_requested,
             skipped_units=skipped_units,
-            commands=tuple(
-                self._commands[command_id]
-                for command_id in sorted(self._commands)
-                if (
-                    self._commands[command_id].command_type == "CANCEL"
-                    and _command_matches_root(self._commands[command_id], request)
-                )
-            ),
+            commands=self._cancel_commands(request),
+        )
+
+    def _cancel_commands(
+        self,
+        request: TaskRunWorkflowInput,
+    ) -> tuple[TaskRunCommandSignal, ...]:
+        return tuple(
+            self._commands[command_id]
+            for command_id in sorted(self._commands)
+            if (
+                self._commands[command_id].command_type == "CANCEL"
+                and _command_matches_root(self._commands[command_id], request)
+            )
         )
 
     async def _execute_database_activity(
@@ -1070,6 +1237,34 @@ async def _execute_finish_run_activity(
         )
 
 
+async def _execute_finish_partitioned_run_activity(
+    finish_input: TaskRunProjectedFinishInput,
+) -> object:
+    try:
+        return await workflow.execute_activity(
+            FINISH_PARTITIONED_TASK_RUN_ACTIVITY,
+            finish_input,
+            start_to_close_timeout=_DATABASE_ACTIVITY_TIMEOUT,
+            retry_policy=_DATABASE_RETRY_POLICY,
+        )
+    except asyncio.CancelledError:
+        return await workflow.execute_activity(
+            FINISH_PARTITIONED_TASK_RUN_ACTIVITY,
+            finish_input,
+            start_to_close_timeout=_DATABASE_ACTIVITY_TIMEOUT,
+            retry_policy=_DATABASE_RETRY_POLICY,
+        )
+    except Exception as error:
+        if not _is_cancellation_failure(error):
+            raise
+        return await workflow.execute_activity(
+            FINISH_PARTITIONED_TASK_RUN_ACTIVITY,
+            finish_input,
+            start_to_close_timeout=_DATABASE_ACTIVITY_TIMEOUT,
+            retry_policy=_DATABASE_RETRY_POLICY,
+        )
+
+
 def _child_input(
     request: TaskRunWorkflowInput,
     unit: TaskUnitDispatchPayload,
@@ -1128,6 +1323,18 @@ def _pending_retry_canceled(
     )
 
 
+def _pending_dispatch_canceled(
+    unit: TaskUnitDispatchPayload,
+) -> TaskAttemptWorkflowPayload:
+    return TaskAttemptWorkflowPayload(
+        execution_unit_id=unit.execution_unit_id,
+        unit_attempt_id=unit.unit_attempt_id,
+        ordinal=unit.ordinal,
+        status="CANCELED",
+        error_code="TASK_RUN_CANCELED_BEFORE_DISPATCH",
+    )
+
+
 def _is_cancellation_failure(error: BaseException) -> bool:
     """Recognize SDK cancellation wrappers without trusting their messages."""
 
@@ -1152,10 +1359,16 @@ def _decode_dispatch_plan(raw: object) -> TaskDispatchPlanPayload:
         "manifest_hash",
         "units",
     }
+    optional_fields = {
+        "cancel_requested",
+        "after_ordinal",
+        "total_units",
+        "has_more",
+    }
     if (
         not isinstance(raw, dict)
         or not required_fields <= set(raw)
-        or set(raw) - (required_fields | {"cancel_requested"})
+        or set(raw) - (required_fields | optional_fields)
     ):
         raise TypeError("Task dispatch plan has an invalid payload shape")
     payload = cast(dict[str, object], raw)
@@ -1170,6 +1383,9 @@ def _decode_dispatch_plan(raw: object) -> TaskDispatchPlanPayload:
         manifest_hash=_string_field(payload["manifest_hash"]),
         units=tuple(_decode_dispatch_unit(unit) for unit in raw_units),
         cancel_requested=_boolean_field(payload.get("cancel_requested", False)),
+        after_ordinal=_integer_field(payload.get("after_ordinal", 0)),
+        total_units=_optional_integer_field(payload.get("total_units")),
+        has_more=_boolean_field(payload.get("has_more", False)),
     )
 
 
@@ -1473,6 +1689,10 @@ def _validate_dispatch_plan(
     request: TaskRunWorkflowInput,
     plan: TaskDispatchPlanPayload,
 ) -> None:
+    total_units = plan.total_units
+    if total_units is None:
+        total_units = len(plan.units)
+    last_ordinal = plan.after_ordinal + len(plan.units)
     if (
         plan.tenant_id != request.tenant_id
         or plan.project_id != request.project_id
@@ -1480,10 +1700,17 @@ def _validate_dispatch_plan(
         or plan.request_digest != request.request_digest
         or plan.manifest_hash != request.manifest_hash
         or type(plan.cancel_requested) is not bool
-        or not 1 <= len(plan.units) <= TASK_RUN_MAXIMUM_UNITS
+        or type(plan.has_more) is not bool
+        or plan.after_ordinal != request.dispatch_after_ordinal
+        or not 1 <= len(plan.units) <= TASK_RUN_DISPATCH_PAGE_SIZE
+        or not 1 <= total_units <= TASK_RUN_MAXIMUM_UNITS
+        or last_ordinal > total_units
+        or plan.has_more != (last_ordinal < total_units)
     ):
         raise ValueError("Task dispatch plan does not match the sealed root input")
-    if tuple(unit.ordinal for unit in plan.units) != tuple(range(1, len(plan.units) + 1)):
+    if tuple(unit.ordinal for unit in plan.units) != tuple(
+        range(plan.after_ordinal + 1, last_ordinal + 1)
+    ):
         raise ValueError("Task dispatch plan Units must use contiguous ordinal order")
     unit_ids = {unit.execution_unit_id for unit in plan.units}
     attempt_ids = {unit.unit_attempt_id for unit in plan.units}
@@ -1527,6 +1754,9 @@ def _validate_root_input(request: TaskRunWorkflowInput) -> None:
     info = workflow.info()
     if (
         request.schema_version != TASK_RUN_WORKFLOW_INPUT_SCHEMA
+        or type(request.dispatch_after_ordinal) is not int
+        or not 0 <= request.dispatch_after_ordinal < TASK_RUN_MAXIMUM_UNITS
+        or type(request.continuation_cancel_requested) is not bool
         or info.workflow_id != expected_workflow_id
         or info.workflow_type != TASK_RUN_WORKFLOW_TYPE
         or info.task_queue != TASK_RUN_TASK_QUEUE
@@ -1564,11 +1794,15 @@ def _validate_attempt_batch_settlement(
     request: TaskAttemptBatchSettleInput,
     result: TaskAttemptBatchSettlePayload,
 ) -> None:
-    if not 1 <= len(request.outcomes) <= TASK_RUN_CHILD_BATCH_SIZE or result.state not in {
+    if (
+        type(request.cancel_requested) is not bool
+        or not 1 <= len(request.outcomes) <= TASK_RUN_CHILD_BATCH_SIZE
+        or result.state not in {
         "SETTLED",
         "PAUSE_REQUESTED",
         "CANCEL_REQUESTED",
-    }:
+        }
+    ):
         raise ValueError("Task Attempt batch settlement state is invalid")
     if result.state != "SETTLED":
         if result.retry_attempts or result.final_outcomes:
@@ -1832,6 +2066,40 @@ def _validate_run_result(
         raise ValueError("TaskRun Workflow returned an invalid trusted result")
 
 
+def _validate_projected_run_result(
+    request: TaskRunProjectedFinishInput,
+    result: TaskRunWorkflowPayload,
+) -> None:
+    counts = (
+        result.completed_units,
+        result.failed_units,
+        result.inconclusive_units,
+        result.canceled_units,
+        result.skipped_units,
+    )
+    if (
+        len(request.commands) > 1
+        or (request.commands and not request.cancel_requested)
+        or any(not _command_matches_root(command, request.request) for command in request.commands)
+        or result.task_run_id != request.request.task_run_id
+        or result.status not in _SAFE_RUN_STATUSES
+        or result.schema_version != TASK_WORKFLOW_RESULT_SCHEMA
+        or any(count < 0 for count in counts)
+        or not 1 <= sum(counts) <= TASK_RUN_MAXIMUM_UNITS
+        or (
+            (request.cancel_requested or result.canceled_units or result.skipped_units)
+            and result.status != "CANCELED"
+        )
+        or (
+            not request.cancel_requested
+            and not result.canceled_units
+            and not result.skipped_units
+            and result.status == "CANCELED"
+        )
+    ):
+        raise ValueError("Partitioned TaskRun returned an invalid projected result")
+
+
 def _is_safe_error_code(value: str | None) -> bool:
     return value is None or fullmatch(r"[A-Z][A-Z0-9_]{0,63}", value) is not None
 
@@ -1853,6 +2121,7 @@ __all__ = [
     "TaskRunCommandSignal",
     "TaskRunControlCheckpointPayload",
     "TaskRunFinishInput",
+    "TaskRunProjectedFinishInput",
     "TaskRunWorkflowPayload",
     "TaskUnitDispatchPayload",
     "TaskUnitExecutionPort",

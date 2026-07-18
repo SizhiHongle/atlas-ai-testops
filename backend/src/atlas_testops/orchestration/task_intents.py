@@ -57,6 +57,8 @@ class TaskRunWorkflowInput:
     task_run_id: str
     request_digest: str
     manifest_hash: str
+    dispatch_after_ordinal: int = 0
+    continuation_cancel_requested: bool = False
     schema_version: str = TASK_RUN_WORKFLOW_INPUT_SCHEMA
 
 

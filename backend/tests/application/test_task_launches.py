@@ -110,6 +110,7 @@ class RecordingTaskRepository:
         self.version = version
         self.bindings = bindings
         self.create_calls: list[dict[str, object]] = []
+        self.partition_create_calls: list[dict[str, object]] = []
         self.events: list[object] = []
 
     async def get_task_plan_version(
@@ -159,6 +160,18 @@ class RecordingTaskRepository:
             ImmutableCreateKind.CREATED,
             sealed,
             manifest,
+        )
+
+    async def create_partitioned_run(
+        self,
+        _connection: object,
+        **values: object,
+    ) -> TaskRunCreateResult:
+        self.partition_create_calls.append(values)
+        return TaskRunCreateResult(
+            ImmutableCreateKind.CREATED,
+            cast(TaskRun, values["task_run"]),
+            cast(TaskRunManifest, values["manifest"]),
         )
 
     async def append_event(
@@ -320,16 +333,21 @@ def _actor() -> ActorContext:
     )
 
 
-def _service() -> tuple[
+def _service(
+    *,
+    version: TaskPlanVersion | None = None,
+    bindings: TaskPlanLaunchBindings | None = None,
+) -> tuple[
     TaskPlanLaunchService,
     RecordingTaskRepository,
     RecordingSink,
     RecordingSink,
 ]:
-    version = _version()
+    selected_version = version or _version()
     tasks = RecordingTaskRepository(
-        version,
-        TaskPlanLaunchBindings(
+        selected_version,
+        bindings
+        or TaskPlanLaunchBindings(
             identity_case_by_id={uid(13): uid(7)},
             data_blueprint_by_id={uid(14): uid(9)},
         ),
@@ -458,6 +476,35 @@ async def test_non_manual_triggers_reuse_the_exact_launch_chain(
     event = cast(TaskExecutionEvent, tasks.events[0])
     assert event.payload["triggerSource"] == trigger.source
     assert cast(dict[str, object], event.payload["trigger"])["source"] == trigger.source
+
+
+@pytest.mark.anyio
+async def test_large_launch_creates_recoverable_partition_root_without_2n_facts() -> None:
+    version = _version(
+        environment_ids=tuple(uid(200 + index) for index in range(65)),
+    )
+    service, tasks, audit, outbox = _service(version=version)
+    command = StartTaskPlanVersionRun(
+        client_mutation_id="manual-partitioned-001",
+        retry_policy=_retry_policy(),
+    )
+
+    created = await service.launch(
+        _actor(),
+        version.id,
+        command,
+        idempotency_key=command.client_mutation_id,
+    )
+
+    assert created.value.materialization_state is TaskMaterializationState.MATERIALIZING
+    assert len(tasks.create_calls) == 0
+    assert len(tasks.partition_create_calls) == 1
+    manifest = cast(
+        TaskRunManifest,
+        tasks.partition_create_calls[0]["manifest"],
+    )
+    assert len(manifest.units) == 65
+    assert len(audit.calls) == len(outbox.calls) == len(tasks.events) == 1
 
 
 def test_compiler_only_expands_compatible_profiles_and_enforces_bound() -> None:

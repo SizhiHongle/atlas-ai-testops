@@ -63,6 +63,7 @@ async def run_worker(
             activities.checkpoint_control,
             activities.settle_attempt_batch,
             activities.finish_run,
+            activities.finish_partitioned_run,
         ],
         max_concurrent_workflow_tasks=settings.task_run_worker_max_concurrency,
         max_concurrent_activities=settings.task_run_worker_max_concurrency,

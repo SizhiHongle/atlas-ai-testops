@@ -64,6 +64,7 @@ from atlas_testops.infrastructure.repositories.task_profiles import (
 )
 from atlas_testops.infrastructure.repositories.task_runs import (
     MAX_INITIAL_EXECUTION_UNITS,
+    MAX_TASK_RUN_UNITS,
     ImmutableCreateKind,
     ImmutableFactConflictError,
     TaskPlanLaunchBindings,
@@ -246,7 +247,7 @@ class TaskPlanLaunchService:
                 manifest_units = compile_task_plan_version(
                     version,
                     bindings,
-                    maximum_units=MAX_INITIAL_EXECUTION_UNITS,
+                    maximum_units=MAX_TASK_RUN_UNITS,
                 )
                 aggregate = _build_initial_run(
                     version=version,
@@ -259,13 +260,20 @@ class TaskPlanLaunchService:
                     manifest_units=manifest_units,
                     now=now,
                 )
-                result = await self._tasks.create_run(
-                    connection,
-                    task_run=aggregate.run,
-                    manifest=aggregate.manifest,
-                    units=aggregate.units,
-                    first_attempts=aggregate.first_attempts,
-                )
+                if len(manifest_units) <= MAX_INITIAL_EXECUTION_UNITS:
+                    result = await self._tasks.create_run(
+                        connection,
+                        task_run=aggregate.run,
+                        manifest=aggregate.manifest,
+                        units=aggregate.units,
+                        first_attempts=aggregate.first_attempts,
+                    )
+                else:
+                    result = await self._tasks.create_partitioned_run(
+                        connection,
+                        task_run=aggregate.run,
+                        manifest=aggregate.manifest,
+                    )
                 created = result.kind is ImmutableCreateKind.CREATED
                 if created:
                     await self._record_created(
@@ -487,7 +495,7 @@ def compile_task_plan_version(
             )
             if len(candidates) > maximum_units:
                 raise _conflict(
-                    "Manual Launch 编译后的 ExecutionUnit 超过同步物化上限 "
+                    "TaskPlanVersion 编译后的 ExecutionUnit 超过协议上限 "
                     f"{maximum_units}。"
                 )
     ordered = sorted(candidates, key=lambda item: item.unit_key)
@@ -567,7 +575,12 @@ def _build_initial_run(
     )
     units: list[ExecutionUnit] = []
     attempts: list[UnitAttempt] = []
-    for manifest_unit in manifest_units:
+    bounded_units = (
+        manifest_units
+        if len(manifest_units) <= MAX_INITIAL_EXECUTION_UNITS
+        else ()
+    )
+    for manifest_unit in bounded_units:
         unit_id = new_entity_id()
         unit = ExecutionUnit(
             id=unit_id,

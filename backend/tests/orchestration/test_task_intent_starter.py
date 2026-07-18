@@ -156,6 +156,8 @@ async def test_starter_uses_exact_allowlist_secret_free_input_and_collision_poli
         "task_run_id",
         "request_digest",
         "manifest_hash",
+        "dispatch_after_ordinal",
+        "continuation_cancel_requested",
         "schema_version",
     }
     assert options["id"] == intent.workflow_id

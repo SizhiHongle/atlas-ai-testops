@@ -24,6 +24,7 @@ from atlas_testops.orchestration.tasks import (
     BEGIN_TASK_UNIT_ATTEMPT_ACTIVITY,
     CHECKPOINT_TASK_RUN_CONTROL_ACTIVITY,
     EXECUTE_TASK_UNIT_ATTEMPT_ACTIVITY,
+    FINISH_PARTITIONED_TASK_RUN_ACTIVITY,
     FINISH_TASK_RUN_ACTIVITY,
     FINISH_TASK_UNIT_ATTEMPT_ACTIVITY,
     LOAD_TASK_DISPATCH_PLAN_ACTIVITY,
@@ -49,6 +50,7 @@ from atlas_testops.orchestration.tasks import (
     TaskRunCommandSignal,
     TaskRunControlCheckpointPayload,
     TaskRunFinishInput,
+    TaskRunProjectedFinishInput,
     TaskRunWorkflowPayload,
     TaskUnitDispatchPayload,
     TaskUnitExecutionPort,
@@ -225,6 +227,22 @@ class _Service:
         self.calls.append(("finish-run", request))
         return _run_result(request)
 
+    async def finish_partitioned_run(
+        self,
+        request: TaskRunProjectedFinishInput,
+    ) -> TaskRunWorkflowPayload:
+        self.calls.append(("finish-partitioned-run", request))
+        total = self.plan.total_units or len(self.plan.units)
+        return TaskRunWorkflowPayload(
+            task_run_id=request.request.task_run_id,
+            status="CANCELED" if request.cancel_requested else "FINISHED_UNSEALED",
+            completed_units=0 if request.cancel_requested else total,
+            failed_units=0,
+            inconclusive_units=0,
+            canceled_units=0,
+            skipped_units=total if request.cancel_requested else 0,
+        )
+
 
 class _ExecutionPort:
     def __init__(self) -> None:
@@ -323,6 +341,13 @@ async def test_activities_are_thin_typed_service_and_execution_port_adapters() -
         skipped_units=0,
     )
     assert (await activities.finish_run(run_finish)).status == "FINISHED_UNSEALED"
+    projected = TaskRunProjectedFinishInput(
+        request=root,
+        cancel_requested=False,
+    )
+    assert (
+        await activities.finish_partitioned_run(projected)
+    ).status == "FINISHED_UNSEALED"
     assert port.calls == [prepared]
 
 
@@ -638,6 +663,201 @@ async def test_root_cancel_starts_no_new_unit_and_rejects_more_than_64(
     assert captured.value.message == "TASK_ROOT_DISPATCH_PLAN_INVALID"
     assert captured.value.type == "TaskWorkflowValidationError"
     assert captured.value.non_retryable is True
+
+
+@pytest.mark.anyio
+async def test_partitioned_root_continues_only_after_the_page_is_fully_settled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _root_request()
+    _patch_root_info(monkeypatch, request)
+    plan = replace(
+        _plan(request, 64),
+        total_units=65,
+        has_more=True,
+    )
+    settled_ordinals: list[int] = []
+    continued: TaskRunWorkflowInput | None = None
+    root = AtlasTaskRunWorkflow()
+
+    async def execute_activity(
+        name: str,
+        value: object,
+        **_options: object,
+    ) -> object:
+        if name == LOAD_TASK_DISPATCH_PLAN_ACTIVITY:
+            return plan
+        if name == CHECKPOINT_TASK_RUN_CONTROL_ACTIVITY:
+            return TaskRunControlCheckpointPayload(state="DISPATCHABLE")
+        if name == PREPARE_TASK_RUN_BATCH_ACTIVITY:
+            return TaskBatchPreparePayload(status="AUTHORIZED")
+        if name == SETTLE_TASK_ATTEMPT_BATCH_ACTIVITY:
+            settle = cast(TaskAttemptBatchSettleInput, value)
+            settled_ordinals.extend(item.ordinal for item in settle.outcomes)
+            return _settled(value)
+        raise AssertionError("a non-final page must not finish the Root")
+
+    async def execute_child(
+        _workflow_type: str,
+        child: UnitAttemptWorkflowInput,
+        **_options: object,
+    ) -> TaskAttemptWorkflowPayload:
+        return TaskAttemptWorkflowPayload(
+            execution_unit_id=child.execution_unit_id,
+            unit_attempt_id=child.unit_attempt_id,
+            ordinal=child.ordinal,
+            status="FINISHED_UNSEALED",
+            error_code="TASK_ATTEMPT_RESULT_UNSEALED",
+        )
+
+    class _Continued(RuntimeError):
+        pass
+
+    def continue_as_new(next_request: TaskRunWorkflowInput) -> None:
+        nonlocal continued
+        assert root._active_child_tasks == ()
+        continued = next_request
+        raise _Continued
+
+    monkeypatch.setattr(workflow, "execute_activity", execute_activity)
+    monkeypatch.setattr(workflow, "execute_child_workflow", execute_child)
+    monkeypatch.setattr(workflow, "continue_as_new", continue_as_new)
+
+    with pytest.raises(_Continued):
+        await root.run(request)
+
+    assert settled_ordinals == list(range(1, 65))
+    assert continued == replace(request, dispatch_after_ordinal=64)
+
+
+@pytest.mark.anyio
+async def test_partitioned_root_finishes_the_last_page_from_database_projection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = replace(_root_request(), dispatch_after_ordinal=64)
+    _patch_root_info(monkeypatch, request)
+    plan = TaskDispatchPlanPayload(
+        tenant_id=request.tenant_id,
+        project_id=request.project_id,
+        task_run_id=request.task_run_id,
+        request_digest=request.request_digest,
+        manifest_hash=request.manifest_hash,
+        units=(_unit(request, 65),),
+        after_ordinal=64,
+        total_units=65,
+        has_more=False,
+    )
+    projected_finish: TaskRunProjectedFinishInput | None = None
+
+    async def execute_activity(
+        name: str,
+        value: object,
+        **_options: object,
+    ) -> object:
+        nonlocal projected_finish
+        if name == LOAD_TASK_DISPATCH_PLAN_ACTIVITY:
+            return plan
+        if name == CHECKPOINT_TASK_RUN_CONTROL_ACTIVITY:
+            return TaskRunControlCheckpointPayload(state="DISPATCHABLE")
+        if name == PREPARE_TASK_RUN_BATCH_ACTIVITY:
+            return TaskBatchPreparePayload(status="AUTHORIZED")
+        if name == SETTLE_TASK_ATTEMPT_BATCH_ACTIVITY:
+            return _settled(value)
+        assert name == FINISH_PARTITIONED_TASK_RUN_ACTIVITY
+        projected_finish = cast(TaskRunProjectedFinishInput, value)
+        return TaskRunWorkflowPayload(
+            task_run_id=request.task_run_id,
+            status="FINISHED_UNSEALED",
+            completed_units=65,
+            failed_units=0,
+            inconclusive_units=0,
+            canceled_units=0,
+            skipped_units=0,
+        )
+
+    async def execute_child(
+        _workflow_type: str,
+        child: UnitAttemptWorkflowInput,
+        **_options: object,
+    ) -> TaskAttemptWorkflowPayload:
+        return TaskAttemptWorkflowPayload(
+            execution_unit_id=child.execution_unit_id,
+            unit_attempt_id=child.unit_attempt_id,
+            ordinal=child.ordinal,
+            status="FINISHED_UNSEALED",
+            error_code="TASK_ATTEMPT_RESULT_UNSEALED",
+        )
+
+    monkeypatch.setattr(workflow, "execute_activity", execute_activity)
+    monkeypatch.setattr(workflow, "execute_child_workflow", execute_child)
+
+    result = await AtlasTaskRunWorkflow().run(request)
+
+    assert result.completed_units == 65
+    assert projected_finish == TaskRunProjectedFinishInput(
+        request=request,
+        cancel_requested=False,
+    )
+
+
+@pytest.mark.anyio
+async def test_partitioned_cancel_drains_the_page_before_continuing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _root_request()
+    _patch_root_info(monkeypatch, request)
+    plan = replace(
+        _plan(request, 64),
+        cancel_requested=True,
+        total_units=65,
+        has_more=True,
+    )
+    canceled: list[TaskAttemptWorkflowPayload] = []
+    continued: TaskRunWorkflowInput | None = None
+
+    async def execute_activity(
+        name: str,
+        value: object,
+        **_options: object,
+    ) -> object:
+        if name == LOAD_TASK_DISPATCH_PLAN_ACTIVITY:
+            return plan
+        if name == CHECKPOINT_TASK_RUN_CONTROL_ACTIVITY:
+            return TaskRunControlCheckpointPayload(state="CANCELING")
+        if name == SETTLE_TASK_ATTEMPT_BATCH_ACTIVITY:
+            settle = cast(TaskAttemptBatchSettleInput, value)
+            assert settle.cancel_requested is True
+            canceled.extend(settle.outcomes)
+            return _settled(value)
+        raise AssertionError("cancel drain must not dispatch or finish a non-final page")
+
+    async def unexpected_child(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("a canceled page must not start a child")
+
+    class _Continued(RuntimeError):
+        pass
+
+    def continue_as_new(next_request: TaskRunWorkflowInput) -> None:
+        nonlocal continued
+        continued = next_request
+        raise _Continued
+
+    monkeypatch.setattr(workflow, "execute_activity", execute_activity)
+    monkeypatch.setattr(workflow, "execute_child_workflow", unexpected_child)
+    monkeypatch.setattr(workflow, "continue_as_new", continue_as_new)
+
+    with pytest.raises(_Continued):
+        await AtlasTaskRunWorkflow().run(request)
+
+    assert [item.ordinal for item in canceled] == list(range(1, 65))
+    assert {item.error_code for item in canceled} == {
+        "TASK_RUN_CANCELED_BEFORE_DISPATCH"
+    }
+    assert continued == replace(
+        request,
+        dispatch_after_ordinal=64,
+        continuation_cancel_requested=True,
+    )
 
 
 @pytest.mark.anyio

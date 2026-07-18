@@ -59,7 +59,12 @@ from atlas_testops.infrastructure.repositories.task_execution_tickets import (
 from atlas_testops.infrastructure.repositories.task_profiles import (
     TaskExecutionStateRepository,
 )
-from atlas_testops.infrastructure.repositories.task_runs import TaskRunRepository
+from atlas_testops.infrastructure.repositories.task_runs import (
+    MAX_TASK_RUN_UNITS,
+    TASK_RUN_MATERIALIZATION_PARTITION_SIZE,
+    TaskRunCompletionProjection,
+    TaskRunRepository,
+)
 from atlas_testops.infrastructure.task_commands import TaskRunCommandRepository
 from atlas_testops.orchestration.task_intents import TaskRunWorkflowInput
 from atlas_testops.orchestration.tasks import (
@@ -79,6 +84,7 @@ from atlas_testops.orchestration.tasks import (
     TaskRunCommandSignal,
     TaskRunControlCheckpointPayload,
     TaskRunFinishInput,
+    TaskRunProjectedFinishInput,
     TaskRunWorkflowPayload,
     TaskUnitDispatchPayload,
     TaskUnitExecutionPort,
@@ -87,6 +93,7 @@ from atlas_testops.orchestration.tasks import (
 )
 
 _MAXIMUM_UNITS = 64
+_DISPATCH_PAGE_SIZE = TASK_RUN_MATERIALIZATION_PARTITION_SIZE
 _EVENT_PAGE_SIZE = 256
 _SAFE_ERROR_CODE = "TASK_ATTEMPT_RESULT_UNSEALED"
 _RECONCILABLE_LIFECYCLES = frozenset(
@@ -166,15 +173,13 @@ class TaskWorkerService:
         self,
         request: TaskRunWorkflowInput,
     ) -> TaskDispatchPlanPayload:
-        """Load the complete sealed first-attempt plan without mutating execution state."""
+        """Load one bounded sealed first-attempt page without mutating execution state."""
 
         tenant_id, project_id, task_run_id = _root_ids(request)
         context = _worker_context(tenant_id, f"task-plan:{task_run_id}")
         async with self._database.transaction(context) as connection:
             run = await self._tasks.get_run(connection, task_run_id)
             manifest = await self._tasks.get_manifest(connection, task_run_id)
-            units = await self._tasks.list_units(connection, task_run_id)
-            attempts = await self._tasks.list_first_attempts(connection, task_run_id)
             _require_exact_root(
                 request,
                 run=run,
@@ -192,11 +197,33 @@ class TaskWorkerService:
                 ExecutionLifecycle.CANCELING,
             }:
                 raise _worker_error("TASK_RUN_NOT_DISPATCHABLE")
+            total_units = run.materialized_unit_count
             if (
-                not 1 <= len(units) <= _MAXIMUM_UNITS
-                or len(units) != len(attempts)
-                or run.materialized_unit_count != len(units)
-                or run.materialized_first_attempt_count != len(attempts)
+                total_units is None
+                or not 1 <= total_units <= MAX_TASK_RUN_UNITS
+                or run.materialized_first_attempt_count != total_units
+                or not 0 <= request.dispatch_after_ordinal < total_units
+            ):
+                raise _worker_error("TASK_MATERIALIZATION_INCOMPLETE")
+            expected_page_size = min(
+                _DISPATCH_PAGE_SIZE,
+                total_units - request.dispatch_after_ordinal,
+            )
+            units = await self._tasks.list_units_page(
+                connection,
+                task_run_id=task_run_id,
+                after_ordinal=request.dispatch_after_ordinal,
+                limit=_DISPATCH_PAGE_SIZE,
+            )
+            attempts = await self._tasks.list_first_attempts_page(
+                connection,
+                task_run_id=task_run_id,
+                after_ordinal=request.dispatch_after_ordinal,
+                limit=_DISPATCH_PAGE_SIZE,
+            )
+            if (
+                len(units) != expected_page_size
+                or len(attempts) != expected_page_size
             ):
                 raise _worker_error("TASK_MATERIALIZATION_INCOMPLETE")
 
@@ -205,7 +232,10 @@ class TaskWorkerService:
                 raise _worker_error("TASK_FIRST_ATTEMPT_DUPLICATE")
             now = await _database_now(connection)
             dispatches: list[TaskUnitDispatchPayload] = []
-            for expected_ordinal, unit in enumerate(units, start=1):
+            for expected_ordinal, unit in enumerate(
+                units,
+                start=request.dispatch_after_ordinal + 1,
+            ):
                 attempt = attempt_by_unit.get(unit.id)
                 if attempt is None:
                     raise _worker_error("TASK_FIRST_ATTEMPT_MISSING")
@@ -240,6 +270,9 @@ class TaskWorkerService:
                 manifest_hash=request.manifest_hash,
                 units=tuple(dispatches),
                 cancel_requested=run.lifecycle is ExecutionLifecycle.CANCELING,
+                after_ordinal=request.dispatch_after_ordinal,
+                total_units=total_units,
+                has_more=units[-1].ordinal < total_units,
             )
 
     async def prepare_batch(
@@ -459,14 +492,26 @@ class TaskWorkerService:
             if run.lifecycle in {
                 ExecutionLifecycle.PAUSE_REQUESTED,
                 ExecutionLifecycle.PAUSED,
-            }:
+            } and not request.cancel_requested:
                 return TaskAttemptBatchSettlePayload(state="PAUSE_REQUESTED")
-            if run.lifecycle is ExecutionLifecycle.CANCELING:
+            if (
+                run.lifecycle is ExecutionLifecycle.CANCELING
+                and not request.cancel_requested
+            ):
                 return TaskAttemptBatchSettlePayload(state="CANCEL_REQUESTED")
-            if run.lifecycle not in {
+            dispatchable_lifecycles = {
                 ExecutionLifecycle.QUEUED,
                 ExecutionLifecycle.RUNNING,
-            }:
+            }
+            if request.cancel_requested:
+                dispatchable_lifecycles.update(
+                    {
+                        ExecutionLifecycle.PAUSE_REQUESTED,
+                        ExecutionLifecycle.PAUSED,
+                        ExecutionLifecycle.CANCELING,
+                    }
+                )
+            if run.lifecycle not in dispatchable_lifecycles:
                 raise _worker_error("TASK_RUN_NOT_DISPATCHABLE")
             if manifest is None:
                 raise _worker_error("TASK_RUN_MANIFEST_MISSING")
@@ -565,7 +610,7 @@ class TaskWorkerService:
                     )
                     continue
 
-                if self._can_retry_attempt(
+                if not request.cancel_requested and self._can_retry_attempt(
                     outcome=outcome,
                     attempt=attempt,
                     policy=policy,
@@ -1137,6 +1182,130 @@ class TaskWorkerService:
             )
             return result
 
+    async def finish_partitioned_run(
+        self,
+        request: TaskRunProjectedFinishInput,
+    ) -> TaskRunWorkflowPayload:
+        """Close a large Run from database-projected, fully settled Unit facts."""
+
+        tenant_id, _, task_run_id = _root_ids(request.request)
+        context = _worker_context(tenant_id, f"task-run-projected-finish:{task_run_id}")
+        async with self._database.transaction(context) as connection:
+            run = await self._tasks.get_run_for_update(connection, task_run_id)
+            manifest = await self._tasks.get_manifest(connection, task_run_id)
+            _require_exact_root(
+                request.request,
+                run=run,
+                manifest_hash=(manifest.manifest_hash if manifest is not None else None),
+            )
+            assert run is not None
+            assert manifest is not None
+            if (
+                run.materialized_unit_count is None
+                or run.materialized_unit_count <= _MAXIMUM_UNITS
+            ):
+                raise _worker_error("TASK_PARTITIONED_RUN_REQUIRED")
+            run = await self._settle_control_before_finish(connection, run)
+            if run.lifecycle is ExecutionLifecycle.CANCELING and not request.cancel_requested:
+                request = replace(request, cancel_requested=True)
+            projection = await self._tasks.get_completion_projection(
+                connection,
+                task_run_id,
+            )
+            _require_complete_projection(run, projection)
+            result = _projected_run_result(
+                request,
+                projection=projection,
+            )
+            now = await _database_now(connection)
+            events = (
+                await self._tasks.list_root_finalization_events(
+                    connection,
+                    task_run_id,
+                )
+                if run.lifecycle in {
+                    ExecutionLifecycle.FINALIZING,
+                    ExecutionLifecycle.CLOSED,
+                }
+                else ()
+            )
+            if run.lifecycle is ExecutionLifecycle.CLOSED:
+                if run.quality is not _run_quality(result.status):
+                    raise _worker_error("TASK_RUN_RESULT_CONFLICT")
+                _require_exact_run_result_event(events, run=run, result=result)
+                await self._snapshot_task_result(
+                    connection,
+                    run=run,
+                    manifest=manifest,
+                    created_at=now,
+                )
+                await self._apply_finish_commands(
+                    connection,
+                    request=request,
+                    result=result,
+                )
+                return result
+
+            quality = _run_quality(result.status)
+            if run.quality is not ExecutionQuality.PENDING and run.quality is not quality:
+                raise _worker_error("TASK_RUN_RESULT_CONFLICT")
+            if run.lifecycle is ExecutionLifecycle.FINALIZING:
+                if _run_result_events(events, run=run):
+                    _require_exact_run_result_event(events, run=run, result=result)
+                else:
+                    run = await self._transition_run(
+                        connection,
+                        run,
+                        lifecycle=ExecutionLifecycle.FINALIZING,
+                        quality=quality,
+                        started_at=run.started_at,
+                        finalized_at=run.finalized_at or now,
+                        closed_at=None,
+                        event_type="task_run.finalized",
+                        payload=_run_result_payload(result),
+                    )
+            else:
+                if run.lifecycle not in {
+                    ExecutionLifecycle.QUEUED,
+                    ExecutionLifecycle.RUNNING,
+                    ExecutionLifecycle.CANCELING,
+                    ExecutionLifecycle.PAUSED,
+                }:
+                    raise _worker_error("TASK_RUN_NOT_FINALIZABLE")
+                run = await self._transition_run(
+                    connection,
+                    run,
+                    lifecycle=ExecutionLifecycle.FINALIZING,
+                    quality=quality,
+                    started_at=run.started_at,
+                    finalized_at=now,
+                    closed_at=None,
+                    event_type="task_run.finalized",
+                    payload=_run_result_payload(result),
+                )
+            run = await self._transition_run(
+                connection,
+                run,
+                lifecycle=ExecutionLifecycle.CLOSED,
+                quality=quality,
+                started_at=run.started_at,
+                finalized_at=run.finalized_at,
+                closed_at=now,
+                event_type="task_run.closed",
+            )
+            await self._snapshot_task_result(
+                connection,
+                run=run,
+                manifest=manifest,
+                created_at=now,
+            )
+            await self._apply_finish_commands(
+                connection,
+                request=request,
+                result=result,
+            )
+            return result
+
     async def _settle_control_before_finish(
         self,
         connection: AsyncConnection[DictRow],
@@ -1208,12 +1377,32 @@ class TaskWorkerService:
         self,
         connection: AsyncConnection[DictRow],
         *,
-        request: TaskRunFinishInput,
+        request: TaskRunFinishInput | TaskRunProjectedFinishInput,
         result: TaskRunWorkflowPayload,
     ) -> None:
         """Acknowledge exact cancel commands only after canceled Run closure is durable."""
 
         if not request.commands:
+            if not isinstance(request, TaskRunProjectedFinishInput):
+                return
+            if result.status != "CANCELED" or not request.cancel_requested:
+                return
+            pending = await self._commands.get_pending_cancel_for_run(
+                connection,
+                task_run_id=UUID(request.request.task_run_id),
+            )
+            if pending is None:
+                return
+            pending = _require_control_command(
+                pending,
+                command_type=TaskRunCommandType.CANCEL,
+            )
+            if not await self._commands.apply_cancel(
+                connection,
+                intent_id=pending.id,
+                command_digest=pending.command_digest,
+            ):
+                raise _worker_error("TASK_RUN_COMMAND_APPLY_FAILED")
             return
         if result.status != "CANCELED" or not request.cancel_requested:
             raise _worker_error("TASK_RUN_COMMAND_RESULT_CONFLICT")
@@ -2644,6 +2833,65 @@ def _run_result(request: TaskRunFinishInput) -> TaskRunWorkflowPayload:
         inconclusive_units=inconclusive,
         canceled_units=canceled,
         skipped_units=request.skipped_units,
+    )
+
+
+def _require_complete_projection(
+    run: TaskRun,
+    projection: TaskRunCompletionProjection,
+) -> None:
+    total = projection.total_units
+    classified = (
+        projection.completed_units
+        + projection.failed_units
+        + projection.inconclusive_units
+        + projection.canceled_units
+        + projection.skipped_units
+    )
+    if (
+        run.materialization_state is not TaskMaterializationState.SEALED
+        or run.materialized_unit_count != total
+        or run.materialized_first_attempt_count != total
+        or not _MAXIMUM_UNITS < total <= MAX_TASK_RUN_UNITS
+        or projection.closed_units != total
+        or projection.total_attempts < total
+        or projection.closed_attempts != projection.total_attempts
+        or projection.finalized_event_count != total
+        or projection.finalized_unit_count != total
+        or projection.invalid_events
+        or not 0 <= projection.unsealed_units <= projection.completed_units
+        or classified != total
+    ):
+        raise _worker_error("TASK_RUN_COMPLETION_PROJECTION_INCOMPLETE")
+
+
+def _projected_run_result(
+    request: TaskRunProjectedFinishInput,
+    *,
+    projection: TaskRunCompletionProjection,
+) -> TaskRunWorkflowPayload:
+    if (
+        request.cancel_requested
+        or projection.canceled_units
+        or projection.skipped_units
+    ):
+        status = "CANCELED"
+    elif projection.failed_units:
+        status = "FAILED"
+    elif projection.inconclusive_units:
+        status = "INCONCLUSIVE"
+    elif projection.unsealed_units:
+        status = "FINISHED_UNSEALED"
+    else:
+        status = "PASSED"
+    return TaskRunWorkflowPayload(
+        task_run_id=request.request.task_run_id,
+        status=status,  # type: ignore[arg-type]
+        completed_units=projection.completed_units,
+        failed_units=projection.failed_units,
+        inconclusive_units=projection.inconclusive_units,
+        canceled_units=projection.canceled_units,
+        skipped_units=projection.skipped_units,
     )
 
 

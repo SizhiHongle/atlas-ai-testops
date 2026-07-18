@@ -124,12 +124,27 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
             events.append("command-run")
             captured["command_stop_event"] = stop_event
 
+    class FakeMaterializationConsumer:
+        def __init__(self, database: object, **kwargs: object) -> None:
+            events.append("materialization-consumer")
+            captured["materialization_database"] = database
+            captured["materialization_options"] = kwargs
+
+        async def run_forever(self, stop_event: object) -> None:
+            events.append("materialization-run")
+            captured["materialization_stop_event"] = stop_event
+
     monkeypatch.setattr(task_intent, "TaskIntentDispatcherDatabase", FakeDatabase)
     monkeypatch.setattr(task_intent, "Client", FakeClient)
     monkeypatch.setattr(task_intent, "TemporalTaskIntentStarter", FakeStarter)
     monkeypatch.setattr(task_intent, "TemporalTaskCommandSignaler", FakeSignaler)
     monkeypatch.setattr(task_intent, "TaskWorkflowIntentConsumer", FakeConsumer)
     monkeypatch.setattr(task_intent, "TaskRunCommandIntentConsumer", FakeCommandConsumer)
+    monkeypatch.setattr(
+        task_intent,
+        "TaskMaterializationConsumer",
+        FakeMaterializationConsumer,
+    )
     settings = _enabled_settings()
 
     await task_intent.run_consumer(settings)
@@ -141,7 +156,9 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
         "consumer",
         "signaler",
         "command-consumer",
+        "materialization-consumer",
         "open",
+        "materialization-run",
         "run",
         "command-run",
         "close",
@@ -175,6 +192,15 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
     assert captured["stop_event"].is_set()
     assert captured["command_stop_event"] is captured["stop_event"]
     assert captured["command_options"] == consumer_options
+    assert captured["materialization_stop_event"] is captured["stop_event"]
+    assert captured["materialization_database"] is captured["consumer_database"]
+    assert captured["materialization_options"] == {
+        "dispatcher_id": "task-dispatcher-test",
+        "batch_size": 12,
+        "lease_duration": consumer_options["lease_duration"],
+        "poll_interval": consumer_options["poll_interval"],
+        "retry_policy": consumer_options["retry_policy"],
+    }
 
 
 @pytest.mark.anyio
@@ -224,6 +250,17 @@ async def test_consumer_closes_database_when_polling_fails(
                 events.append("command-canceled")
                 raise
 
+    class WaitingMaterializationConsumer:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def run_forever(self, _stop_event: object) -> None:
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                events.append("materialization-canceled")
+                raise
+
     monkeypatch.setattr(task_intent, "TaskIntentDispatcherDatabase", FakeDatabase)
     monkeypatch.setattr(task_intent, "Client", FakeClient)
     monkeypatch.setattr(task_intent, "TemporalTaskIntentStarter", FakeStarter)
@@ -234,13 +271,20 @@ async def test_consumer_closes_database_when_polling_fails(
         "TaskRunCommandIntentConsumer",
         WaitingCommandConsumer,
     )
+    monkeypatch.setattr(
+        task_intent,
+        "TaskMaterializationConsumer",
+        WaitingMaterializationConsumer,
+    )
     stop_event = asyncio.Event()
 
     with pytest.raises(ExceptionGroup) as failure:
         await task_intent.run_consumer(_enabled_settings(), stop_event=stop_event)
 
     assert "poll failed" in str(failure.value.exceptions[0])
-    assert events == ["open", "command-canceled", "close"]
+    assert events[0] == "open"
+    assert set(events[1:-1]) == {"command-canceled", "materialization-canceled"}
+    assert events[-1] == "close"
     assert stop_event.is_set()
 
 

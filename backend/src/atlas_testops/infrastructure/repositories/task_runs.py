@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from math import ceil
 from uuid import UUID
 
 from psycopg import AsyncConnection, AsyncCursor
@@ -28,6 +29,8 @@ from atlas_testops.domain.task import (
 
 # Bound this synchronous 2N-insert path without shrinking the manifest protocol limit.
 MAX_INITIAL_EXECUTION_UNITS = 64
+MAX_TASK_RUN_UNITS = 100_000
+TASK_RUN_MATERIALIZATION_PARTITION_SIZE = 64
 
 TASK_PLAN_COLUMNS = (
     "id, tenant_id, project_id, task_key, name, status, created_by, revision, "
@@ -81,6 +84,25 @@ class ImmutableCreateKind(StrEnum):
 
 class ImmutableFactConflictError(RuntimeError):
     """Signal that an immutable natural key already stores different content."""
+
+
+@dataclass(frozen=True, slots=True)
+class TaskRunCompletionProjection:
+    """Database aggregate proving complete terminal Unit and Attempt coverage."""
+
+    total_units: int
+    closed_units: int
+    total_attempts: int
+    closed_attempts: int
+    finalized_event_count: int
+    finalized_unit_count: int
+    completed_units: int
+    unsealed_units: int
+    failed_units: int
+    inconclusive_units: int
+    canceled_units: int
+    skipped_units: int
+    invalid_events: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -369,6 +391,179 @@ class TaskRunRepository:
         if sealed_row is None:
             raise RuntimeError("task run materialization seal did not return a row")
         stored_run = TaskRun.model_validate(sealed_row)
+        return TaskRunCreateResult(
+            ImmutableCreateKind.CREATED,
+            stored_run,
+            stored_manifest,
+        )
+
+    async def create_partitioned_run(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        task_run: TaskRun,
+        manifest: TaskRunManifest,
+    ) -> TaskRunCreateResult:
+        """Create a large immutable root and durable 64-Unit materialization checkpoints."""
+
+        unit_count = len(manifest.units)
+        if not MAX_INITIAL_EXECUTION_UNITS < unit_count <= MAX_TASK_RUN_UNITS:
+            raise ValueError(
+                "partitioned TaskRun materialization requires between "
+                f"{MAX_INITIAL_EXECUTION_UNITS + 1} and {MAX_TASK_RUN_UNITS} Units"
+            )
+        if (
+            manifest.task_run_id != task_run.id
+            or manifest.task_plan_version_id != task_run.task_plan_version_id
+            or manifest.tenant_id != task_run.tenant_id
+            or manifest.project_id != task_run.project_id
+            or manifest.trigger_source is not task_run.trigger_source
+            or manifest.trigger_fingerprint != task_run.trigger_fingerprint
+            or manifest.manifest_hash != task_run.manifest_hash
+        ):
+            raise ValueError("TaskRunManifest must match the partitioned TaskRun root")
+        expected_request_digest = manifest.recompute_request_digest()
+        if task_run.request_digest != expected_request_digest:
+            raise ValueError("TaskRun requestDigest must match its logical Run Manifest input")
+        if task_run.materialization_state is not TaskMaterializationState.MATERIALIZING:
+            raise ValueError("a new partitioned TaskRun must begin in MATERIALIZING state")
+        if task_run.temporal_namespace is None or task_run.temporal_workflow_id is None:
+            raise ValueError("a new partitioned TaskRun requires a Temporal identity")
+        if task_run.temporal_workflow_id != task_run_workflow_id(
+            tenant_id=task_run.tenant_id,
+            task_run_id=task_run.id,
+        ):
+            raise ValueError("TaskRun temporalWorkflowId is not deterministic")
+        task_plan_version = await self.get_task_plan_version(
+            connection,
+            task_run.task_plan_version_id,
+        )
+        if task_plan_version is None:
+            raise ValueError(
+                "TaskRun TaskPlanVersion is missing or outside the current tenant/project scope"
+            )
+        self._validate_manifest_provenance(
+            task_run=task_run,
+            manifest=manifest,
+            task_plan_version=task_plan_version,
+        )
+
+        run_cursor = await connection.execute(
+            f"""
+            insert into atlas.task_run (
+              id, tenant_id, project_id, task_plan_version_id, manifest_hash,
+              trigger_source, trigger_fingerprint, request_digest,
+              materialization_state, materialized_unit_count,
+              materialized_first_attempt_count, materialization_sealed_at,
+              rerun_of_task_run_id, rerun_selection_mode, lifecycle, quality,
+              hygiene, requested_by, temporal_namespace, temporal_workflow_id,
+              requested_at, queued_at, started_at, finalized_at,
+              cleanup_resolved_at, closed_at, revision, created_at, updated_at
+            ) values (
+              %s, %s, %s, %s, %s,
+              %s, %s, %s,
+              %s, %s, %s, %s,
+              %s, %s, %s, %s, %s,
+              %s, %s, %s, %s, %s,
+              %s, %s, %s, %s, %s,
+              %s, %s
+            )
+            on conflict (tenant_id, trigger_source, trigger_fingerprint) do nothing
+            returning {TASK_RUN_COLUMNS}
+            """,
+            (
+                task_run.id,
+                task_run.tenant_id,
+                task_run.project_id,
+                task_run.task_plan_version_id,
+                task_run.manifest_hash,
+                task_run.trigger_source,
+                task_run.trigger_fingerprint,
+                task_run.request_digest,
+                task_run.materialization_state,
+                task_run.materialized_unit_count,
+                task_run.materialized_first_attempt_count,
+                task_run.materialization_sealed_at,
+                task_run.rerun_of_task_run_id,
+                task_run.rerun_selection_mode,
+                task_run.lifecycle,
+                task_run.quality,
+                task_run.hygiene,
+                task_run.requested_by,
+                task_run.temporal_namespace,
+                task_run.temporal_workflow_id,
+                task_run.requested_at,
+                task_run.queued_at,
+                task_run.started_at,
+                task_run.finalized_at,
+                task_run.cleanup_resolved_at,
+                task_run.closed_at,
+                task_run.revision,
+                task_run.created_at,
+                task_run.updated_at,
+            ),
+        )
+        run_row = await run_cursor.fetchone()
+        if run_row is None:
+            existing_run = await self._get_task_run_conflict(connection, task_run)
+            if existing_run is None:
+                raise RuntimeError("partitioned task run conflict has no stored row")
+            existing_manifest = await self.get_manifest(connection, existing_run.id)
+            if existing_manifest is None:
+                raise RuntimeError("partitioned task run is missing its manifest")
+            if (
+                existing_run.request_digest != expected_request_digest
+                or existing_manifest.recompute_request_digest() != expected_request_digest
+                or existing_run.rerun_of_task_run_id != task_run.rerun_of_task_run_id
+                or existing_run.rerun_selection_mode != task_run.rerun_selection_mode
+            ):
+                raise ImmutableFactConflictError(
+                    "partitioned task run identity stores different immutable input"
+                )
+            return TaskRunCreateResult(
+                ImmutableCreateKind.EXISTING,
+                existing_run,
+                existing_manifest,
+            )
+
+        stored_run = TaskRun.model_validate(run_row)
+        stored_manifest = await self._insert_manifest(connection, manifest)
+        partition_count = ceil(
+            unit_count / TASK_RUN_MATERIALIZATION_PARTITION_SIZE
+        )
+        partition_cursor = await connection.execute(
+            """
+            insert into atlas.task_run_materialization_partition (
+              id, tenant_id, project_id, task_run_id, manifest_hash,
+              partition_index, first_ordinal, last_ordinal, status,
+              available_at, materialization_attempts, revision,
+              created_at, updated_at
+            )
+            select
+              gen_random_uuid(), %s, %s, %s, %s,
+              partition_index,
+              partition_index * %s + 1,
+              least((partition_index + 1) * %s, %s),
+              'PENDING', %s, 0, 1, %s, %s
+            from generate_series(0, %s) as series(partition_index)
+            returning id
+            """,
+            (
+                task_run.tenant_id,
+                task_run.project_id,
+                task_run.id,
+                task_run.manifest_hash,
+                TASK_RUN_MATERIALIZATION_PARTITION_SIZE,
+                TASK_RUN_MATERIALIZATION_PARTITION_SIZE,
+                unit_count,
+                task_run.created_at,
+                task_run.created_at,
+                task_run.created_at,
+                partition_count - 1,
+            ),
+        )
+        if len(await partition_cursor.fetchall()) != partition_count:
+            raise RuntimeError("partitioned TaskRun did not create exact checkpoints")
         return TaskRunCreateResult(
             ImmutableCreateKind.CREATED,
             stored_run,
@@ -741,6 +936,39 @@ class TaskRunRepository:
         )
         return tuple(UnitAttempt.model_validate(row) for row in await cursor.fetchall())
 
+    async def list_first_attempts_page(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        task_run_id: UUID,
+        after_ordinal: int,
+        limit: int,
+    ) -> tuple[UnitAttempt, ...]:
+        """Load one bounded first-Attempt page in immutable Unit ordinal order."""
+
+        cursor = await connection.execute(
+            f"""
+            select {UNIT_ATTEMPT_COLUMNS}
+            from (
+              select attempt.*, unit.ordinal as dispatch_ordinal
+              from atlas.unit_attempt attempt
+              join atlas.execution_unit unit
+                on unit.id = attempt.execution_unit_id
+               and unit.task_run_id = attempt.task_run_id
+               and unit.tenant_id = attempt.tenant_id
+               and unit.project_id = attempt.project_id
+              where attempt.task_run_id = %s
+                and attempt.attempt_number = 1
+                and unit.ordinal > %s
+              order by unit.ordinal, attempt.id
+              limit %s
+            ) first_attempt
+            order by dispatch_ordinal, id
+            """,
+            (task_run_id, after_ordinal, limit),
+        )
+        return tuple(UnitAttempt.model_validate(row) for row in await cursor.fetchall())
+
     async def create_attempt(
         self,
         connection: AsyncConnection[DictRow],
@@ -850,6 +1078,106 @@ class TaskRunRepository:
             raise RuntimeError("retry Attempt count query returned no row")
         return int(row["count"])
 
+    async def get_completion_projection(
+        self,
+        connection: AsyncConnection[DictRow],
+        task_run_id: UUID,
+    ) -> TaskRunCompletionProjection:
+        """Project bounded root counts from closed facts and immutable finalization events."""
+
+        cursor = await connection.execute(
+            """
+            with unit_counts as (
+              select
+                count(*)::integer as total_units,
+                count(*) filter (where lifecycle = 'CLOSED')::integer as closed_units
+              from atlas.execution_unit
+              where task_run_id = %s
+            ),
+            attempt_counts as (
+              select
+                count(*)::integer as total_attempts,
+                count(*) filter (where lifecycle = 'CLOSED')::integer as closed_attempts
+              from atlas.unit_attempt
+              where task_run_id = %s
+            ),
+            finalized as (
+              select
+                execution_unit_id,
+                quality,
+                payload ->> 'schemaVersion' as schema_version,
+                payload ->> 'status' as status,
+                payload ->> 'errorCode' as error_code
+              from atlas.task_run_event
+              where task_run_id = %s
+                and event_type = 'execution_unit.finalized'
+            ),
+            event_counts as (
+              select
+                count(*)::integer as finalized_event_count,
+                count(distinct execution_unit_id)::integer as finalized_unit_count,
+                count(*) filter (
+                  where status in ('PASSED', 'FINISHED_UNSEALED')
+                )::integer as completed_units,
+                count(*) filter (
+                  where status = 'FINISHED_UNSEALED'
+                )::integer as unsealed_units,
+                count(*) filter (where status = 'FAILED')::integer as failed_units,
+                count(*) filter (
+                  where status in ('INCONCLUSIVE', 'INFRA_ERROR')
+                )::integer as inconclusive_units,
+                count(*) filter (
+                  where status = 'CANCELED'
+                    and error_code is distinct from 'TASK_RUN_CANCELED_BEFORE_DISPATCH'
+                )::integer as canceled_units,
+                count(*) filter (
+                  where status = 'CANCELED'
+                    and error_code = 'TASK_RUN_CANCELED_BEFORE_DISPATCH'
+                )::integer as skipped_units,
+                count(*) filter (
+                  where execution_unit_id is null
+                    or schema_version is distinct from 'atlas.task-workflow-result/0.1'
+                    or status is null
+                    or status not in (
+                      'PASSED', 'FINISHED_UNSEALED', 'FAILED',
+                      'INCONCLUSIVE', 'INFRA_ERROR', 'CANCELED'
+                    )
+                    or case
+                      when status = 'PASSED' then quality <> 'PASSED'
+                      when status = 'FAILED' then quality <> 'FAILED'
+                      when status = 'CANCELED' then quality <> 'CANCELED'
+                      when status = 'INFRA_ERROR' then quality <> 'INFRA_ERROR'
+                      else quality <> 'INCONCLUSIVE'
+                    end
+                )::integer as invalid_events
+              from finalized
+            )
+            select unit_counts.*, attempt_counts.*, event_counts.*
+            from unit_counts
+            cross join attempt_counts
+            cross join event_counts
+            """,
+            (task_run_id, task_run_id, task_run_id),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            raise RuntimeError("TaskRun completion projection query returned no row")
+        return TaskRunCompletionProjection(
+            total_units=int(row["total_units"]),
+            closed_units=int(row["closed_units"]),
+            total_attempts=int(row["total_attempts"]),
+            closed_attempts=int(row["closed_attempts"]),
+            finalized_event_count=int(row["finalized_event_count"]),
+            finalized_unit_count=int(row["finalized_unit_count"]),
+            completed_units=int(row["completed_units"]),
+            unsealed_units=int(row["unsealed_units"]),
+            failed_units=int(row["failed_units"]),
+            inconclusive_units=int(row["inconclusive_units"]),
+            canceled_units=int(row["canceled_units"]),
+            skipped_units=int(row["skipped_units"]),
+            invalid_events=int(row["invalid_events"]),
+        )
+
     async def list_attempts_page(
         self,
         connection: AsyncConnection[DictRow],
@@ -939,6 +1267,27 @@ class TaskRunRepository:
             limit %s
             """,
             (task_run_id, after_seq, limit),
+        )
+        return tuple(TaskExecutionEvent.model_validate(row) for row in await cursor.fetchall())
+
+    async def list_root_finalization_events(
+        self,
+        connection: AsyncConnection[DictRow],
+        task_run_id: UUID,
+    ) -> tuple[TaskExecutionEvent, ...]:
+        """Load only root finalization facts without scanning bounded-page Unit history."""
+
+        cursor = await connection.execute(
+            f"""
+            select {TASK_EXECUTION_EVENT_COLUMNS}
+            from atlas.task_run_event
+            where task_run_id = %s
+              and event_type = 'task_run.finalized'
+              and execution_unit_id is null
+              and unit_attempt_id is null
+            order by seq
+            """,
+            (task_run_id,),
         )
         return tuple(TaskExecutionEvent.model_validate(row) for row in await cursor.fetchall())
 

@@ -136,6 +136,7 @@ async def test_worker_wires_isolated_queues_and_closes_database(
             self.checkpoint_control = object()
             self.settle_attempt_batch = object()
             self.finish_run = object()
+            self.finish_partitioned_run = object()
             self.prepare_attempt = object()
             self.begin_attempt = object()
             self.execute_attempt = object()
@@ -194,7 +195,7 @@ async def test_worker_wires_isolated_queues_and_closes_database(
     root_worker, attempt_worker = workers
     assert root_worker.task_queue == "atlas-task-run"
     assert root_worker.workflows == [AtlasTaskRunWorkflow]
-    assert len(root_worker.activities) == 5
+    assert len(root_worker.activities) == 6
     assert root_worker.max_concurrent_workflow_tasks == 3
     assert root_worker.max_concurrent_activities == 3
     assert attempt_worker.task_queue == "atlas-unit-attempt"
@@ -240,6 +241,7 @@ async def test_worker_cancels_peer_and_closes_database_when_one_poller_fails(
             self.checkpoint_control = object()
             self.settle_attempt_batch = object()
             self.finish_run = object()
+            self.finish_partitioned_run = object()
             self.prepare_attempt = object()
             self.begin_attempt = object()
             self.execute_attempt = object()

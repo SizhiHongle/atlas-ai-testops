@@ -13,6 +13,9 @@ from atlas_testops.application.task_intents import (
     TaskIntentRetryPolicy,
     TaskWorkflowIntentConsumer,
 )
+from atlas_testops.application.task_materialization import (
+    TaskMaterializationConsumer,
+)
 from atlas_testops.core.config import TaskIntentConsumerSettings
 from atlas_testops.infrastructure.task_intents import TaskIntentDispatcherDatabase
 from atlas_testops.orchestration.task_commands import TemporalTaskCommandSignaler
@@ -101,6 +104,16 @@ async def run_consumer(
         ),
         retry_policy=retry_policy,
     )
+    materialization_consumer = TaskMaterializationConsumer(
+        database,
+        dispatcher_id=settings.task_intent_worker_identity,
+        batch_size=settings.task_intent_batch_size,
+        lease_duration=timedelta(seconds=settings.task_intent_lease_seconds),
+        poll_interval=timedelta(
+            seconds=settings.task_intent_poll_interval_seconds,
+        ),
+        retry_policy=retry_policy,
+    )
     selected_stop_event = stop_event or asyncio.Event()
     await database.open()
     try:
@@ -114,6 +127,9 @@ async def run_consumer(
             },
         )
         async with asyncio.TaskGroup() as group:
+            group.create_task(
+                materialization_consumer.run_forever(selected_stop_event)
+            )
             group.create_task(consumer.run_forever(selected_stop_event))
             group.create_task(command_consumer.run_forever(selected_stop_event))
     finally:

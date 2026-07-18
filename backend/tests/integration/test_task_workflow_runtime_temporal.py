@@ -61,6 +61,7 @@ from atlas_testops.orchestration.tasks import (
     TaskRunCommandSignal,
     TaskRunControlCheckpointPayload,
     TaskRunFinishInput,
+    TaskRunProjectedFinishInput,
     TaskRunWorkflowPayload,
     TaskUnitDispatchPayload,
     TaskUnitExecutionPort,
@@ -180,6 +181,7 @@ class _FakeTaskService:
         self.start_calls: list[UnitAttemptWorkflowInput] = []
         self.finish_attempt_calls: list[TaskAttemptFinishInput] = []
         self.finish_run_calls: list[TaskRunFinishInput] = []
+        self.finish_partitioned_run_calls: list[TaskRunProjectedFinishInput] = []
 
     async def load_dispatch_plan(
         self,
@@ -276,6 +278,22 @@ class _FakeTaskService:
             skipped_units=request.skipped_units,
         )
 
+    async def finish_partitioned_run(
+        self,
+        request: TaskRunProjectedFinishInput,
+    ) -> TaskRunWorkflowPayload:
+        self.finish_partitioned_run_calls.append(request)
+        total_units = self.plan.total_units or len(self.plan.units)
+        return TaskRunWorkflowPayload(
+            task_run_id=request.request.task_run_id,
+            status="CANCELED" if request.cancel_requested else "FINISHED_UNSEALED",
+            completed_units=0 if request.cancel_requested else total_units,
+            failed_units=0,
+            inconclusive_units=0,
+            canceled_units=0,
+            skipped_units=total_units if request.cancel_requested else 0,
+        )
+
 
 class _GatedBeginTaskService(_FakeTaskService):
     """Hold admission open while the first Activity worker stops polling."""
@@ -307,6 +325,44 @@ class _TransientFinishRunTaskService(_FakeTaskService):
         if self.finish_run_attempts <= 3:
             raise ConnectionError("transient database outage")
         return await super().finish_run(request)
+
+
+class _PagedTaskService(_FakeTaskService):
+    """Return one exact page per Continue-As-New cursor."""
+
+    def __init__(
+        self,
+        first: TaskDispatchPlanPayload,
+        final: TaskDispatchPlanPayload,
+    ) -> None:
+        super().__init__(first)
+        self.pages = {
+            first.after_ordinal: first,
+            final.after_ordinal: final,
+        }
+        self.load_requests: list[TaskRunWorkflowInput] = []
+
+    async def load_dispatch_plan(
+        self,
+        request: TaskRunWorkflowInput,
+    ) -> TaskDispatchPlanPayload:
+        self.load_calls += 1
+        self.load_requests.append(request)
+        plan = self.pages[request.dispatch_after_ordinal]
+        assert (
+            request.tenant_id,
+            request.project_id,
+            request.task_run_id,
+            request.request_digest,
+            request.manifest_hash,
+        ) == (
+            plan.tenant_id,
+            plan.project_id,
+            plan.task_run_id,
+            plan.request_digest,
+            plan.manifest_hash,
+        )
+        return plan
 
 
 class _FakeExecutionPort:
@@ -451,6 +507,7 @@ def _workers(
                 activities.checkpoint_control,
                 activities.settle_attempt_batch,
                 activities.finish_run,
+                activities.finish_partitioned_run,
             ],
         ),
         Worker(
@@ -548,6 +605,60 @@ async def test_real_task_root_uses_intent_contract_batches_children_and_replays_
     )
     assert result.status == ("INCONCLUSIVE" if unit_count > 1 else "FINISHED_UNSEALED")
     assert "PASSED" not in str(result)
+
+
+@pytest.mark.anyio
+async def test_real_task_root_continues_history_and_finishes_65_units_once() -> None:
+    assert TEMPORAL_ADDRESS is not None
+    client = await Client.connect(TEMPORAL_ADDRESS, namespace="default")
+    intent = _intent()
+    request = _root_input(intent)
+    first = replace(
+        _plan(request, 64),
+        total_units=65,
+        has_more=True,
+    )
+    final_unit = replace(_plan(request, 1).units[0], ordinal=65)
+    final = TaskDispatchPlanPayload(
+        tenant_id=request.tenant_id,
+        project_id=request.project_id,
+        task_run_id=request.task_run_id,
+        request_digest=request.request_digest,
+        manifest_hash=request.manifest_hash,
+        units=(final_unit,),
+        after_ordinal=64,
+        total_units=65,
+        has_more=False,
+    )
+    service = _PagedTaskService(first, final)
+    port = _FakeExecutionPort()
+    root_worker, attempt_worker = _workers(
+        client,
+        cast(TaskOrchestrationService, service),
+        cast(TaskUnitExecutionPort, port),
+    )
+    starter = TemporalTaskIntentStarter(
+        client,
+        rpc_attempts=2,
+        rpc_timeout=timedelta(seconds=5),
+        retry_delay=timedelta(milliseconds=100),
+    )
+
+    async with root_worker, attempt_worker:
+        await starter.start(intent)
+        handle = client.get_workflow_handle_for(
+            AtlasTaskRunWorkflow.run,
+            intent.workflow_id,
+        )
+        result = await handle.result()
+
+    assert result.status == "FINISHED_UNSEALED"
+    assert result.completed_units == 65
+    assert [item.dispatch_after_ordinal for item in service.load_requests] == [0, 64]
+    assert service.finish_run_calls == []
+    assert len(service.finish_partitioned_run_calls) == 1
+    assert len(port.calls) == 65
+    assert sorted(item.ordinal for item in port.calls) == list(range(1, 66))
 
 
 @pytest.mark.anyio

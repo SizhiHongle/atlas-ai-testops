@@ -182,6 +182,29 @@ class TaskRunCommandRepository:
         row = await cursor.fetchone()
         return TaskRunCommandIntent.model_validate(row) if row is not None else None
 
+    async def get_pending_cancel_for_run(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        task_run_id: UUID,
+    ) -> TaskRunCommandIntent | None:
+        """Return the exact cancel command that may outlive Continue-As-New history."""
+
+        cursor = await connection.execute(
+            f"""
+            select {PUBLIC_COMMAND_COLUMNS}
+            from atlas.task_run_command_intent
+            where task_run_id = %s
+              and command_type = 'CANCEL'
+              and status in ('PENDING', 'CLAIMED', 'RETRY_WAIT', 'DELIVERED')
+            order by accepted_run_revision desc, created_at desc, id desc
+            limit 1
+            """,
+            (task_run_id,),
+        )
+        row = await cursor.fetchone()
+        return TaskRunCommandIntent.model_validate(row) if row is not None else None
+
     async def claim(
         self,
         connection: AsyncConnection[DictRow],
