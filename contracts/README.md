@@ -52,6 +52,7 @@
 - `task-result-reevaluation-command.schema.json`：`atlas.task-result-reevaluation-command/0.1` 的不可变显式命令事实；绑定 exact `FULLY_RESOLVED` 源 Snapshot、目标 Aggregation Policy 与 `clientMutationId`，策略发布和后台 Worker 不会自动创建它。
 - `failure-cluster-revision.schema.json`：`atlas.failure-cluster-revision/0.1` 的 exact Snapshot-bound 聚类事实；冻结 manifest-ordered UnitResolution 集合、FailureSignal、fingerprint Policy 与 representative evidence source。
 - `failure-classification-revision.schema.json`：`atlas.failure-classification-revision/0.1` 的追加式证据化归因；冻结 FailureDomain、hypothesis、basis-point confidence、Evidence Ref、gap、author、judgment 与人工复核 lineage，不修改原始 Verdict。
+- `task-gate-callback.schema.json`：`atlas.task-gate-callback/0.1` 的固定六字段外部回调；`eventId` 是永久幂等键，HMAC 覆盖 TaskRun、Manifest、三值 Gate Decision 与 UTC timestamp，URL 和 key 不进入消息或数据库。
 - `attempt-fixture-binding.schema.json`：`atlas.attempt-fixture-binding/0.1` 的不可变执行绑定；把正式 UnitAttempt 精确关联到同作用域 FixtureRun、Environment、Blueprint 与 Compiled Plan。
 - `unit-hygiene-resolution-revision.schema.json`：`atlas.unit-hygiene-resolution-revision/0.1` 的追加式清理解释；冻结每个 Attempt 的 Fixture cleanup、资源账本和 Reconcile 观察集合，并在重试后保留最严重 Hygiene。
 - `openapi.json`：当前 FastAPI 公共 HTTP API，由前端生成 TypeScript 类型。

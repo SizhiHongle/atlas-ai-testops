@@ -1,5 +1,14 @@
 """Public Result truth contracts."""
 
+from atlas_testops.domain.result.callbacks import (
+    TASK_GATE_CALLBACK_SCHEMA_VERSION,
+    TASK_GATE_CALLBACK_SIGNATURE_PATTERN,
+    TaskGateCallbackEvent,
+    TaskGateCallbackEventContent,
+    encode_task_gate_callback_document,
+    task_gate_callback_document,
+    task_gate_callback_signing_bytes,
+)
 from atlas_testops.domain.result.classification import (
     FAILURE_CLASSIFICATION_POLICY_DIGEST,
     FAILURE_CLASSIFICATION_POLICY_VERSION,
@@ -163,6 +172,8 @@ __all__ = [
     "RESULT_CLUSTER_CURSOR_SCHEMA_VERSION",
     "RESULT_REF_SCHEMA_VERSION",
     "TASK_ATTEMPT_FIXTURE_EXECUTION_PREFIX",
+    "TASK_GATE_CALLBACK_SCHEMA_VERSION",
+    "TASK_GATE_CALLBACK_SIGNATURE_PATTERN",
     "TASK_GATE_CLASSIFICATION_SET_SCHEMA_VERSION",
     "TASK_GATE_DECISION_SCHEMA_VERSION",
     "TASK_GATE_HUMAN_CONFIDENCE_MINIMUM",
@@ -226,6 +237,8 @@ __all__ = [
     "TaskEvidenceCompletenessCounts",
     "TaskEvidenceIntegrityCounts",
     "TaskExecutionInfluenceCounts",
+    "TaskGateCallbackEvent",
+    "TaskGateCallbackEventContent",
     "TaskGateClassificationInput",
     "TaskGateDecision",
     "TaskGateDecisionContent",
@@ -256,6 +269,7 @@ __all__ = [
     "attempt_seal_signing_bytes",
     "decode_result_cluster_cursor",
     "encode_result_cluster_cursor",
+    "encode_task_gate_callback_document",
     "evaluate_task_gate",
     "failure_classification_revision_document",
     "failure_classification_revision_hash",
@@ -270,6 +284,8 @@ __all__ = [
     "result_projection_digest",
     "rule_classification_for_signal",
     "task_attempt_fixture_execution_id",
+    "task_gate_callback_document",
+    "task_gate_callback_signing_bytes",
     "task_gate_classification_inputs",
     "task_gate_classification_is_ready",
     "task_gate_classification_set_hash",

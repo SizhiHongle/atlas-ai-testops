@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -70,6 +71,7 @@ class _GateResultRepository(_ClassificationResultRepository):
             hygiene=hygiene,
         )
         self.gates: list[TaskGateDecision] = []
+        self.callback_intents: list[dict[str, object]] = []
 
     async def list_current_gate_classifications(
         self,
@@ -123,6 +125,24 @@ class _GateResultRepository(_ClassificationResultRepository):
         decision: TaskGateDecision,
     ) -> None:
         self.gates.append(decision)
+
+    async def insert_task_gate_callback_intent(
+        self,
+        _connection: object,
+        *,
+        event_id: UUID,
+        decision: TaskGateDecision,
+        manifest_hash: str,
+        created_at: datetime,
+    ) -> None:
+        self.callback_intents.append(
+            {
+                "event_id": event_id,
+                "decision": decision,
+                "manifest_hash": manifest_hash,
+                "created_at": created_at,
+            }
+        )
 
 
 async def _clean_chain() -> tuple[
@@ -248,6 +268,8 @@ async def test_clean_snapshot_gate_is_accepted_and_idempotently_replayed() -> No
     assert replay.replayed
     assert replay.value == created.value
     assert len(results.gates) == 1
+    assert len(results.callback_intents) == 1
+    assert results.callback_intents[0]["decision"] == created.value
     assert [item["event_type"] for item in audit.events] == ["task_gate.evaluated"]
     assert [item.event_type for item in outbox.events] == ["task_gate.evaluated"]
 
@@ -281,6 +303,7 @@ async def test_uncertain_snapshot_gate_appends_auditable_revisions() -> None:
     assert second.value.task_gate_id == first.value.task_gate_id
     assert second.value.supersedes_gate_decision_id == first.value.id
     assert len(results.gates) == 2
+    assert len(results.callback_intents) == 2
     assert [item.event_type for item in outbox.events] == [
         "failure_classification.revised",
         "task_gate.evaluated",

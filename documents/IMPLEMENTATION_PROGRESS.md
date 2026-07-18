@@ -14,10 +14,10 @@
 ## 当前状态
 
 - 当前阶段：`P5 Task 生产执行闭环（基础中）`
-- 当前切片：`P5-00E6 数据库权威 Temporal Task Schedule`
-- 总体状态：P5 已建立正式执行宿主、统一 Manual / Schedule / CI / Webhook Trigger、100,000-Unit 可恢复分区物化、有界 Temporal History、signed HTTPS production Port，以及数据库权威 Temporal Schedule Catalog / Sync / Fire；P6 已建立可信 Browser / Evidence / Attempt Result 事实链、DebugRun 只读 Live 和 UnitAttempt-scoped Live Control；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate、公开查询 API 与既有 Results 槽位接线。P8 V1 已实现 comparable Insight Snapshot。Worker / Consumer 仍默认关闭，真实 SaaS executor 仍需部署输入；签名回调和 P9 生产硬化继续按后续阶段落地
+- 当前切片：`P5-00E7 签名 Task Gate Callback`
+- 总体状态：P5 已建立正式执行宿主、统一 Manual / Schedule / CI / Webhook Trigger、100,000-Unit 可恢复分区物化、有界 Temporal History、signed HTTPS production Port、数据库权威 Temporal Schedule Catalog / Sync / Fire，以及 signed Task Gate Callback 可靠投递；P6 已建立可信 Browser / Evidence / Attempt Result 事实链、DebugRun 只读 Live 和 UnitAttempt-scoped Live Control；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate、公开查询 API 与既有 Results 槽位接线。P8 V1 已实现 comparable Insight Snapshot。Worker / Consumer 仍默认关闭，真实 SaaS executor 仍需部署输入；P9 生产硬化继续按后续阶段落地
 - 当前分支：`main`
-- 当前进入基线提交：`f3da546`
+- 当前进入基线提交：`960fc10`
 
 ## 阶段看板
 
@@ -28,7 +28,7 @@
 | P2 | TestRole、AccountPool、TestAccount、Lease 与 Auth Session | 已完成 | P2-01 至 P2-06 已验收；身份、租约、Secret Grant、加密 Session 与清理链已闭环 |
 | P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 已完成 | P3-00 至 P3-03 已验收；资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与三类发布证据闭环 |
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 后端完成 | P4-00 至 P4-03 已验收；作者态、不可变 DebugRun、精确绑定、Reviewer 发布门禁与 CaseVersion 冻结闭环已落地 |
-| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00E6 已验收；不可变 Ticket、signed HTTPS Port、durable command、infra retry/rerun、TaskPlan、统一 Trigger、100,000-Unit 分区、数据库权威 Temporal Schedule 与 P6-02B2 Takeover 均有 PostgreSQL / Temporal 证据。签名回调与部署端真实 SaaS executor 待后续 |
+| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00E7 已验收；不可变 Ticket、signed HTTPS Port、durable command、infra retry/rerun、TaskPlan、统一 Trigger、100,000-Unit 分区、数据库权威 Temporal Schedule、signed Gate Callback 与 P6-02B2 Takeover 均有 PostgreSQL / Temporal 证据。部署端真实 SaaS executor 待外部输入 |
 | P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面、P6-02A 可信截图写入 / 受控读取、P6-02B1 DebugRun Live 安全观察流、P6-02B2 UnitAttempt 控制权、P6-03A AttemptSeal / ResultRef 与 P6-03B ClosureNotice / UnitResolutionRevision 均已验收；真实 SaaS Operation、网络沙箱与 Multi-actor 仍需部署输入或后续实现 |
 | P7 | Result Fact、Snapshot、Classification 与 Gate | 已完成 | P6-03A/P6-03B 与 P7-01A 至 P7-03 已实现三阶段 Snapshot、FailureCluster / Classification、`0039` TaskGateDecision、公开 Result API、ETag 与既有 Results 槽位真实数据映射 |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 基础中 | V1 fixed MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums、DatasetCut、`0040` immutable InsightSnapshot、preview/pin/exact API 与既有 Insights 槽位映射已实现；Projector generation、Signal/Review 与异步 Export 待扩展 |
@@ -584,7 +584,28 @@
 ### 后续边界
 
 - E6 不开放任意 Cron 字符串、BufferAll/AllowAll、无界 Catchup、客户端执行配置覆盖或 Backfill API。生产启用仍需 Schedule Worker、Dispatcher、Root/Attempt Worker 和真实 executor 全部就绪。
-- 签名外部 Callback 属于 E7；容量、故障注入、30 次黄金链和 SLO 属于 P9。
+- 容量、故障注入、30 次黄金链和 SLO 属于 P9。
+
+## P5-00E7 范围
+
+### 已实现
+
+- 每个新 `TaskGateDecision` 都在同一数据库事务内写入唯一 `task_gate_callback_intent`；Gate 的永久幂等重放不会产生重复事件。Intent 精确冻结 Event、TaskRun、Manifest、Gate Decision、Verdict 与 Timestamp，不保存 Endpoint、Key、签名、数据库 URL 或其他 Secret。
+- `atlas.task-gate-callback/0.1` 事件文档固定为 `eventId / taskRunId / manifestHash / gateDecision / timestamp / signature` 六个字段。HMAC-SHA256 精确覆盖前五个字段的 canonical bytes，Timestamp 使用 UTC 整秒；接收方可同时执行签名、重放窗口与永久 `eventId` 幂等校验。
+- 独立 `atlas-task-gate-callback-consumer` 只使用固定部署 Endpoint 和独立 HMAC Key。HTTP 发送发生在数据库事务外，禁用 Redirect 和环境 Proxy；Production 强制 HTTPS。`2xx` 标记 Delivered，`408 / 425 / 429 / 5xx` 与传输失败进入有界重试，其余 `4xx` 永久失败。
+- `atlas_dispatcher` 只通过四个 owner-owned 窄函数 Claim / Delivered / Retry / Fail，以 Claim Token 和 Lease CAS 防止陈旧 Consumer 覆盖。投递采用 at-least-once，同一 Intent 的每次重试保持同一 `eventId`。
+- 新增 `20260718_0044` 强制 RLS、插入复核、不可变语义字段与状态转换守卫；`atlas_app` 只可 Select / Insert，`atlas_dispatcher` 没有 Callback 表直接 DML 权限。新增 Worker 配置、Docker Target、Compose Profile、环境变量示例、机器契约与 ADR-0012。
+
+### 已验证
+
+- 领域、Signer、HTTP Adapter、Consumer、Repository、Worker、配置与 Migration 定向测试覆盖 canonical body、密钥强度、签名篡改、Timestamp 重放、URL/TLS/Redirect 边界、状态分类、重试耗尽、Crash-safe 三段式处理、Lease 丢失、最小权限与 populated downgrade fail-closed。
+- 真实 PostgreSQL 完整 `Task → Result → Gate → Callback Intent` 链验证每个新 Gate 精确一个 Intent、Gate replay 不重复；真实发送验证 exact 六字段签名体、`204 → DELIVERED`、`503 → RETRY_WAIT → 204` 使用同一 `eventId`，以及 `400 → FAILED`。
+- 完整门禁通过：1190 passed、coverage 90.18%、Ruff、strict mypy 400 files、Contracts / OpenAPI 漂移、Python 3.14 lock / sdist / wheel、前端 API / TypeScript / production build 全部成功。当前环境没有 Docker CLI，Compose 以 Ruby YAML parser 完成静态语法校验；前端原型源码未改。
+
+### 后续边界
+
+- Callback Receiver 不属于本仓库；接收方必须在重放窗口内验签、永久按 `eventId` 去重，并对重复事件返回 `2xx`。本仓库不允许调用方在 API 请求中指定 Callback URL 或 Key。
+- P9 将继续验证故障注入、容量、隔离、黄金链与 SLO；生产部署仍需真实 Receiver Endpoint / Key、Network Policy、Secret Manager 与运行告警。
 
 ## P6-00 范围
 
@@ -787,6 +808,7 @@
 | 2026-07-18 | P5-00E4 Partitioned Materialization / Execution | `0042` 64-Unit fenced partitions、100,000 上限、Consumer、分页 Root、safe Continue-As-New、DB projected finish / cancel drain | 真实 65-Unit PostgreSQL 两分区全链与真实 Temporal 64 + 1 Child 续跑通过；完整门禁 1100 tests / coverage 90.02%、Ruff、严格 mypy 366 files、Contracts / OpenAPI、Python 包与前端 API / TypeScript / production build 全部成功；前端原型未改 |
 | 2026-07-18 | P5-00E5 Signed production execution Port | ticket-bound secret-free HTTPS、双向 HMAC / Nonce / Digest、single-call unknown-outcome、CLI / Compose 装配与资源回收 | 真实 PostgreSQL + Temporal 完整后端门禁 1114 tests / coverage 90.04%；Ruff、strict mypy 368 files、Contracts / OpenAPI、Python package 与前端 API / TypeScript / production build 全部通过；签名、TLS、超时、非 200、无签名 / 篡改 / 超限响应与 deadline 均 fail-closed，前端原型源码未改 |
 | 2026-07-18 | P5-00E6 Database-authoritative Temporal Schedule | immutable Schedule Catalog、IANA Calendar / DST、Overlap / Catchup / Jitter、fenced Sync Intent、Pause/Resume、reserved fire identity 与统一 Trigger | 真实 PostgreSQL + Temporal 验证 `Schedule → Sync Intent → Temporal → unified compiler → SEALED TaskRun`；完整门禁 1149 passed / 8 skipped、coverage 90.04%、Ruff、strict mypy 391 files、Contracts / OpenAPI、Python 3.14 package 与前端 API / TypeScript / production build 全部通过；前端原型源码未改 |
+| 2026-07-18 | P5-00E7 Signed Task Gate Callback | Gate 同事务 Intent、exact 六字段 HMAC 事件、独立 Consumer、at-least-once、fenced Claim / Retry / Delivered / Fail | 真实 PostgreSQL 验证 `Task → Result → Gate → Callback Intent`、Gate replay 不重复、`204` 成功、`503` 同 Event 重试成功和 `400` 永久失败；完整门禁 1190 passed / coverage 90.18%、Ruff、strict mypy 400 files、Contracts / OpenAPI、Python 3.14 package 与前端 API / TypeScript / production build 全部通过；前端原型源码未改 |
 | 2026-07-18 | P6-03A AttemptSeal / ResultRef | Ed25519 contract、Finalize exact replay / conflict、Task trusted PASS recovery、repository、真实 PostgreSQL 与 migration | 通过；70 项定向测试与 1 项真实 PostgreSQL 全链通过，`0032` 有 Fact downgrade 拒绝及清理后 `0032 → 0031 → 0032` 往返成功；完整门禁 937 tests / coverage 90.09%、Ruff、严格 mypy 311 files、Schema / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
 | 2026-07-18 | P6-03B ClosureNotice / UnitResolutionRevision | 无 Seal 终态事实、完整 Attempt 覆盖、append-only Unit Resolution、重试 Stability、Task / Finalize 事务投影、真实 PostgreSQL 与 migration | 通过；37 项 Result 定向测试与 4 项真实 PostgreSQL 全链通过，`0033` 有 Projection Fact downgrade 拒绝，独立空库 `0033 → 0032 → 0033` 往返成功；干净数据库完整门禁 969 tests / coverage 90.13%、Ruff、严格 mypy 316 files、Schema / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
 | 2026-07-18 | P7-01A TaskResultSnapshot Truth | Manifest-ordered latest Resolution Set、Closure-compatible input root、固定 Snapshot Policy / Watermark、Verdict 守恒、各轴分布、四类精确通过率、Task close 原子 Snapshot / Outbox、`0034` append-only guard | 切片完成时本地门禁为 879 passed / 108 skipped；后续 P7-01B0 已在真实 PostgreSQL 完成 `0033 → 0034 → 0035`，AttemptSeal 全链复核 Snapshot Insert Guard，并以 1000 tests / coverage 90.08% 跑通完整 PostgreSQL / Temporal 门禁。`0034` standalone populated downgrade 未单独重复，因为现存 `0035` Cleanup Fact 会按设计先阻止链式降级；前端原型未改 |
@@ -952,6 +974,6 @@
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
 - P3-03 已完成取消后补偿、Reconcile、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Evidence；生产环境仍需按 Tenant 配置 Temporal Schedule 和真实 Provider，缺失时继续 fail-closed。
-- P5-00B1 至 P5-00E6 已建立正式 Profile、Seal / CAS、durable Start、100,000-Unit 分区物化与分页 Root / Attempt 编排、查询、immutable Ticket、可靠控制 / retry / rerun、TaskPlan Catalog / immutable publication、统一 Trigger、签名 HTTPS production `TaskUnitExecutionPort` 与数据库权威 Temporal Schedule。P6 已提供完整 Attempt Fact、Unit Resolution 和 UnitAttempt-scoped Live Control，P7 已完成三阶段 TaskResultSnapshot、FailureCluster / Classification、TaskGateDecision 与公共 Result 查询，P8 V1 已完成 comparable Brief / DatasetCut / immutable Snapshot；部署端真实 SaaS executor 和签名外部回调仍未提供。只有数据库中存在 exact Seal Fact 时才允许 Task Workflow 表达 `PASSED`，ClosureNotice 只能使 Resolution 得到 `INCONCLUSIVE / NOT_EVALUATED`。
+- P5-00B1 至 P5-00E7 已建立正式 Profile、Seal / CAS、durable Start、100,000-Unit 分区物化与分页 Root / Attempt 编排、查询、immutable Ticket、可靠控制 / retry / rerun、TaskPlan Catalog / immutable publication、统一 Trigger、签名 HTTPS production `TaskUnitExecutionPort`、数据库权威 Temporal Schedule 与 signed Gate Callback。P6 已提供完整 Attempt Fact、Unit Resolution 和 UnitAttempt-scoped Live Control，P7 已完成三阶段 TaskResultSnapshot、FailureCluster / Classification、TaskGateDecision 与公共 Result 查询，P8 V1 已完成 comparable Brief / DatasetCut / immutable Snapshot；部署端真实 SaaS executor 与 Callback Receiver 仍需外部输入。只有数据库中存在 exact Seal Fact 时才允许 Task Workflow 表达 `PASSED`，ClosureNotice 只能使 Resolution 得到 `INCONCLUSIVE / NOT_EVALUATED`。
 - P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；P6-02A Evidence Writer / 受控读取、P6-02B1 DebugRun Live Snapshot / SSE 与 P6-02B2 UnitAttempt LiveSession / ControlLease / Epoch / Fence / Human Takeover / ActionGrant 已完成。真实 SaaS Operation / Route Registry、生产 Bucket Object Lock / Versioning、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
 - 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

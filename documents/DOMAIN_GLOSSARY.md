@@ -50,6 +50,7 @@ TaskPlanVersion
       -> FailureClusterRevision
         -> FailureClassificationRevision
     -> TaskGateDecision
+      -> TaskGateCallbackIntent
 ```
 
 | 对象 | 定义 | 可变性与事实源 |
@@ -91,6 +92,8 @@ TaskPlanVersion
 | `AttemptFixtureBinding` | 正式 UnitAttempt 与 exact FixtureRun 的不可变一对一关联 | P7-01B0 已落地；复核 Execution kind / identity、Tenant / Project / Task / Unit、Environment、Blueprint、Compiled Plan 与 requestedAt，避免靠可变查询猜测清理来源 |
 | `UnitHygieneResolutionRevision` | 对一个 ExecutionUnit 全部 Attempt 清理事实的追加式解释 | P7-01B0 已落地；冻结 Fixture cleanup revision、Manifest、ResourceRecord / CleanupAttempt / Reconcile 观察集合与 watermarks；重试成功不能掩盖较早 Attempt 的资源泄漏 |
 | `TaskGateDecision` | 针对确定 Result Snapshot 作出的门禁决定 | 追加式审计事实 |
+| `TaskGateCallbackIntent` | 一个新 TaskGateDecision 对应的可靠外部通知意图 | P5-00E7 已落地；Gate 同事务唯一写入，固定 Event / Run / Manifest / Decision / Verdict / Timestamp，不保存 Endpoint、Key 或签名 |
+| `TaskGateCallbackEvent` | Callback Consumer 发送的固定六字段 HMAC 事件 | `eventId` 是接收方永久幂等键；同一 Intent 重投保持同一事件身份，接收方必须验签并拒绝过期 Timestamp |
 
 ## 作者态与发布态对象链
 

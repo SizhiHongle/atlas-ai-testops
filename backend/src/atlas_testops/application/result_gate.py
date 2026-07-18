@@ -188,6 +188,13 @@ class ResultGateService:
                 decision_hash=task_gate_decision_hash(content),
             )
             await self._results.insert_task_gate_decision(connection, decision)
+            await self._results.insert_task_gate_callback_intent(
+                connection,
+                event_id=new_entity_id(),
+                decision=decision,
+                manifest_hash=snapshot.manifest_hash,
+                created_at=now,
+            )
             await self._record_gate_evaluation(
                 connection,
                 actor=actor,

@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import json
+from base64 import b64encode
 from datetime import UTC, datetime, timedelta
 from os import environ
+from urllib.parse import quote, urlsplit, urlunsplit
 from uuid import UUID, uuid7
 
+import httpx2
 import pytest
 from psycopg import AsyncConnection
 from psycopg.errors import RaiseException
@@ -24,12 +28,16 @@ from tests.integration.test_task_orchestration_pg import _persist_sealed_aggrega
 from atlas_testops.application.access import ActorContext
 from atlas_testops.application.fixture_runs import FixtureWorkerService
 from atlas_testops.application.insights import InsightService
+from atlas_testops.application.result_callback_delivery import (
+    TaskGateCallbackDeliveryConsumer,
+)
 from atlas_testops.application.result_classification import ResultClassificationService
 from atlas_testops.application.result_gate import ResultGateService
 from atlas_testops.application.result_hygiene import ResultHygieneProjectionService
 from atlas_testops.application.result_projection import ResultProjectionService
 from atlas_testops.application.result_queries import ResultQueryService
 from atlas_testops.application.result_reevaluation import ResultReevaluationService
+from atlas_testops.application.task_intents import TaskIntentRetryPolicy
 from atlas_testops.application.task_orchestration import TaskWorkerService
 from atlas_testops.core.config import Settings
 from atlas_testops.core.errors import ApplicationError, ErrorCode
@@ -53,6 +61,11 @@ from atlas_testops.infrastructure.adapters.fixture_registry import (
 from atlas_testops.infrastructure.database import Database, DatabaseContext
 from atlas_testops.infrastructure.repositories.fixture_runs import FixtureRunRepository
 from atlas_testops.infrastructure.repositories.results import ResultFactRepository
+from atlas_testops.infrastructure.result_callbacks import (
+    HttpTaskGateCallbackSender,
+    TaskGateCallbackSigner,
+)
+from atlas_testops.infrastructure.task_intents import TaskIntentDispatcherDatabase
 from atlas_testops.orchestration.task_intents import TaskRunWorkflowInput
 from atlas_testops.orchestration.tasks import (
     TaskAttemptBatchSettleInput,
@@ -435,8 +448,25 @@ async def _exercise_cleanup_truth(
                       current_user,
                       'atlas.task_gate_decision',
                       'UPDATE, DELETE'
-                    ) as gate_mutation
+                    ) as gate_mutation,
+                    has_table_privilege(
+                      current_user,
+                      'atlas.task_gate_callback_intent',
+                      'UPDATE, DELETE'
+                    ) as callback_mutation
                     """
+                )
+            ).fetchone()
+            callback_row = await (
+                await connection.execute(
+                    """
+                    select event_id, task_gate_decision_id, task_run_id,
+                           manifest_hash, gate_decision, status,
+                           dispatch_attempts
+                    from atlas.task_gate_callback_intent
+                    where task_gate_decision_id = %s
+                    """,
+                    (gate.value.id,),
                 )
             ).fetchone()
 
@@ -451,6 +481,181 @@ async def _exercise_cleanup_truth(
         assert gate_rows["decision_count"] == 1
         assert gate_privileges is not None
         assert gate_privileges["gate_mutation"] is False
+        assert gate_privileges["callback_mutation"] is False
+        assert callback_row is not None
+        assert callback_row["task_gate_decision_id"] == gate.value.id
+        assert callback_row["task_run_id"] == aggregate.run.id
+        assert callback_row["manifest_hash"] == aggregate.run.manifest_hash
+        assert callback_row["gate_decision"] == gate.value.decision.value
+        assert callback_row["status"] == "PENDING"
+        assert callback_row["dispatch_attempts"] == 0
+
+        callback_key = b64encode(b"callback-integration-key-value!" * 2).decode()
+        signer = TaskGateCallbackSigner.from_base64_key(callback_key)
+        delivered_documents: list[dict[str, object]] = []
+        callback_statuses = [204]
+
+        async def callback_handler(
+            callback_request: httpx2.Request,
+        ) -> httpx2.Response:
+            document = json.loads(await callback_request.aread())
+            delivered_documents.append(document)
+            verified = signer.verify(document)
+            assert verified.task_run_id == aggregate.run.id
+            assert verified.manifest_hash == aggregate.run.manifest_hash
+            assert verified.gate_decision is gate.value.decision
+            assert callback_request.headers["Idempotency-Key"] == str(
+                verified.event_id
+            )
+            return httpx2.Response(
+                callback_statuses.pop(0),
+                request=callback_request,
+            )
+
+        callback_client = httpx2.AsyncClient(
+            transport=httpx2.MockTransport(callback_handler)
+        )
+        callback_sender = HttpTaskGateCallbackSender(
+            callback_url="https://callbacks.test/task-gates",
+            signer=signer,
+            timeout=timedelta(seconds=5),
+            client=callback_client,
+        )
+        assert settings.database_url_value is not None
+        dispatcher = TaskIntentDispatcherDatabase(
+            _dispatcher_database_url(settings.database_url_value),
+            pool_min_size=1,
+            pool_max_size=2,
+        )
+        await dispatcher.open()
+        try:
+            async with dispatcher.transaction() as connection:
+                dispatcher_privileges = await (
+                    await connection.execute(
+                        """
+                        select has_table_privilege(
+                          current_user,
+                          'atlas.task_gate_callback_intent',
+                          'SELECT, INSERT, UPDATE, DELETE'
+                        ) as table_dml
+                        """
+                    )
+                ).fetchone()
+            assert dispatcher_privileges is not None
+            assert dispatcher_privileges["table_dml"] is False
+
+            callback_consumer = TaskGateCallbackDeliveryConsumer(
+                dispatcher,
+                callback_sender,
+                dispatcher_id="callback-integration",
+                batch_size=10,
+                lease_duration=timedelta(seconds=30),
+                poll_interval=timedelta(seconds=1),
+                retry_policy=TaskIntentRetryPolicy(
+                    max_attempts=3,
+                    initial_backoff=timedelta(milliseconds=100),
+                    maximum_backoff=timedelta(milliseconds=100),
+                ),
+            )
+            callback_batch = await callback_consumer.run_once()
+
+            retry_gate_request = gate_request.model_copy(
+                update={
+                    "client_mutation_id": (
+                        "task-fixture-hygiene-gate-evaluation-002"
+                    )
+                }
+            )
+            retry_gate = await gate_service.evaluate(
+                actor,
+                retry_gate_request,
+                idempotency_key=retry_gate_request.client_mutation_id,
+            )
+            callback_statuses.extend((503, 204))
+            retry_batch = await callback_consumer.run_once()
+            await asyncio.sleep(0.15)
+            recovered_batch = await callback_consumer.run_once()
+
+            failed_gate_request = gate_request.model_copy(
+                update={
+                    "client_mutation_id": (
+                        "task-fixture-hygiene-gate-evaluation-003"
+                    )
+                }
+            )
+            failed_gate = await gate_service.evaluate(
+                actor,
+                failed_gate_request,
+                idempotency_key=failed_gate_request.client_mutation_id,
+            )
+            callback_statuses.append(400)
+            failed_batch = await callback_consumer.run_once()
+        finally:
+            await callback_sender.aclose()
+            await callback_client.aclose()
+            await dispatcher.close()
+
+        assert callback_batch.claimed == callback_batch.delivered == 1
+        assert callback_batch.retried == callback_batch.failed == 0
+        assert retry_gate.value.revision == 2
+        assert retry_batch.claimed == retry_batch.retried == 1
+        assert recovered_batch.claimed == recovered_batch.delivered == 1
+        assert failed_gate.value.revision == 3
+        assert failed_batch.claimed == failed_batch.failed == 1
+        assert len(delivered_documents) == 4
+        event_ids = [document["eventId"] for document in delivered_documents]
+        assert len(set(event_ids)) == 3
+        assert event_ids[1] == event_ids[2]
+        assert set(delivered_documents[0]) == {
+            "eventId",
+            "taskRunId",
+            "manifestHash",
+            "gateDecision",
+            "timestamp",
+            "signature",
+        }
+        async with database.transaction(context) as connection:
+            callback_rows = await (
+                await connection.execute(
+                    """
+                    select task_gate_decision_id, status, dispatch_attempts,
+                           response_status_code, delivered_at, failed_at,
+                           last_error_code
+                    from atlas.task_gate_callback_intent
+                    where task_gate_decision_id = any(%s)
+                    order by created_at, event_id
+                    """,
+                    (
+                        [
+                            gate.value.id,
+                            retry_gate.value.id,
+                            failed_gate.value.id,
+                        ],
+                    ),
+                )
+            ).fetchall()
+        assert len(callback_rows) == 3
+        callback_by_decision = {
+            row["task_gate_decision_id"]: row for row in callback_rows
+        }
+        delivered_row = callback_by_decision[gate.value.id]
+        recovered_row = callback_by_decision[retry_gate.value.id]
+        failed_row = callback_by_decision[failed_gate.value.id]
+        assert delivered_row["status"] == recovered_row["status"] == "DELIVERED"
+        assert delivered_row["dispatch_attempts"] == 1
+        assert recovered_row["dispatch_attempts"] == 2
+        assert delivered_row["response_status_code"] == 204
+        assert recovered_row["response_status_code"] == 204
+        assert delivered_row["delivered_at"] is not None
+        assert recovered_row["delivered_at"] is not None
+        assert failed_row["status"] == "FAILED"
+        assert failed_row["dispatch_attempts"] == 1
+        assert failed_row["response_status_code"] == 400
+        assert failed_row["failed_at"] is not None
+        assert failed_row["last_error_code"] == (
+            "TASK_GATE_CALLBACK_HTTP_REJECTED"
+        )
+        latest_gate = failed_gate
 
         query_service = ResultQueryService(database)
         task_result = await query_service.get_task_result(
@@ -471,7 +676,7 @@ async def _exercise_cleanup_truth(
         )
 
         assert task_result.result_snapshot == reevaluated.value
-        assert task_result.task_gate_decision == gate.value
+        assert task_result.task_gate_decision == latest_gate.value
         assert unit_result.execution_unit_id == aggregate.unit.id
         assert len(cluster_page.items) == 1
         assert cluster_page.items[0].classification == reviewed.value
@@ -537,7 +742,9 @@ async def _exercise_cleanup_truth(
         assert insight_preview.dataset_cut.source_snapshot_ids == (
             reevaluated.value.id,
         )
-        assert insight_preview.dataset_cut.gate_decision_ids == (gate.value.id,)
+        assert insight_preview.dataset_cut.gate_decision_ids == (
+            latest_gate.value.id,
+        )
         assert insight_preview.active_risk is not None
         assert insight_preview.active_risk.gate_decision is TaskGateVerdict.INCONCLUSIVE
         assert insight.status_code == 201 and insight.replayed is False
@@ -549,6 +756,25 @@ async def _exercise_cleanup_truth(
         assert insight_privileges["snapshot_mutation"] is False
     finally:
         await database.close()
+
+
+def _dispatcher_database_url(database_url: str) -> str:
+    parsed = urlsplit(database_url)
+    if parsed.hostname is None:
+        raise ValueError("test database URL has no hostname")
+    host = f"[{parsed.hostname}]" if ":" in parsed.hostname else parsed.hostname
+    if parsed.port is not None:
+        host = f"{host}:{parsed.port}"
+    netloc = f"{quote('atlas_dispatcher')}:{quote('atlas_dispatcher')}@{host}"
+    return urlunsplit(
+        (
+            parsed.scheme,
+            netloc,
+            parsed.path,
+            parsed.query,
+            parsed.fragment,
+        )
+    )
 
 
 async def _insert_terminal_fixture(

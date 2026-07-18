@@ -150,6 +150,32 @@ services:
         condition: service_healthy
     restart: "no"
 
+  task-gate-callback-consumer:
+    profiles: ["task-gate-callback-consumer"]
+    build:
+      context: ./backend
+      target: task-gate-callback-consumer
+    environment:
+      ATLAS_ENVIRONMENT: local
+      ATLAS_TASK_GATE_CALLBACK_DELIVERY_ENABLED: ${ATLAS_TASK_GATE_CALLBACK_DELIVERY_ENABLED:-false}
+      ATLAS_TASK_DISPATCHER_DATABASE_URL: postgresql://atlas_dispatcher:atlas_dispatcher@postgres:5432/atlas
+      ATLAS_TASK_GATE_CALLBACK_URL: ${ATLAS_TASK_GATE_CALLBACK_URL:-}
+      ATLAS_TASK_GATE_CALLBACK_HMAC_KEY_BASE64: ${ATLAS_TASK_GATE_CALLBACK_HMAC_KEY_BASE64:-}
+      ATLAS_TASK_GATE_CALLBACK_ALLOW_INSECURE_HTTP: ${ATLAS_TASK_GATE_CALLBACK_ALLOW_INSECURE_HTTP:-false}
+      ATLAS_TASK_GATE_CALLBACK_WORKER_IDENTITY: task-gate-callback-consumer-local
+      ATLAS_TASK_GATE_CALLBACK_POLL_INTERVAL_SECONDS: 1
+      ATLAS_TASK_GATE_CALLBACK_LEASE_SECONDS: 30
+      ATLAS_TASK_GATE_CALLBACK_BATCH_SIZE: 32
+      ATLAS_TASK_GATE_CALLBACK_MAX_ATTEMPTS: 8
+      ATLAS_TASK_GATE_CALLBACK_RETRY_INITIAL_SECONDS: 5
+      ATLAS_TASK_GATE_CALLBACK_RETRY_MAXIMUM_SECONDS: 300
+      ATLAS_TASK_GATE_CALLBACK_HTTP_TIMEOUT_SECONDS: 10
+      ATLAS_TASK_GATE_CALLBACK_REPLAY_WINDOW_SECONDS: 300
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   task-schedule-worker:
     profiles: ["task-schedule-worker"]
     build:

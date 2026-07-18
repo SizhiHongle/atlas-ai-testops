@@ -758,6 +758,45 @@ class ResultFactRepository:
             ),
         )
 
+    async def insert_task_gate_callback_intent(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        event_id: UUID,
+        decision: TaskGateDecision,
+        manifest_hash: str,
+        created_at: datetime,
+    ) -> None:
+        """Atomically stage one secret-free callback for an immutable Gate fact."""
+
+        await connection.execute(
+            """
+            insert into atlas.task_gate_callback_intent (
+              event_id, task_gate_decision_id, task_gate_id,
+              tenant_id, project_id, task_run_id, manifest_hash,
+              gate_decision, status, available_at, dispatch_attempts,
+              dispatch_revision, created_at
+            ) values (
+              %s, %s, %s,
+              %s, %s, %s, %s,
+              %s, 'PENDING', %s, 0,
+              0, %s
+            )
+            """,
+            (
+                event_id,
+                decision.id,
+                decision.task_gate_id,
+                decision.tenant_id,
+                decision.project_id,
+                decision.task_run_id,
+                manifest_hash,
+                decision.decision,
+                created_at,
+                created_at,
+            ),
+        )
+
     async def get_attempt_fixture_binding(
         self,
         connection: AsyncConnection[DictRow],

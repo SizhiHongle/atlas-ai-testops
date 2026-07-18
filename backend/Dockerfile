@@ -36,6 +36,10 @@ FROM runtime AS task-intent-consumer
 
 CMD ["atlas-task-intent-consumer"]
 
+FROM runtime AS task-gate-callback-consumer
+
+CMD ["atlas-task-gate-callback-consumer"]
+
 FROM runtime AS task-schedule-worker
 
 CMD ["atlas-task-schedule-worker"]

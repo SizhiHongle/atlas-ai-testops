@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-gate-callback/0.1/schema.json",
+  "$defs": {
+    "TaskGateVerdict": {
+      "description": "Three-valued release decision; uncertainty never becomes acceptance.",
+      "enum": [
+        "ACCEPTED",
+        "REJECTED",
+        "INCONCLUSIVE"
+      ],
+      "title": "TaskGateVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Exact externally delivered callback document.",
+  "properties": {
+    "eventId": {
+      "format": "uuid",
+      "title": "Eventid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "gateDecision": {
+      "$ref": "#/$defs/TaskGateVerdict"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "signature": {
+      "pattern": "^hmac-sha256:[A-Za-z0-9_-]{43}$",
+      "title": "Signature",
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "taskRunId",
+    "manifestHash",
+    "gateDecision",
+    "timestamp",
+    "signature"
+  ],
+  "title": "TaskGateCallbackEvent",
+  "type": "object"
+}

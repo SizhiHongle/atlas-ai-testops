@@ -497,6 +497,195 @@ class TaskIntentConsumerSettings(BaseSettings):
         return self.task_dispatcher_database_url.get_secret_value()
 
 
+class TaskGateCallbackWorkerSettings(BaseSettings):
+    """Isolated dispatcher credentials and one globally allowlisted endpoint."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_prefix="ATLAS_",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    environment: Literal[
+        "local",
+        "test",
+        "development",
+        "staging",
+        "production",
+    ] = "local"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    task_gate_callback_delivery_enabled: bool = False
+    task_dispatcher_database_url: SecretStr | None = None
+    task_dispatcher_database_pool_min_size: int = Field(default=1, ge=1, le=16)
+    task_dispatcher_database_pool_max_size: int = Field(default=4, ge=1, le=32)
+    task_dispatcher_database_connect_timeout_seconds: float = Field(
+        default=5.0,
+        gt=0,
+        le=60,
+    )
+    task_dispatcher_database_statement_timeout_ms: int = Field(
+        default=10_000,
+        ge=100,
+        le=60_000,
+    )
+    task_gate_callback_url: str | None = Field(default=None, max_length=2_048)
+    task_gate_callback_hmac_key_base64: SecretStr | None = None
+    task_gate_callback_allow_insecure_http: bool = False
+    task_gate_callback_worker_identity: str = Field(
+        default="task-gate-callback-consumer",
+        min_length=3,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$",
+    )
+    task_gate_callback_poll_interval_seconds: float = Field(
+        default=1.0,
+        ge=0.1,
+        le=60,
+    )
+    task_gate_callback_lease_seconds: int = Field(default=30, ge=5, le=300)
+    task_gate_callback_batch_size: int = Field(default=32, ge=1, le=100)
+    task_gate_callback_max_attempts: int = Field(default=8, ge=1, le=64)
+    task_gate_callback_retry_initial_seconds: float = Field(
+        default=5.0,
+        ge=0.1,
+        le=300,
+    )
+    task_gate_callback_retry_maximum_seconds: float = Field(
+        default=300.0,
+        ge=0.1,
+        le=3_600,
+    )
+    task_gate_callback_http_timeout_seconds: float = Field(
+        default=10.0,
+        ge=1.0,
+        le=60,
+    )
+    task_gate_callback_replay_window_seconds: int = Field(
+        default=300,
+        ge=30,
+        le=86_400,
+    )
+
+    @model_validator(mode="after")
+    def validate_callback_authority_and_endpoint(self) -> Self:
+        """Reject partial secrets, arbitrary URLs, and unsafe timing."""
+
+        if (
+            self.task_dispatcher_database_pool_max_size
+            < self.task_dispatcher_database_pool_min_size
+        ):
+            raise ValueError(
+                "Task Gate callback database pool max size must be >= min size"
+            )
+        configured_callback = (
+            self.task_gate_callback_url is not None,
+            self.task_gate_callback_hmac_key_base64 is not None,
+        )
+        if any(configured_callback) and not all(configured_callback):
+            raise ValueError("Task Gate callback configuration must be complete")
+        if self.task_gate_callback_delivery_enabled and not all(
+            configured_callback
+        ):
+            raise ValueError(
+                "enabled Task Gate callback delivery requires endpoint and HMAC key"
+            )
+        if (
+            self.task_gate_callback_delivery_enabled
+            and self.task_dispatcher_database_url is None
+        ):
+            raise ValueError(
+                "enabled Task Gate callback delivery requires a dedicated dispatcher DSN"
+            )
+        if self.task_dispatcher_database_url is not None:
+            raw_url = self.task_dispatcher_database_url.get_secret_value().strip()
+            if not raw_url:
+                raise ValueError("Task Gate callback dispatcher DSN must not be blank")
+            parsed_database = urlsplit(raw_url)
+            if self.task_gate_callback_delivery_enabled and (
+                parsed_database.scheme not in {"postgres", "postgresql"}
+                or parsed_database.hostname is None
+                or parsed_database.username is None
+                or parsed_database.username.lower() != "atlas_dispatcher"
+            ):
+                raise ValueError(
+                    "Task Gate callback delivery requires the dedicated "
+                    "atlas_dispatcher PostgreSQL role"
+                )
+        if self.task_gate_callback_url is not None:
+            normalized_url = self.task_gate_callback_url.strip()
+            parsed = urlsplit(normalized_url)
+            try:
+                parsed_port = parsed.port
+            except ValueError as error:
+                raise ValueError("Task Gate callback URL is invalid") from error
+            if (
+                parsed.scheme not in {"http", "https"}
+                or parsed.hostname is None
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.query
+                or parsed.fragment
+                or (
+                    parsed_port is not None
+                    and not 1 <= parsed_port <= 65_535
+                )
+            ):
+                raise ValueError(
+                    "Task Gate callback URL must be one exact HTTP(S) endpoint"
+                )
+            if parsed.scheme == "http" and (
+                not self.task_gate_callback_allow_insecure_http
+                or self.environment in {"staging", "production"}
+            ):
+                raise ValueError("Task Gate callback endpoint requires HTTPS")
+            object.__setattr__(self, "task_gate_callback_url", normalized_url)
+        if self.task_gate_callback_hmac_key_base64 is not None:
+            _decode_base64_key(
+                self.task_gate_callback_hmac_key_base64,
+                label="Task Gate callback HMAC",
+                exact_length=None,
+            )
+        if (
+            self.task_gate_callback_retry_maximum_seconds
+            < self.task_gate_callback_retry_initial_seconds
+        ):
+            raise ValueError(
+                "Task Gate callback retry maximum must be >= retry initial"
+            )
+        if (
+            self.task_gate_callback_lease_seconds
+            <= self.task_gate_callback_http_timeout_seconds
+        ):
+            raise ValueError(
+                "Task Gate callback lease must exceed its HTTP timeout"
+            )
+        if (
+            self.task_gate_callback_poll_interval_seconds
+            >= self.task_gate_callback_lease_seconds
+        ):
+            raise ValueError(
+                "Task Gate callback poll interval must be below its claim lease"
+            )
+        return self
+
+    @property
+    def task_dispatcher_database_url_value(self) -> str | None:
+        """Unwrap the dedicated DSN only inside the callback process."""
+
+        if self.task_dispatcher_database_url is None:
+            return None
+        return self.task_dispatcher_database_url.get_secret_value()
+
+    @property
+    def task_gate_callback_hmac_key_value(self) -> str | None:
+        """Unwrap the HMAC key only while constructing the callback signer."""
+
+        if self.task_gate_callback_hmac_key_base64 is None:
+            return None
+        return self.task_gate_callback_hmac_key_base64.get_secret_value()
+
+
 class AuthSessionWorkerSettings(BaseSettings):
     """Secrets and object-store settings loaded only by the Auth Session Worker."""
 

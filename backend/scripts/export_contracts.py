@@ -28,6 +28,7 @@ from atlas_testops.domain.result import (
     FailureClassificationRevision,
     FailureClusterRevision,
     ResultRef,
+    TaskGateCallbackEvent,
     TaskGateDecision,
     TaskResultReevaluationCommand,
     TaskResultSnapshot,
@@ -125,6 +126,7 @@ FAILURE_CLASSIFICATION_REVISION_SCHEMA = (
     REPOSITORY_ROOT / "contracts" / "failure-classification-revision.schema.json"
 )
 TASK_GATE_DECISION_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-gate-decision.schema.json"
+TASK_GATE_CALLBACK_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-gate-callback.schema.json"
 INSIGHT_SNAPSHOT_SCHEMA = REPOSITORY_ROOT / "contracts" / "insight-snapshot.schema.json"
 UNIT_ATTEMPT_LIVE_SNAPSHOT_SCHEMA = (
     REPOSITORY_ROOT / "contracts" / "unit-attempt-live-snapshot.schema.json"
@@ -329,6 +331,10 @@ def main() -> None:
         TASK_GATE_DECISION_SCHEMA: render_schema(
             TaskGateDecision,
             "https://atlas.test/contracts/task-gate-decision/0.1/schema.json",
+        ),
+        TASK_GATE_CALLBACK_SCHEMA: render_schema(
+            TaskGateCallbackEvent,
+            "https://atlas.test/contracts/task-gate-callback/0.1/schema.json",
         ),
         INSIGHT_SNAPSHOT_SCHEMA: render_schema(
             InsightSnapshot,

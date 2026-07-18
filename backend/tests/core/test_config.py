@@ -9,6 +9,7 @@ from atlas_testops.core.config import (
     AuthSessionWorkerSettings,
     BrowserWorkerSettings,
     Settings,
+    TaskGateCallbackWorkerSettings,
     TaskIntentConsumerSettings,
 )
 
@@ -380,6 +381,99 @@ def test_production_task_intent_consumer_requires_independent_database_role() ->
     )
 
     assert settings.task_intent_consumption_enabled
+
+
+def test_task_gate_callback_worker_is_disabled_and_secrets_are_isolated() -> None:
+    settings = TaskGateCallbackWorkerSettings(environment="test")
+    application_settings = Settings(environment="test")
+
+    assert settings.task_gate_callback_delivery_enabled is False
+    assert settings.task_dispatcher_database_url_value is None
+    assert settings.task_gate_callback_hmac_key_value is None
+    assert not hasattr(application_settings, "task_gate_callback_hmac_key_base64")
+
+
+def test_task_gate_callback_worker_accepts_one_complete_global_endpoint() -> None:
+    key = b64encode(b"c" * 32).decode()
+    dsn = "postgresql://atlas_dispatcher:dispatcher-secret@localhost/atlas"
+    settings = TaskGateCallbackWorkerSettings(
+        environment="production",
+        task_gate_callback_delivery_enabled=True,
+        task_dispatcher_database_url=SecretStr(dsn),
+        task_gate_callback_url="https://callbacks.internal/task-gates",
+        task_gate_callback_hmac_key_base64=SecretStr(key),
+    )
+
+    assert settings.task_dispatcher_database_url_value == dsn
+    assert settings.task_gate_callback_hmac_key_value == key
+    assert settings.task_gate_callback_url == (
+        "https://callbacks.internal/task-gates"
+    )
+    assert key not in repr(settings)
+    assert "dispatcher-secret" not in repr(settings)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {
+            "task_gate_callback_delivery_enabled": True,
+        },
+        {
+            "task_gate_callback_url": "https://callbacks.internal/task-gates",
+        },
+        {
+            "task_gate_callback_hmac_key_base64": SecretStr(
+                b64encode(b"c" * 32).decode()
+            ),
+        },
+        {
+            "task_gate_callback_delivery_enabled": True,
+            "task_dispatcher_database_url": SecretStr(
+                "postgresql://atlas_app:secret@localhost/atlas"
+            ),
+            "task_gate_callback_url": "https://callbacks.internal/task-gates",
+            "task_gate_callback_hmac_key_base64": SecretStr(
+                b64encode(b"c" * 32).decode()
+            ),
+        },
+        {
+            "task_gate_callback_url": "https://callbacks.internal/task-gates?target=x",
+            "task_gate_callback_hmac_key_base64": SecretStr(
+                b64encode(b"c" * 32).decode()
+            ),
+        },
+        {
+            "task_gate_callback_lease_seconds": 10,
+            "task_gate_callback_http_timeout_seconds": 10,
+        },
+    ],
+)
+def test_task_gate_callback_worker_rejects_partial_or_unsafe_config(
+    overrides: dict[str, object],
+) -> None:
+    with pytest.raises(ValidationError):
+        TaskGateCallbackWorkerSettings.model_validate(
+            {"environment": "production", **overrides}
+        )
+
+
+def test_task_gate_callback_http_requires_explicit_local_exception() -> None:
+    key = b64encode(b"c" * 32).decode()
+
+    with pytest.raises(ValidationError, match="requires HTTPS"):
+        TaskGateCallbackWorkerSettings(
+            environment="test",
+            task_gate_callback_url="http://127.0.0.1:8080/task-gates",
+            task_gate_callback_hmac_key_base64=SecretStr(key),
+        )
+    accepted = TaskGateCallbackWorkerSettings(
+        environment="test",
+        task_gate_callback_url="http://127.0.0.1:8080/task-gates",
+        task_gate_callback_hmac_key_base64=SecretStr(key),
+        task_gate_callback_allow_insecure_http=True,
+    )
+    assert accepted.task_gate_callback_allow_insecure_http
 
 
 def test_local_auth_session_worker_accepts_complete_vault_configuration() -> None:
