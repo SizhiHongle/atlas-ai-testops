@@ -20,6 +20,18 @@ from atlas_testops.domain.fixture import (
     DataBlueprintContract,
     FixtureManifest,
 )
+from atlas_testops.domain.result import (
+    AttemptClosureNotice,
+    AttemptFixtureBinding,
+    AttemptSeal,
+    FailureClassificationRevision,
+    FailureClusterRevision,
+    ResultRef,
+    TaskResultReevaluationCommand,
+    TaskResultSnapshot,
+    UnitHygieneResolutionRevision,
+    UnitResolutionRevision,
+)
 from atlas_testops.domain.runtime import (
     AppendBrowserRuntimeReport,
     AssertionResult,
@@ -64,23 +76,15 @@ EVIDENCE_MANIFEST_SCHEMA = REPOSITORY_ROOT / "contracts" / "evidence-manifest.sc
 BROWSER_EXECUTION_BUNDLE_SCHEMA = (
     REPOSITORY_ROOT / "contracts" / "browser-execution-bundle.schema.json"
 )
-BROWSER_RUNTIME_REPORT_SCHEMA = (
-    REPOSITORY_ROOT / "contracts" / "browser-runtime-report.schema.json"
-)
-TASK_PLAN_VERSION_SCHEMA = (
-    REPOSITORY_ROOT / "contracts" / "task-plan-version.schema.json"
-)
+BROWSER_RUNTIME_REPORT_SCHEMA = REPOSITORY_ROOT / "contracts" / "browser-runtime-report.schema.json"
+TASK_PLAN_VERSION_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-plan-version.schema.json"
 TASK_PLAN_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-plan.schema.json"
 TASK_PLAN_LAUNCH_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-plan-launch.schema.json"
-TASK_RUN_MANIFEST_SCHEMA = (
-    REPOSITORY_ROOT / "contracts" / "task-run-manifest.schema.json"
-)
+TASK_RUN_MANIFEST_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-run-manifest.schema.json"
 TASK_RUN_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-run.schema.json"
 EXECUTION_UNIT_SCHEMA = REPOSITORY_ROOT / "contracts" / "execution-unit.schema.json"
 UNIT_ATTEMPT_SCHEMA = REPOSITORY_ROOT / "contracts" / "unit-attempt.schema.json"
-TASK_EXECUTION_EVENT_SCHEMA = (
-    REPOSITORY_ROOT / "contracts" / "task-execution-event.schema.json"
-)
+TASK_EXECUTION_EVENT_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-execution-event.schema.json"
 EXECUTION_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "execution-profile.schema.json"
 IDENTITY_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "identity-profile.schema.json"
 BROWSER_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "browser-profile.schema.json"
@@ -89,6 +93,28 @@ TASK_UNIT_EXECUTION_TICKET_SCHEMA = (
     REPOSITORY_ROOT / "contracts" / "task-unit-execution-ticket.schema.json"
 )
 TASK_RUN_COMMAND_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-run-command.schema.json"
+ATTEMPT_SEAL_SCHEMA = REPOSITORY_ROOT / "contracts" / "attempt-seal.schema.json"
+RESULT_REF_SCHEMA = REPOSITORY_ROOT / "contracts" / "result-ref.schema.json"
+ATTEMPT_CLOSURE_NOTICE_SCHEMA = REPOSITORY_ROOT / "contracts" / "attempt-closure-notice.schema.json"
+ATTEMPT_FIXTURE_BINDING_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "attempt-fixture-binding.schema.json"
+)
+UNIT_RESOLUTION_REVISION_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "unit-resolution-revision.schema.json"
+)
+UNIT_HYGIENE_RESOLUTION_REVISION_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "unit-hygiene-resolution-revision.schema.json"
+)
+TASK_RESULT_SNAPSHOT_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-result-snapshot.schema.json"
+TASK_RESULT_REEVALUATION_COMMAND_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "task-result-reevaluation-command.schema.json"
+)
+FAILURE_CLUSTER_REVISION_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "failure-cluster-revision.schema.json"
+)
+FAILURE_CLASSIFICATION_REVISION_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "failure-classification-revision.schema.json"
+)
 
 
 def render_schema(model: type[BaseModel], schema_id: str) -> str:
@@ -233,6 +259,46 @@ def main() -> None:
         TASK_RUN_COMMAND_SCHEMA: render_schema(
             TaskRunCommandIntent,
             "https://atlas.test/contracts/task-run-command/0.1/schema.json",
+        ),
+        ATTEMPT_SEAL_SCHEMA: render_schema(
+            AttemptSeal,
+            "https://atlas.test/contracts/attempt-seal/1.0/schema.json",
+        ),
+        RESULT_REF_SCHEMA: render_schema(
+            ResultRef,
+            "https://atlas.test/contracts/result-ref/0.1/schema.json",
+        ),
+        ATTEMPT_CLOSURE_NOTICE_SCHEMA: render_schema(
+            AttemptClosureNotice,
+            "https://atlas.test/contracts/attempt-closure-notice/0.1/schema.json",
+        ),
+        ATTEMPT_FIXTURE_BINDING_SCHEMA: render_schema(
+            AttemptFixtureBinding,
+            "https://atlas.test/contracts/attempt-fixture-binding/0.1/schema.json",
+        ),
+        UNIT_RESOLUTION_REVISION_SCHEMA: render_schema(
+            UnitResolutionRevision,
+            "https://atlas.test/contracts/unit-resolution-revision/0.1/schema.json",
+        ),
+        UNIT_HYGIENE_RESOLUTION_REVISION_SCHEMA: render_schema(
+            UnitHygieneResolutionRevision,
+            "https://atlas.test/contracts/unit-hygiene-resolution-revision/0.1/schema.json",
+        ),
+        TASK_RESULT_SNAPSHOT_SCHEMA: render_schema(
+            TaskResultSnapshot,
+            "https://atlas.test/contracts/task-result-snapshot/0.3/schema.json",
+        ),
+        TASK_RESULT_REEVALUATION_COMMAND_SCHEMA: render_schema(
+            TaskResultReevaluationCommand,
+            "https://atlas.test/contracts/task-result-reevaluation-command/0.1/schema.json",
+        ),
+        FAILURE_CLUSTER_REVISION_SCHEMA: render_schema(
+            FailureClusterRevision,
+            "https://atlas.test/contracts/failure-cluster-revision/0.1/schema.json",
+        ),
+        FAILURE_CLASSIFICATION_REVISION_SCHEMA: render_schema(
+            FailureClassificationRevision,
+            "https://atlas.test/contracts/failure-classification-revision/0.1/schema.json",
         ),
     }
 

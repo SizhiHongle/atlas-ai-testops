@@ -23,6 +23,7 @@ from atlas_testops.application.live import DebugLiveService, DebugLiveStreamLimi
 from atlas_testops.application.platform import PlatformService
 from atlas_testops.application.ports.evidence import EvidenceObjectReader
 from atlas_testops.application.ports.secrets import SecretProvider
+from atlas_testops.application.result_hygiene import ResultHygieneProjectionService
 from atlas_testops.application.session_dispatcher import AuthSessionDispatcher
 from atlas_testops.application.task_commands import TaskRunCommandService
 from atlas_testops.application.task_launches import TaskPlanLaunchService
@@ -355,6 +356,7 @@ def get_fixture_run_service(
         dispatcher,
         registry,
         cleanup_grace=timedelta(seconds=settings.fixture_cleanup_grace_seconds),
+        result_hygiene_projection=ResultHygieneProjectionService(),
     )
 
 

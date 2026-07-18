@@ -13,11 +13,11 @@
 
 ## 当前状态
 
-- 当前阶段：`P5 Task Runtime（基础中）`
-- 当前切片：`P5-00E2 Manual Launch（已验收）`
-- 总体状态：P5 已建立正式执行宿主、四类 Profile Version、stable request digest、deterministic Temporal identity、materialization seal、Revision CAS、durable Start Intent、最多 64 Units 的真实 Root / Attempt Workflow、查询、immutable Ticket、durable `CANCEL / PAUSE / RESUME`、有界 `INFRA_ERROR` 自动重试和 exact infra-failure child Run。P5-00E1 已开放 TaskPlan 创建、Catalog / Detail 与不可变 Version 发布 / 历史 / 精确读取；P5-00E2 已开放首次 Manual Launch，将 exact published TaskPlanVersion 编译为兼容矩阵、完整 Manifest、首 Attempt、Seal 与 Start Intent。Worker 与 Consumer 仍默认关闭，仓库仍不内置真实 SaaS production Adapter。Takeover、真实执行 Adapter、Schedule / CI Adapter、超过 64 Units 的分区物化、AttemptSeal / Result 和 P6-02B2 Live control 仍待后续；前端原型未改，仅同步生成 API 类型
+- 当前阶段：`P7 Result Snapshot、Classification 与 Gate（基础中）`
+- 当前切片：`P7-02A FailureCluster / FailureClassification 基础事实（已完成并通过真实 PostgreSQL / Temporal 验收）`
+- 总体状态：P5 已建立正式执行宿主、四类 Profile Version、stable request digest、deterministic Temporal identity、materialization seal、Revision CAS、durable Start Intent、最多 64 Units 的真实 Root / Attempt Workflow、查询、immutable Ticket、durable `CANCEL / PAUSE / RESUME`、有界 `INFRA_ERROR` 自动重试和 exact infra-failure child Run。P5-00E1/E2 已开放 TaskPlan 编写、不可变发布与 compatible-only Manual Launch。P6-03A/P6-03B 已建立完整 Attempt Fact 与 Unit Resolution 写入根；P7-01A 至 P7-01B2 已建立 `QUALITY_FINAL / FULLY_RESOLVED / REEVALUATED` TaskResultSnapshot 链；P7-02A 已建立 exact Snapshot-bound FailureCluster、保守 Rule Classification、证据引用与追加式人工复核。Worker 与 Consumer 仍默认关闭，仓库仍不内置真实 SaaS production Adapter；Gate、公共 Result API 与前端数据接入尚未开放；前端原型未改
 - 当前分支：`main`
-- 当前进入基线提交：`f20164c`
+- 当前进入基线提交：`3eb2a42`
 
 ## 阶段看板
 
@@ -29,8 +29,8 @@
 | P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 已完成 | P3-00 至 P3-03 已验收；资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与三类发布证据闭环 |
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 后端完成 | P4-00 至 P4-03 已验收；作者态、不可变 DebugRun、精确绑定、Reviewer 发布门禁与 CaseVersion 冻结闭环已落地 |
 | P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00E2 已验收；不可变 Ticket、ticket-bound Port、durable command、自动 infra retry、manual infra-failure child Run、TaskPlan 公共 API 与首次 Manual Launch 均有 PostgreSQL 证据。真实 SaaS Adapter、Schedule / CI、超过 64 Units 分区化与 Takeover 待后续 |
-| P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面与 P6-02A 可信截图写入 / 受控读取已验收；P6-02B1 DebugRun Live 安全观察流已实现，P6-02B2 控制权与 AttemptSeal 可基于正式 UnitAttempt 继续落地 |
-| P7 | Result Fact、Snapshot、Classification 与 Gate | 未开始 | — |
+| P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面、P6-02A 可信截图写入 / 受控读取、P6-03A AttemptSeal / ResultRef 与 P6-03B ClosureNotice / UnitResolutionRevision 已验收；P6-02B1 DebugRun Live 安全观察流已实现；P6-02B2 控制权待后续 |
+| P7 | Result Fact、Snapshot、Classification 与 Gate | 基础中 | P6-03A/P6-03B 已建立完整 Attempt Fact 与 Unit Resolution；P7-01A 至 P7-01B2 已实现三阶段 Snapshot；P7-02A 已实现 `0038`、FailureCluster、Rule Classification、Evidence Ref 与人工 append-only review。Gate、读取投影和公共查询 API 待后续 |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 未开始 | — |
 | P9 | 隔离、并发、故障注入、黄金链路与 SLO 验收 | 未开始 | — |
 
@@ -685,6 +685,133 @@
 | 2026-07-17 | P5-00D3B manual infra-failure child Run | database-proven exact `INFRA_ERROR` selection、不可变 lineage / selection mode、全新物理 identity、Seal / Start Intent | 真实 PostgreSQL 与 `0031` 往返 / fail-closed downgrade 已验证；完整 `make verify` 912 tests / coverage 90.06%、Ruff、严格 mypy 294 files、契约漂移、Python build 与前端 production build 全部成功；前端原型未改 |
 | 2026-07-18 | P5-00E1 TaskPlan authoring / immutable publication | TaskPlan Catalog、append-only published Version、RBAC、幂等、Audit / Outbox、数据库 exact dependency gate | 真实 PostgreSQL API 已验证 create / replay / publish / query / invalid dependency；完整门禁 918 tests / coverage 90.13%、严格 mypy 299 files、契约与双端构建全部成功；前端原型未改 |
 | 2026-07-18 | P5-00E2 Manual Launch | compatible-only matrix compiler、Manifest v0.2、最多 64 Units、首 Attempt、Seal、durable Start Intent | 真实 PostgreSQL API 已验证 sealed aggregate、Event、replay 与 `PENDING` Start Intent；完整门禁 921 tests / coverage 90.15%、严格 mypy 301 files、契约与双端构建全部成功；前端原型未改 |
+| 2026-07-18 | P6-03A AttemptSeal / ResultRef | Ed25519 contract、Finalize exact replay / conflict、Task trusted PASS recovery、repository、真实 PostgreSQL 与 migration | 通过；70 项定向测试与 1 项真实 PostgreSQL 全链通过，`0032` 有 Fact downgrade 拒绝及清理后 `0032 → 0031 → 0032` 往返成功；完整门禁 937 tests / coverage 90.09%、Ruff、严格 mypy 311 files、Schema / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
+| 2026-07-18 | P6-03B ClosureNotice / UnitResolutionRevision | 无 Seal 终态事实、完整 Attempt 覆盖、append-only Unit Resolution、重试 Stability、Task / Finalize 事务投影、真实 PostgreSQL 与 migration | 通过；37 项 Result 定向测试与 4 项真实 PostgreSQL 全链通过，`0033` 有 Projection Fact downgrade 拒绝，独立空库 `0033 → 0032 → 0033` 往返成功；干净数据库完整门禁 969 tests / coverage 90.13%、Ruff、严格 mypy 316 files、Schema / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
+| 2026-07-18 | P7-01A TaskResultSnapshot Truth | Manifest-ordered latest Resolution Set、Closure-compatible input root、固定 Snapshot Policy / Watermark、Verdict 守恒、各轴分布、四类精确通过率、Task close 原子 Snapshot / Outbox、`0034` append-only guard | 切片完成时本地门禁为 879 passed / 108 skipped；后续 P7-01B0 已在真实 PostgreSQL 完成 `0033 → 0034 → 0035`，AttemptSeal 全链复核 Snapshot Insert Guard，并以 1000 tests / coverage 90.08% 跑通完整 PostgreSQL / Temporal 门禁。`0034` standalone populated downgrade 未单独重复，因为现存 `0035` Cleanup Fact 会按设计先阻止链式降级；前端原型未改 |
+| 2026-07-18 | P7-01B0 Cleanup Truth Bridge | Attempt ↔ FixtureRun exact binding、Fixture cleanup / Manifest / Resource / CleanupAttempt / Reconcile observation hash、append-only Unit Hygiene Revision、重试最严重状态保留、`0035` guard | 通过；真实 PostgreSQL 完成空表 `0035 → 0034 → 0035`、合法 binding / Hygiene canonical hash parity、伪造 Blueprint Plan 拒绝、exact replay、最小权限与 populated downgrade fail-closed；完整门禁 1000 tests / coverage 90.08%、真实 Temporal、Ruff、严格 mypy 323 files、Contracts / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
+| 2026-07-18 | P7-01B1 FULLY_RESOLVED Snapshot | 向后兼容的 Snapshot 0.2、Manifest-ordered Quality + Hygiene 双输入根、terminal Hygiene readiness、DataHygiene-only overlay、Task close / late Fixture 双触发、`0036` append-only guard | 通过；真实 PostgreSQL 已验证 `0035 → 0036` 兼容既有 0.1 Fact、合法 `QUALITY_FINAL → FULLY_RESOLVED`、exact replay、存在 FULLY Fact 时 downgrade fail-closed，以及独立空库 `0036 → 0035 → 0036` 往返；完整门禁 1011 passed / coverage 90.01%，真实 Temporal、Ruff、严格 mypy 324 files、Contracts / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
+| 2026-07-18 | P7-01B2 显式 REEVALUATED Snapshot | Snapshot 0.3、不可变 Reevaluation Command、exact Full source + frozen Policy binding、无自动重评、`0037` append-only guard | 通过；真实 PostgreSQL 已验证现有数据 `0036 → 0037`、显式 Full rev2 → Reevaluated rev3、exact replay、命令事实、最小权限、populated downgrade fail-closed，以及独立空库 `0037 → 0036 → 0037` 往返；完整门禁 1021 passed / coverage 90.11%，真实 Temporal、Ruff、严格 mypy 327 files、Contracts / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
+| 2026-07-18 | P7-02A FailureCluster / FailureClassification | exact Snapshot-bound manifest-ordered Cluster、保守规则归因、immutable Evidence Ref、basis-point confidence、人工 append-only review、RBAC / Idempotency / Audit / Outbox、`0038` database guard | 通过；真实 PostgreSQL 已验证 Cluster / Classification canonical hash parity、exact replay、人工确认 revision、最小权限与 advisory-lock 并发边界；全新临时数据库从零升级到 `0038` 成功；完整门禁 1032 passed / coverage 90.08%，Ruff、严格 mypy 332 files、Contracts / OpenAPI 漂移与 Python sdist / wheel 全部通过；没有增加公共 Result API，前端原型未改 |
+
+## P6-03A 范围
+
+### 已实现
+
+- 建立 `attempt-seal/1.0` 与 `atlas.result-ref/0.1` 机器契约。AttemptSeal 精确绑定 Tenant / Project、TaskRun / ExecutionUnit / UnitAttempt、Run Manifest、Unit Key、不可变 Execution Ticket、Oracle / Artifact / Event Chain Hash、Evidence Policy Digest、Formal Runtime Digest、六条终态轴和签名 Key ID；`PENDING` Verdict、无完整可信证据的 `PASSED` 与伪造 Content Hash 在领域边界直接拒绝。
+- 使用 canonical JSON signing body、SHA-256 Content Hash 与可注入 Ed25519 public key ring 验证 Runtime 签名。签名值、Key ID 和 Hash 均有有界 wire format；未知 Key、篡改内容与无效签名 fail-closed。
+- `20260718_0032` 建立 append-only `unit_attempt_result_fact`、`result_ref` 与 `result_integrity_incident`。Scope FK 绑定 exact Attempt / Ticket / Fact，ResultRef 的 Seal Hash / CreatedAt 与 Fact Hash / AcceptedAt 由复合 FK 强制一致；数据库 Insert Guard 复核当前 RUNNING Attempt、Ticket、30-key JSON 投影、敏感字段、签名元数据与 canonical hash，三表启用 `FORCE RLS`、不可变 Trigger 和最小 SELECT / INSERT 权限。
+- `FinalizeAttemptResultService` 在同一 Tenant 事务和 Run → Unit → Attempt 锁链中完成 Scope / Policy / Runtime / Hygiene / 时间窗复核、Fact + ResultRef 写入、Attempt `RUNNING → FINALIZING → CLOSED`、Task Event 与 Outbox。相同 Attempt + 相同 digest 返回原 ResultRef；不同且已通过签名与 Scope 校验的 digest 不覆盖既有 Fact，只追加 Integrity Incident 并返回稳定冲突。
+- Task execution / Workflow Payload 新增 `RESULT_FINALIZED` 与 `resultRefId + sealContentHash`。Task Worker 每次结算先读数据库 Fact；只有 exact Seal / Ref 与 CLOSED Attempt 一致时才允许 `PASSED`，无 Fact 的 `PASSED` 必须拒绝。即使 execution Activity 已完成 Finalize 但成功回包丢失，后续 Finish / Settle / Run Finalize 仍会从数据库恢复 Attempt → Unit → Run 的可信 `PASSED`。
+- 未 Seal 的成功执行继续使用 `EXECUTED_UNSEALED → FINISHED_UNSEALED / INCONCLUSIVE`，不会因新增 PASSED 类型而放宽。P6-03A 没有增加公共 Result API、Result Snapshot、Resolution / Classification / Gate，也没有修改前端页面、组件、DOM、布局、CSS 或交互。
+
+### 验证状态与下一步
+
+- Result Domain、签名验证、Finalize exact replay / 内容冲突、Repository 序列化、Workflow 回包丢失恢复和 Migration 静态约束共 70 项定向测试通过；新增文件 Ruff、严格 mypy 与机器 Schema 生成 / 漂移检查通过。
+- 真实 PostgreSQL 全链验证正式 Task 聚合 / Ticket、签名 Seal、Fact + Ref、exact replay、不同 digest Incident、Activity 回包丢失恢复、Attempt / Unit / Run `PASSED`、RLS 与不可删除权限，并证明数据库会拒绝错误 Runtime Digest / Hygiene。Migration 在存在 Fact 时正确拒绝 downgrade，清理测试 Result 行后完成 `0032 → 0031 → 0032` 往返；完整后端门禁 937 tests、coverage 90.09%，真实 PostgreSQL / Temporal 全部通过。
+- P6-03B 已基于不可变 Attempt Fact 建立 UnitResolutionRevision，P7-01A 已在后续切片建立 TaskResultSnapshot；Classification、Gate 与公共查询 API 仍不提前增加空 API 或空 Schema。P6-02B2 的 LiveSession / ControlLease / Epoch / Fence / Human Takeover / ActionGrant 继续作为独立控制权切片。
+
+## P6-03B 范围
+
+### 已实现
+
+- 建立 `atlas.attempt-closure-notice/0.1`。每个无 Seal 的 CLOSED Attempt 写入一个 immutable ClosureNotice；该事实精确绑定 Tenant / Project、TaskRun / ExecutionUnit / UnitAttempt、Manifest、Unit Key、Attempt Number、关闭时间和 Hygiene，只能表达 `INCONCLUSIVE / NOT_EVALUATED`，证据保持 `UNVERIFIED`，不能制造 `PASSED / FAILED`。
+- 建立 `atlas.unit-resolution-revision/0.1`。每个 Revision 绑定 Unit 的全部 CLOSED Attempt Seal / ClosureNotice 输入、canonical input-set hash、固定 Resolution Policy、decisive Attempt、有效终态轴与 Stability；输入不变时 exact replay 返回既有 Revision，输入集合变化时追加 gapless Revision 并保留稳定 Resolution Root 与 predecessor。
+- Resolution 以最新物理 Attempt 为 decisive source，同时保留历史解释：单次可信通过 / 失败为 `STABLE`，失败后通过为 `FLAKY_SUSPECT`，Platform / Infrastructure 后通过为 `INFRA_RECOVERED`，相同失败指纹可维持 `STABLE`；不完整或未验证的 Seal 降级为 `INCONCLUSIVE`。
+- `20260718_0033` 建立 `attempt_closure_notice` 与 `unit_resolution_revision`。数据库 Trigger 强制 Seal / ClosureNotice 终态互斥，重算 ClosureNotice 21-key canonical projection 和 hash，并重算全部 CLOSED Attempt 输入、input-set hash、decisive axes、Revision chain、policy digest 与 Stability；两表均使用 `FORCE RLS`、append-only Trigger 和 SELECT / INSERT 最小权限。
+- `FinalizeAttemptResultService` 在接受 Seal 并关闭 Attempt 的同一事务追加 Unit Resolution；`TaskWorkerService` 在未 Seal Attempt 关闭、重试结算、Run child reconcile 与已封印回包恢复时，同事务创建或 exact replay ClosureNotice / Resolution。任何 CLOSED Attempt 缺少事实或同时存在两种事实都会 fail-closed。
+- 本切片只增加后端事实、投影与机器契约，没有增加公共 Result API、TaskResultSnapshot、Classification 或 Gate，也没有修改前端页面、组件、DOM、布局、CSS 或交互。
+
+### 验证状态与下一步
+
+- 37 项 Result 定向测试覆盖 ClosureNotice 终态约束与 hash、sourceStatus / Attempt quality 精确对应、Resolution Revision 链和 Stability、Repository 序列化、应用 exact replay、Migration 约束；4 项真实 PostgreSQL 链验证 Seal → Resolution、无 Seal → ClosureNotice、Infrastructure retry 的两次 Revision、RLS 与不可删除权限。
+- 干净数据库完整后端门禁 969 tests / coverage 90.13%，Ruff、严格 mypy 316 files、Contracts / OpenAPI 漂移与 Python sdist / wheel 全部通过。存在 Projection Fact 时 `0033` downgrade 正确拒绝；独立空库完成 `0033 → 0032 → 0033` 往返。
+- P7-01A 已在后续切片冻结 Task 级 UnitResolutionRevision 输入集合与 Snapshot Policy；后续 Classification / Gate 和公共查询必须绑定确定 Snapshot，不能直接暴露或临时重算底层 Fact。
+
+## P7-01A 范围
+
+### 已实现
+
+- 建立 `atlas.task-result-snapshot/0.1`。Snapshot 精确绑定 Tenant / Project、CLOSED TaskRun、Manifest Hash、Manifest ordinal 顺序下每个 Unit 的 latest `UnitResolutionRevision`、ClosureNotice-compatible `inputResolutionSetHash`、固定 `aggregationPolicyVersion / digest` 与 Resolution 事实水位；semantic `snapshotHash` 排除随机 ID、Revision lineage 和写入时间，因此相同输入、策略与代码产生相同 Hash。
+- 冻结 `QUALITY_FINAL` 聚合策略：`manifestCount = passed + failed + inconclusive + notEvaluated`；DataHygiene、EvidenceCompleteness、EvidenceIntegrity、ExecutionInfluence、Stability 与 OutcomeClass 每条轴都必须守恒 Manifest 分母。raw、trusted、autonomous 使用 Manifest 分母，decisive 使用 `PASSED + FAILED` 分母；全部以精确 numerator / denominator 表达，不使用浮点近似。Assisted Pass 不进入 autonomous numerator。
+- `ResultProjectionService.snapshot_task` 只在 Run CLOSED、Manifest / Unit / Resolution scope 全部一致且每个 Unit 已关闭时生成 Snapshot。相同 Resolution Set + Policy exact replay 返回既有 revision；输入变化时追加 predecessor-linked revision。写入 Snapshot 后在同一事务追加 `task.snapshot_created` Outbox。
+- `TaskWorkerService.finish_run` 在 `task_run.closed` 之后、事务提交之前创建 Snapshot；Snapshot 失败会回滚 Run 关闭。已关闭 Run 的 finish replay 会幂等补齐缺失 Snapshot，不能跳过 Result 真相层。
+- `20260718_0034` 建立 append-only `task_result_snapshot`。Insert Guard 锁定 exact TaskRun，复核 Materialization Seal、CLOSED lifecycle、Manifest count、latest Resolution revision，并再次比对每个 Unit 当前全部 CLOSED Attempt 的 Seal / ClosureNotice 集合，防止旧 Resolution 被封存；随后重算 Resolution Set Hash、Watermark、Verdict / axis counts、四种 rate、23-key canonical JSON 与 semantic hash。表启用 `FORCE RLS`、不可变 Trigger、SELECT / INSERT 最小权限和 populated downgrade fail-closed。
+- 本切片没有增加公共 Result API、Classification、Gate、`FULLY_RESOLVED` / `REEVALUATED` 生产逻辑，也没有修改前端页面、组件、DOM、布局、CSS 或交互。
+
+### 验证状态与下一步
+
+- 47 项 Result / Snapshot 定向测试覆盖不可变契约、Manifest / axis 数量守恒、四类 rate、semantic hash、Assisted Pass、mixed Verdict、缺失 Resolution fail-closed、exact replay、Repository 序列化和 `0034` 静态约束；连同 Task Worker 回归共 88 项通过。
+- 本切片完成时 Ruff、严格 mypy 317 files、Contracts / OpenAPI 漂移和 Python sdist / wheel 通过，无外部基础设施门禁为 879 passed / 108 skipped。后续 P7-01B0 已在真实 PostgreSQL 完成 `0034` upgrade，AttemptSeal 全链实际生成并复核 `QUALITY_FINAL` Snapshot，且完整 PostgreSQL / Temporal 门禁达到 1000 tests / coverage 90.08%；`0034` standalone populated downgrade 未单独重复，因为现存 `0035` Cleanup Fact 会按设计先阻止链式降级。
+- P7-01B0 已在后续切片接入 Cleanup / Hygiene 事实；`QUALITY_FINAL → FULLY_RESOLVED` 和显式 `REEVALUATED` 仍由后续 Revision 切片负责。
+
+## P7-01B0 范围
+
+### 已实现
+
+- 建立 `atlas.attempt-fixture-binding/0.1`。FixtureRun 的 `executionKind=EXECUTION` 和 `executionId=unit-attempt:<uuid>` 只允许绑定 exact UnitAttempt；Tenant / Project / TaskRun / ExecutionUnit、Environment、Blueprint、Compiled Plan 与 requestedAt 必须一致。相同内容 exact replay，不同内容冲突，一条 Attempt 和一条 FixtureRun 都只能出现一次。
+- 建立 `atlas.unit-hygiene-resolution-revision/0.1`。每个 Revision gapless 覆盖 Unit 的全部 CLOSED Attempt，并冻结 FixtureRun revision / status / generation / cleanup state、Manifest hash、CREATED Resource 数量、CleanupAttempt 数量、未解决 Reconcile 数量、完整 observation hash、policy digest 与 projection watermark。
+- Unit Hygiene 聚合按最严重状态保留历史：`LEAKED > CLEANUP_FAILED > PENDING > CLEANED / NOT_APPLICABLE`。因此后续重试成功不能把较早 Attempt 的泄漏改写为 CLEANED；可信 Task Attempt 明确 `NOT_REQUIRED` 时可使用 `EXPLICIT_NOT_REQUIRED`，不能伪造 Fixture 输入。
+- FixtureRun 创建事务在正式 execution identity 下先写 AttemptFixtureBinding；Fixture release 进入终态时在同一事务投影 cleanup truth。Task 结算和 Result Truth 重放也会幂等补齐 Unit Hygiene Revision；投影失败会阻止对应事实事务提交。
+- `20260718_0035` 建立 append-only `attempt_fixture_binding` 与 `unit_hygiene_resolution_revision`。Insert Guard 锁定 exact Attempt / Unit / Fixture 链，重算 binding 13-key canonical hash、每个 Attempt 的 19-key input hash、Manifest、Resource / CleanupAttempt / Reconcile observation hash、input-set hash、aggregate Hygiene、watermark 与 19-key semantic hash。两表启用 `FORCE RLS`、不可变 Trigger、SELECT / INSERT 最小权限和 populated downgrade fail-closed。
+- 导出 `attempt-fixture-binding.schema.json` 与 `unit-hygiene-resolution-revision.schema.json`。本切片没有修改公共 API 或前端页面、组件、DOM、布局、CSS、交互，也没有提前生产 `FULLY_RESOLVED` / `REEVALUATED` Snapshot、Classification 或 Gate。
+
+### 验证状态与下一步
+
+- 110 项 Result / Fixture / Task / Migration 定向与回归测试通过，覆盖 binding scope / replay、cleanup observation、leak precedence、mixed CLEANED / NOT_APPLICABLE、Attempt 数量守恒、重试 Revision 链与数据库静态 guard。
+- 真实 PostgreSQL 已完成 `0035` upgrade、空表 `0035 → 0034 → 0035` 往返、Python ↔ PostgreSQL canonical hash parity、伪造 Blueprint Plan 拒绝、FixtureRun → Binding → CLOSED Attempt → Unit Hygiene Revision、exact replay、最小权限以及存在 Binding / Hygiene Fact 时的 populated downgrade fail-closed。
+- 完整门禁为 1000 tests / coverage 90.08%，真实 PostgreSQL / Temporal、Ruff、严格 mypy 323 files、Contracts / OpenAPI 漂移检查和 Python sdist / wheel 均通过。共享测试库超过 100 条 Start Intent 后暴露的既有租约接管测试 backlog 假设也已修正为事务内分批领取，生产投递逻辑未改变。
+- P7-01B1 已在后续切片完成；下一步建议进入 P7-01B2，评估显式 `REEVALUATED` 命令与政策重算边界，之后进入 FailureClassification 和 fail-closed Gate。
+
+## P7-01B1 范围
+
+### 已实现
+
+- 保留 `atlas.task-result-snapshot/0.1` 的 23-key `QUALITY_FINAL` 文档、Policy 与 semantic Hash，新增向后兼容的 `atlas.task-result-snapshot/0.2` `FULLY_RESOLVED` 形状。0.2 在同一 append-only revision 链上额外绑定 Manifest ordinal 顺序下的 `unitHygieneResolutionRevisionIds` 与 `inputHygieneResolutionSetHash`，不会重写历史 0.1 Snapshot。
+- `FULLY_RESOLVED` 只在每个 Manifest Unit 的 latest Unit Hygiene 状态均属于 `CLEANED / LEAKED / NOT_APPLICABLE` 时生成；`PENDING / CLEANUP_FAILED` 保持等待。Finality 表达清理事实已确定，不等于全部清理成功，因此显式 `LEAKED` 仍可进入最终快照并继续阻断后续 Gate。
+- Snapshot Verdict、EvidenceCompleteness、EvidenceIntegrity、ExecutionInfluence、Stability、OutcomeClass 与四类 pass rate 继续来自 exact Quality Resolution 集合；只有 DataHygiene 分布由 exact Hygiene Resolution 集合覆盖。Quality root、Hygiene root、两个 Policy digest、combined watermark 与 semantic Hash 均可独立复算。
+- TaskWorker 在 Run close 事务中先创建或重放 `QUALITY_FINAL`，再尝试 `FULLY_RESOLVED`；FixtureWorker 在 late cleanup 终态事务中按 Task → Unit 锁顺序投影 Unit Hygiene，并重新检查 Task readiness。最后一个 Unit 清理闭合即可追加 Full Snapshot，重复 Task / Fixture 事件不会产生重复 Revision，Full 之后的 Quality replay 返回原 0.1 Fact。
+- `20260718_0036` 扩展 `task_result_snapshot`，以 partial unique input index、phase-aware revision chain、terminal Hygiene coverage、current Attempt / Fixture revision freshness、双输入 root、DataHygiene overlay、25-key canonical JSON、combined watermark 与 semantic Hash 守卫 0.2 写入。存在 Full Fact 时 downgrade fail-closed；只有 0.1 Quality Fact 时可安全回到 `0035` 并恢复原 Insert Guard。
+- `task-result-snapshot.schema.json` 已升级为 0.2 contract ID，并通过 conditional JSON Schema 同时表达 0.1 Quality 与 0.2 Full 的不同字段要求。本切片未增加公共 Result API、`REEVALUATED`、Classification 或 Gate，也没有修改前端页面、组件、DOM、布局、CSS 或交互。
+
+### 验证状态与下一步
+
+- 领域、应用、Repository、Task Worker、Migration 静态测试已覆盖 0.1 Hash 兼容、0.2 字段守恒、terminal readiness、DataHygiene-only overlay、Quality replay after Full、Hygiene Manifest order 与 explicit projection columns。
+- 真实 PostgreSQL 已完成现有数据 `0035 → 0036` 升级、Fixture truth → Quality rev1 → Full rev2 全链、Python / PostgreSQL 双输入 Hash parity、Full Fact populated downgrade fail-closed，以及独立空库 `0036 → 0035 → 0036` 往返。完整门禁为 1011 passed / coverage 90.01%，真实 PostgreSQL / Temporal、Ruff、严格 mypy 324 files、Contracts / OpenAPI 漂移与 Python sdist / wheel 全部通过。
+- 下一步建议进入 P7-01B2：只通过显式命令与冻结新 Policy 追加 `REEVALUATED`，不允许策略发布自动重写历史；随后再进入 FailureClassification 与绑定明确 snapshotId 的 fail-closed Gate。
+
+## P7-01B2 范围
+
+### 已实现
+
+- 建立 `atlas.task-result-reevaluation-command/0.1`。命令永久绑定 Tenant / Project、TaskRun、exact `FULLY_RESOLVED` 源 Snapshot、目标 Aggregation Policy version / digest、Actor、`clientMutationId` 与请求时间；Idempotency Key 必须与 Mutation ID 一致，相同命令稳定 replay，冲突内容 fail-closed。
+- 保持 0.1 `QUALITY_FINAL` 和 0.2 `FULLY_RESOLVED` 文档与 Hash 兼容，新增 `atlas.task-result-snapshot/0.3` `REEVALUATED`。新 Revision 绑定 source Snapshot 与 command，沿用 exact Quality / Hygiene revision 集合、两个输入根、水位、数量分布和四类精确通过率，并切换到冻结的 0.3 Aggregation Policy；semantic Hash 不依赖随机 command ID。
+- `ResultReevaluationService` 只接受显式内部应用命令：Run 必须为 `SEALED / CLOSED`，源必须是同 Run 的 exact Full Snapshot；同一 source + policy 只产生一个 Reevaluated Revision。策略发布、TaskWorker、FixtureWorker 与普通 Result Projection 都不会调用该服务，也不会批量改写历史。
+- `20260718_0037` 建立 append-only `task_result_reevaluation_command` 并扩展 `task_result_snapshot`。数据库 Insert Guard 锁定 Run、源 Snapshot 和命令，复核 27-key canonical JSON、命令 canonical hash、source + policy 唯一性、gapless Revision、双输入根、全部分布、精确 rate、水位和 immutable lineage；两类事实均使用 `FORCE RLS`、最小 SELECT / INSERT 权限和 populated downgrade fail-closed。
+- 导出 `task-result-reevaluation-command.schema.json`，并把 `task-result-snapshot.schema.json` 升级为向后兼容的 0.3 contract ID。本切片没有增加公共 HTTP / OpenAPI Result 路由、Classification 或 Gate，也没有修改前端页面、组件、DOM、布局、CSS 或交互。
+
+### 验证状态与下一步
+
+- 领域、应用、Repository 与 Migration 定向测试已覆盖命令 Hash / Idempotency、exact Full source、source + policy deduplication、0.1 / 0.2 兼容、0.3 字段与 semantic Hash、Revision phase、不可变权限和数据库静态守卫。
+- 真实 PostgreSQL 已完成现有数据 `0036 → 0037` 升级、显式 Full rev2 → Reevaluated rev3 全链、exact replay、命令事实与最小权限验证；存在 Command / Reevaluated Fact 时 populated downgrade 正确拒绝，独立空库完成 `0037 → 0036 → 0037` 往返。
+- 完整门禁为 1021 passed / coverage 90.11%，真实 PostgreSQL / Temporal、Ruff、严格 mypy 327 files、Contracts / OpenAPI 漂移检查和 Python sdist / wheel 均通过。
+- 下一步建议进入 FailureClassification：分类事实必须绑定明确的 `snapshotId`；随后实现同样绑定明确 Snapshot 和 Classification Revision 的 fail-closed Gate。公共 Result 查询继续等读取模型稳定后再开放。
+
+## P7-02A 范围
+
+### 已实现
+
+- 建立 `atlas.failure-cluster-revision/0.1`。Cluster 永久绑定一个 exact `TaskResultSnapshot`，只包含需要诊断的 UnitResolution；首版 Policy 对完整 Snapshot 重算同一 `FailureSignal` 的 manifest-ordered 全量集合，禁止拆分、漏项、混入 clean trusted pass 或依赖可变查询结果。
+- 建立 `atlas.failure-classification-revision/0.1` 与稳定 `FailureDomain` taxonomy。首个 Revision 只能由冻结规则产生；低证据的 Business / Automation / User 失败保持 `UNKNOWN`，不会把不确定性伪装成产品缺陷，也不会修改原始 Verdict、Snapshot 或 Gate。
+- Classification 使用固定分母 `10000` 的 exact confidence、immutable typed Evidence Ref、supporting / contradicting evidence、显式 evidence gap code、author kind 与 judgment state。Contract 为 AI proposal 保留独立且禁止隐藏推理的作者形状；当前持久化写路径只开放 deterministic rule proposal 与人工 review，不接入模型。
+- 人工复核只允许 `PROJECT_ADMIN / CASE_REVIEWER / ORG_ADMIN`，要求可信 Actor、`Idempotency-Key == clientMutationId` 与 expected Revision。`HUMAN_CONFIRMED` 不能静默改变归因内容；`HUMAN_REJECTED` 必须回到 `UNKNOWN`、零置信度并提供 contradiction evidence；所有修改均追加新 Revision，并写 Audit / Outbox。
+- `20260718_0038` 建立 append-only `failure_cluster_revision` 与 `failure_classification_revision`。数据库重新验证 Snapshot scope、完整 manifest group、规则优先级、Evidence 所属事实、canonical 19 / 26-key JSON、semantic hash、revision chain、RLS 与最小 `SELECT / INSERT` 权限；Snapshot 首次物化和 Classification revision chain 使用相互隔离的 transaction advisory lock。
+- 导出 `failure-cluster-revision.schema.json` 与 `failure-classification-revision.schema.json`。本切片没有新增公共 HTTP / OpenAPI Result 路由，没有自动触发分类，也没有修改前端页面、组件、DOM、布局、CSS 或交互。
+
+### 验证状态与下一步
+
+- Domain、Application、Repository 与 Migration 测试已覆盖 conservative signal precedence、clean pass exclusion、低证据 `UNKNOWN`、hash 防篡改、canonical evidence、Cluster replay、人工 review / replay、RBAC、advisory lock 与数据库静态守卫。
+- 真实 PostgreSQL 已完成 `0037 → 0038`、REEVALUATED Snapshot → Cluster → Rule Classification → Human Confirmed Revision 全链，并验证表级不可 UPDATE / DELETE；另在全新临时数据库从零升级到 `0038`。完整门禁为 1032 passed / coverage 90.08%，Ruff、严格 mypy 332 files、Contracts / OpenAPI 漂移检查和 Python sdist / wheel 均通过。
+- 下一步建议进入 P7-02B fail-closed TaskGateDecision：必须绑定明确的 `resultSnapshotId + failureClassificationRevisionIds + classificationSetHash`，并由数据库证明覆盖该 Snapshot 的完整 Cluster 集合；只消费人工确认或政策明确允许的 judgment state，缺失 / 过期 / 低证据 Classification 默认阻断。之后再稳定 Result Center 读取投影和公共 API，并严格映射既有前端原型数据槽位。
 
 ## 当前风险与外部输入
 
@@ -695,6 +822,6 @@
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
 - P3-03 已完成取消后补偿、Reconcile、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Evidence；生产环境仍需按 Tenant 配置 Temporal Schedule 和真实 Provider，缺失时继续 fail-closed。
-- P5-00B1 至 P5-00E2 已建立正式 Profile、Seal / CAS、durable Start、最多 64 Units Root / Attempt 编排、查询、immutable Ticket、reliable Cancel / Pause / Resume、有界基础设施自动重试、exact infra-failure child Run、TaskPlan Catalog / immutable publication 与首次 Manual Launch。Takeover、正式 production `TaskUnitExecutionPort`、Schedule / CI Adapter、超过 64 Units 的可恢复分区物化、AttemptSeal / Result 与 Live control 尚未实现；`STARTED` 和 `FINISHED_UNSEALED` 都不能描述成 `PASSED`。
+- P5-00B1 至 P5-00E2 已建立正式 Profile、Seal / CAS、durable Start、最多 64 Units Root / Attempt 编排、查询、immutable Ticket、reliable Cancel / Pause / Resume、有界基础设施自动重试、exact infra-failure child Run、TaskPlan Catalog / immutable publication 与首次 Manual Launch。P6-03A/P6-03B 已提供完整 Attempt Fact 与 Unit Resolution 写入根，P7-01A 至 P7-01B2 已提供三阶段 TaskResultSnapshot，P7-02A 已提供 Snapshot-bound FailureCluster 与 append-only FailureClassification；但仓库仍无正式 production `TaskUnitExecutionPort`、Schedule / CI Adapter、超过 64 Units 的可恢复分区物化、TaskGateDecision、公共 Result 查询与 Live control。只有数据库中存在 exact Seal Fact 时才允许 Task Workflow 表达 `PASSED`，ClosureNotice 只能使 Resolution 得到 `INCONCLUSIVE / NOT_EVALUATED`。
 - P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；P6-02A Evidence Writer / 受控读取与 P6-02B1 DebugRun Live Snapshot / SSE 已完成。P6-02B2 的 UnitAttempt-scoped LiveSession、ControlLease、控制 Epoch / Fence、Human Takeover 与持久化 ActionGrant，以及真实 SaaS Operation / Route Registry、生产 Bucket Object Lock / Versioning、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
 - 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

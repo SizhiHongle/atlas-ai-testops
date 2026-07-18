@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/failure-classification-revision/0.1/schema.json",
+  "$defs": {
+    "ClassificationAuthorKind": {
+      "description": "Bounded author authority without persisting hidden model reasoning.",
+      "enum": [
+        "SYSTEM_RULE",
+        "AI_MODEL",
+        "HUMAN"
+      ],
+      "title": "ClassificationAuthorKind",
+      "type": "string"
+    },
+    "ClassificationConfidence": {
+      "additionalProperties": false,
+      "description": "Exact confidence fraction with a fixed basis-point denominator.",
+      "properties": {
+        "numerator": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Numerator",
+          "type": "integer"
+        },
+        "denominator": {
+          "const": 10000,
+          "default": 10000,
+          "title": "Denominator",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "numerator"
+      ],
+      "title": "ClassificationConfidence",
+      "type": "object"
+    },
+    "ClassificationJudgmentState": {
+      "description": "How one immutable classification judgment was produced or reviewed.",
+      "enum": [
+        "RULE_PROPOSED",
+        "AI_PROPOSED",
+        "HUMAN_CONFIRMED",
+        "HUMAN_REJECTED",
+        "HUMAN_REVISED"
+      ],
+      "title": "ClassificationJudgmentState",
+      "type": "string"
+    },
+    "FailureDomain": {
+      "description": "Stable bounded taxonomy used for triage and later Gate policy.",
+      "enum": [
+        "PRODUCT",
+        "TEST_SPEC",
+        "TEST_DATA",
+        "IDENTITY",
+        "ENVIRONMENT",
+        "INFRASTRUCTURE",
+        "EXTERNAL_DEPENDENCY",
+        "AGENT_AUTOMATION",
+        "POLICY_SECURITY",
+        "EVIDENCE",
+        "CLEANUP",
+        "UNKNOWN"
+      ],
+      "title": "FailureDomain",
+      "type": "string"
+    },
+    "FailureEvidenceKind": {
+      "description": "Immutable Result facts accepted as classification evidence.",
+      "enum": [
+        "UNIT_RESOLUTION",
+        "UNIT_HYGIENE_RESOLUTION",
+        "ATTEMPT_SEAL",
+        "ATTEMPT_CLOSURE_NOTICE"
+      ],
+      "title": "FailureEvidenceKind",
+      "type": "string"
+    },
+    "FailureEvidenceRef": {
+      "additionalProperties": false,
+      "description": "Typed immutable source reference used to support or contradict a judgment.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/FailureEvidenceKind"
+        },
+        "refId": {
+          "format": "uuid",
+          "title": "Refid",
+          "type": "string"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "refId",
+        "contentDigest"
+      ],
+      "title": "FailureEvidenceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Hashed immutable classification judgment.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.failure-classification-revision/0.1",
+      "default": "atlas.failure-classification-revision/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "failureClassificationId": {
+      "format": "uuid",
+      "title": "Failureclassificationid",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "resultSnapshotId": {
+      "format": "uuid",
+      "title": "Resultsnapshotid",
+      "type": "string"
+    },
+    "failureClusterRevisionId": {
+      "format": "uuid",
+      "title": "Failureclusterrevisionid",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "failureDomain": {
+      "$ref": "#/$defs/FailureDomain"
+    },
+    "hypothesisCode": {
+      "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+      "title": "Hypothesiscode",
+      "type": "string"
+    },
+    "hypothesis": {
+      "maxLength": 500,
+      "minLength": 1,
+      "pattern": "^[^\\x00-\\x1f\\x7f]{1,500}$",
+      "title": "Hypothesis",
+      "type": "string"
+    },
+    "confidence": {
+      "$ref": "#/$defs/ClassificationConfidence"
+    },
+    "supportingEvidenceRefs": {
+      "items": {
+        "$ref": "#/$defs/FailureEvidenceRef"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Supportingevidencerefs",
+      "type": "array"
+    },
+    "contradictingEvidenceRefs": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FailureEvidenceRef"
+      },
+      "maxItems": 256,
+      "title": "Contradictingevidencerefs",
+      "type": "array"
+    },
+    "evidenceGapCodes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Evidencegapcodes",
+      "type": "array"
+    },
+    "judgmentState": {
+      "$ref": "#/$defs/ClassificationJudgmentState"
+    },
+    "authorKind": {
+      "$ref": "#/$defs/ClassificationAuthorKind"
+    },
+    "authoredBy": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Authoredby"
+    },
+    "modelVersionRef": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Modelversionref"
+    },
+    "classificationPolicyVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Classificationpolicyversion",
+      "type": "string"
+    },
+    "classificationPolicyDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Classificationpolicydigest",
+      "type": "string"
+    },
+    "clientMutationId": {
+      "maxLength": 200,
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "title": "Clientmutationid",
+      "type": "string"
+    },
+    "supersedesRevisionId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedesrevisionid"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "classificationHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Classificationhash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "failureClassificationId",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "resultSnapshotId",
+    "failureClusterRevisionId",
+    "revision",
+    "failureDomain",
+    "hypothesisCode",
+    "hypothesis",
+    "confidence",
+    "supportingEvidenceRefs",
+    "judgmentState",
+    "authorKind",
+    "classificationPolicyDigest",
+    "clientMutationId",
+    "createdAt",
+    "classificationHash"
+  ],
+  "title": "FailureClassificationRevision",
+  "type": "object"
+}

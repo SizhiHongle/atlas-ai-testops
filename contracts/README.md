@@ -40,6 +40,16 @@
 - `execution-unit.schema.json`：Manifest 中一个 exact CaseVersion × Matrix Cell 的逻辑执行槽位，绑定 `executionProfileVersionId`，不复用 DebugRun-scoped ExecutionContract。
 - `unit-attempt.schema.json`：ExecutionUnit 的追加式物理尝试及确定性 Temporal identity；业务重试创建新 Attempt，Activity retry 不创建新 Attempt。
 - `task-execution-event.schema.json`：`atlas.execution-event/0.1` 的追加式、单调 Task 执行事件投影。
+- `attempt-seal.schema.json`：`attempt-seal/1.0` 的 Ed25519 签名终态事实；精确绑定正式 UnitAttempt、Execution Ticket、证据策略、Runtime Digest 与事件链。
+- `result-ref.schema.json`：`atlas.result-ref/0.1` 的稳定不透明引用；同一 Attempt 的 exact Seal replay 返回同一引用。
+- `attempt-closure-notice.schema.json`：`atlas.attempt-closure-notice/0.1` 的无 Seal 终态事实；只能表达 `INCONCLUSIVE / NOT_EVALUATED`，不能制造业务通过或失败。
+- `unit-resolution-revision.schema.json`：`atlas.unit-resolution-revision/0.1` 的追加式 Unit 解释；绑定完整 Seal / ClosureNotice 输入集合、冻结解析策略与 Stability。
+- `task-result-snapshot.schema.json`：向后兼容的 `atlas.task-result-snapshot/0.1 / 0.2 / 0.3` 不可变 Task 结论；0.1 `QUALITY_FINAL` 绑定 Manifest-ordered Quality Resolution 集合，0.2 `FULLY_RESOLVED` 额外绑定 Manifest-ordered Hygiene Resolution 集合与独立输入根，0.3 `REEVALUATED` 再绑定 exact Full 源 Snapshot 和显式重评命令；全部 Revision 均冻结策略、水位、数量守恒、各轴分布和四类精确通过率。
+- `task-result-reevaluation-command.schema.json`：`atlas.task-result-reevaluation-command/0.1` 的不可变显式命令事实；绑定 exact `FULLY_RESOLVED` 源 Snapshot、目标 Aggregation Policy 与 `clientMutationId`，策略发布和后台 Worker 不会自动创建它。
+- `failure-cluster-revision.schema.json`：`atlas.failure-cluster-revision/0.1` 的 exact Snapshot-bound 聚类事实；冻结 manifest-ordered UnitResolution 集合、FailureSignal、fingerprint Policy 与 representative evidence source。
+- `failure-classification-revision.schema.json`：`atlas.failure-classification-revision/0.1` 的追加式证据化归因；冻结 FailureDomain、hypothesis、basis-point confidence、Evidence Ref、gap、author、judgment 与人工复核 lineage，不修改原始 Verdict。
+- `attempt-fixture-binding.schema.json`：`atlas.attempt-fixture-binding/0.1` 的不可变执行绑定；把正式 UnitAttempt 精确关联到同作用域 FixtureRun、Environment、Blueprint 与 Compiled Plan。
+- `unit-hygiene-resolution-revision.schema.json`：`atlas.unit-hygiene-resolution-revision/0.1` 的追加式清理解释；冻结每个 Attempt 的 Fixture cleanup、资源账本和 Reconcile 观察集合，并在重试后保留最严重 Hygiene。
 - `openapi.json`：当前 FastAPI 公共 HTTP API，由前端生成 TypeScript 类型。
 
 ## 生成与校验
@@ -54,6 +64,6 @@ uv run python scripts/export_openapi.py --check
 
 生成文件使用对外 `camelCase` 字段。Python 代码继续使用 `snake_case`，Pydantic 同时接受两种输入形式。
 
-`AttemptSeal` 只能绑定正式 `UnitAttempt`；P5-00A 已建立正式宿主，但 Seal、LiveSession、ControlLease 和持久化 ActionGrant 仍按后续切片独立落地，不创建空协议。Result Snapshot 和 Insight 协议会在对应领域代码落地时按独立 `schemaVersion` 增加。
+`AttemptSeal` 只能绑定正式 `UnitAttempt`；P6-03A 已建立签名、canonical hash、不可变 Result Fact、稳定 ResultRef 与 Integrity Incident。P6-03B 使用 ClosureNotice 覆盖无 Seal 终态，并以追加式 UnitResolutionRevision 保留重试历史；P7-01A 已用 TaskResultSnapshot 冻结确定 Resolution 集合与 Snapshot Policy；P7-01B0 已用 AttemptFixtureBinding 和 UnitHygieneResolutionRevision 建立 cleanup truth bridge；P7-01B1 已在 terminal Hygiene 全覆盖后追加 `FULLY_RESOLVED` Snapshot；P7-01B2 已通过显式 TaskResultReevaluationCommand 追加 `REEVALUATED` Snapshot，策略发布不会自动重评；P7-02A 已通过 FailureClusterRevision 与 FailureClassificationRevision 建立 exact Snapshot-bound、证据化且可人工复核的失败归因。Gate 和 Insight 协议仍会在对应领域代码落地时按独立 `schemaVersion` 增加。LiveSession、ControlLease 和持久化 ActionGrant 继续按后续切片独立落地。
 
 Browser Runtime 的内部 HTTP 端点还要求短期 Tenant / Run / Worker-scoped Execution Permit 和 HMAC Request Signature，且 Staging / Production Runtime API Origin 必须使用 HTTPS；JSON Schema 只约束消息形状，不替代传输层授权、Report Hash-chain State Machine 或数据库不可变约束。Evidence Finalization 会对完整 `AssertionResultInput` / `EvidenceArtifactInput` 重算 Canonical Digest 并与 Report Chain 的 exact 集合匹配；Artifact 还必须来自可信 `BrowserArtifactWriter`，不能由 Operation 自报。

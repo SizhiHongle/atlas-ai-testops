@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/failure-cluster-revision/0.1/schema.json",
+  "$defs": {
+    "DataHygiene": {
+      "description": "Side-effect cleanup state captured when the Attempt is sealed.",
+      "enum": [
+        "PENDING",
+        "CLEANED",
+        "CLEANUP_FAILED",
+        "LEAKED",
+        "NOT_APPLICABLE"
+      ],
+      "title": "DataHygiene",
+      "type": "string"
+    },
+    "EvidenceCompleteness": {
+      "description": "Required-evidence coverage axis.",
+      "enum": [
+        "PENDING",
+        "COMPLETE",
+        "PARTIAL",
+        "MISSING",
+        "NOT_APPLICABLE"
+      ],
+      "title": "EvidenceCompleteness",
+      "type": "string"
+    },
+    "EvidenceIntegrity": {
+      "description": "Independent evidence verification axis.",
+      "enum": [
+        "UNVERIFIED",
+        "VERIFIED",
+        "INVALID"
+      ],
+      "title": "EvidenceIntegrity",
+      "type": "string"
+    },
+    "FailureDomain": {
+      "description": "Stable bounded taxonomy used for triage and later Gate policy.",
+      "enum": [
+        "PRODUCT",
+        "TEST_SPEC",
+        "TEST_DATA",
+        "IDENTITY",
+        "ENVIRONMENT",
+        "INFRASTRUCTURE",
+        "EXTERNAL_DEPENDENCY",
+        "AGENT_AUTOMATION",
+        "POLICY_SECURITY",
+        "EVIDENCE",
+        "CLEANUP",
+        "UNKNOWN"
+      ],
+      "title": "FailureDomain",
+      "type": "string"
+    },
+    "FailureSignal": {
+      "additionalProperties": false,
+      "description": "Deterministic bounded signal used by the first clustering policy.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.failure-signal/0.1",
+          "default": "atlas.failure-signal/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "failureDomain": {
+          "$ref": "#/$defs/FailureDomain"
+        },
+        "signalCode": {
+          "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+          "title": "Signalcode",
+          "type": "string"
+        },
+        "effectiveVerdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "outcomeClass": {
+          "$ref": "#/$defs/OutcomeClass"
+        },
+        "closureReason": {
+          "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+          "title": "Closurereason",
+          "type": "string"
+        },
+        "dataHygiene": {
+          "$ref": "#/$defs/DataHygiene"
+        },
+        "evidenceCompleteness": {
+          "$ref": "#/$defs/EvidenceCompleteness"
+        },
+        "evidenceIntegrity": {
+          "$ref": "#/$defs/EvidenceIntegrity"
+        },
+        "stability": {
+          "$ref": "#/$defs/Stability"
+        }
+      },
+      "required": [
+        "failureDomain",
+        "signalCode",
+        "effectiveVerdict",
+        "outcomeClass",
+        "closureReason",
+        "dataHygiene",
+        "evidenceCompleteness",
+        "evidenceIntegrity",
+        "stability"
+      ],
+      "title": "FailureSignal",
+      "type": "object"
+    },
+    "OutcomeClass": {
+      "description": "Stable high-level cause family independent of Verdict.",
+      "enum": [
+        "BUSINESS",
+        "DEPENDENCY",
+        "PLATFORM",
+        "USER",
+        "AUTOMATION",
+        "POLICY",
+        "UNKNOWN"
+      ],
+      "title": "OutcomeClass",
+      "type": "string"
+    },
+    "Stability": {
+      "description": "Attempt-level placeholder for the later Unit resolution axis.",
+      "enum": [
+        "UNKNOWN",
+        "STABLE",
+        "INFRA_RECOVERED",
+        "FLAKY_SUSPECT",
+        "FLAKY_CONFIRMED"
+      ],
+      "title": "Stability",
+      "type": "string"
+    },
+    "Verdict": {
+      "description": "Minimal business judgment axis used by Result Center.",
+      "enum": [
+        "PENDING",
+        "PASSED",
+        "FAILED",
+        "INCONCLUSIVE",
+        "NOT_EVALUATED"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Hashed immutable cluster projection over exact Snapshot inputs.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.failure-cluster-revision/0.1",
+      "default": "atlas.failure-cluster-revision/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "failureClusterId": {
+      "format": "uuid",
+      "title": "Failureclusterid",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "resultSnapshotId": {
+      "format": "uuid",
+      "title": "Resultsnapshotid",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "fingerprintVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Fingerprintversion",
+      "type": "string"
+    },
+    "fingerprintPolicyDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Fingerprintpolicydigest",
+      "type": "string"
+    },
+    "fingerprint": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "signal": {
+      "$ref": "#/$defs/FailureSignal"
+    },
+    "affectedUnitResolutionRevisionIds": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Affectedunitresolutionrevisionids",
+      "type": "array"
+    },
+    "affectedCount": {
+      "maximum": 10000,
+      "minimum": 1,
+      "title": "Affectedcount",
+      "type": "integer"
+    },
+    "representativeUnitResolutionRevisionId": {
+      "format": "uuid",
+      "title": "Representativeunitresolutionrevisionid",
+      "type": "string"
+    },
+    "supersedesClusterRevisionId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedesclusterrevisionid"
+    },
+    "projectionWatermark": {
+      "format": "date-time",
+      "title": "Projectionwatermark",
+      "type": "string"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "clusterHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Clusterhash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "failureClusterId",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "resultSnapshotId",
+    "revision",
+    "fingerprintPolicyDigest",
+    "fingerprint",
+    "signal",
+    "affectedUnitResolutionRevisionIds",
+    "affectedCount",
+    "representativeUnitResolutionRevisionId",
+    "projectionWatermark",
+    "createdAt",
+    "clusterHash"
+  ],
+  "title": "FailureClusterRevision",
+  "type": "object"
+}

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/result-ref/0.1/schema.json",
+  "additionalProperties": false,
+  "description": "Opaque idempotent reference returned after one Seal is accepted.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.result-ref/0.1",
+      "default": "atlas.result-ref/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "executionUnitId": {
+      "format": "uuid",
+      "title": "Executionunitid",
+      "type": "string"
+    },
+    "unitAttemptId": {
+      "format": "uuid",
+      "title": "Unitattemptid",
+      "type": "string"
+    },
+    "sealId": {
+      "format": "uuid",
+      "title": "Sealid",
+      "type": "string"
+    },
+    "sealContentHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Sealcontenthash",
+      "type": "string"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "executionUnitId",
+    "unitAttemptId",
+    "sealId",
+    "sealContentHash",
+    "createdAt"
+  ],
+  "title": "ResultRef",
+  "type": "object"
+}

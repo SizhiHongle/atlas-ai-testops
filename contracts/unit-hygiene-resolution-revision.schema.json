@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/unit-hygiene-resolution-revision/0.1/schema.json",
+  "$defs": {
+    "DataHygiene": {
+      "description": "Side-effect cleanup state captured when the Attempt is sealed.",
+      "enum": [
+        "PENDING",
+        "CLEANED",
+        "CLEANUP_FAILED",
+        "LEAKED",
+        "NOT_APPLICABLE"
+      ],
+      "title": "DataHygiene",
+      "type": "string"
+    },
+    "UnitHygieneInputSource": {
+      "description": "Trusted source used to resolve one closed Attempt's cleanup state.",
+      "enum": [
+        "FIXTURE_RUN",
+        "EXPLICIT_NOT_REQUIRED"
+      ],
+      "title": "UnitHygieneInputSource",
+      "type": "string"
+    },
+    "UnitHygieneResolutionInput": {
+      "additionalProperties": false,
+      "description": "Frozen cleanup observation for one closed physical Attempt.",
+      "properties": {
+        "unitAttemptId": {
+          "format": "uuid",
+          "title": "Unitattemptid",
+          "type": "string"
+        },
+        "attemptNumber": {
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Attemptnumber",
+          "type": "integer"
+        },
+        "source": {
+          "$ref": "#/$defs/UnitHygieneInputSource"
+        },
+        "dataHygiene": {
+          "$ref": "#/$defs/DataHygiene"
+        },
+        "fixtureBindingId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixturebindingid"
+        },
+        "fixtureRunId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixturerunid"
+        },
+        "fixtureRunRevision": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixturerunrevision"
+        },
+        "fixtureRunStatus": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixturerunstatus"
+        },
+        "cleanupGeneration": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cleanupgeneration"
+        },
+        "fixturePlanDigest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixtureplandigest"
+        },
+        "fixtureManifestDigest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixturemanifestdigest"
+        },
+        "resourceStateHash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Resourcestatehash",
+          "type": "string"
+        },
+        "resourceCount": {
+          "minimum": 0,
+          "title": "Resourcecount",
+          "type": "integer"
+        },
+        "cleanedResourceCount": {
+          "minimum": 0,
+          "title": "Cleanedresourcecount",
+          "type": "integer"
+        },
+        "leakedResourceCount": {
+          "minimum": 0,
+          "title": "Leakedresourcecount",
+          "type": "integer"
+        },
+        "unresolvedResourceCount": {
+          "minimum": 0,
+          "title": "Unresolvedresourcecount",
+          "type": "integer"
+        },
+        "exhaustedReconcileCount": {
+          "minimum": 0,
+          "title": "Exhaustedreconcilecount",
+          "type": "integer"
+        },
+        "unresolvedReconcileCount": {
+          "minimum": 0,
+          "title": "Unresolvedreconcilecount",
+          "type": "integer"
+        },
+        "observedAt": {
+          "format": "date-time",
+          "title": "Observedat",
+          "type": "string"
+        }
+      },
+      "required": [
+        "unitAttemptId",
+        "attemptNumber",
+        "source",
+        "dataHygiene",
+        "resourceStateHash",
+        "resourceCount",
+        "cleanedResourceCount",
+        "leakedResourceCount",
+        "unresolvedResourceCount",
+        "exhaustedReconcileCount",
+        "unresolvedReconcileCount",
+        "observedAt"
+      ],
+      "title": "UnitHygieneResolutionInput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable hashed cleanup interpretation over every closed UnitAttempt.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.unit-hygiene-resolution-revision/0.1",
+      "default": "atlas.unit-hygiene-resolution-revision/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "unitHygieneResolutionId": {
+      "format": "uuid",
+      "title": "Unithygieneresolutionid",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "executionUnitId": {
+      "format": "uuid",
+      "title": "Executionunitid",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "unitKey": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Unitkey",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/UnitHygieneResolutionInput"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Inputs",
+      "type": "array"
+    },
+    "inputSetHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Inputsethash",
+      "type": "string"
+    },
+    "dataHygiene": {
+      "$ref": "#/$defs/DataHygiene"
+    },
+    "resolutionPolicyVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Resolutionpolicyversion",
+      "type": "string"
+    },
+    "resolutionPolicyDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Resolutionpolicydigest",
+      "type": "string"
+    },
+    "supersedesRevisionId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedesrevisionid"
+    },
+    "projectionWatermark": {
+      "format": "date-time",
+      "title": "Projectionwatermark",
+      "type": "string"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "resolutionHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Resolutionhash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "unitHygieneResolutionId",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "executionUnitId",
+    "manifestHash",
+    "unitKey",
+    "revision",
+    "inputs",
+    "inputSetHash",
+    "dataHygiene",
+    "resolutionPolicyDigest",
+    "projectionWatermark",
+    "createdAt",
+    "resolutionHash"
+  ],
+  "title": "UnitHygieneResolutionRevision",
+  "type": "object"
+}

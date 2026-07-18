@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/attempt-closure-notice/0.1/schema.json",
+  "$defs": {
+    "AttemptClosureSourceStatus": {
+      "description": "Trusted execution status used when an Attempt cannot produce a Seal.",
+      "enum": [
+        "FINISHED_UNSEALED",
+        "FAILED",
+        "INFRA_ERROR",
+        "INCONCLUSIVE",
+        "CANCELED"
+      ],
+      "title": "AttemptClosureSourceStatus",
+      "type": "string"
+    },
+    "DataHygiene": {
+      "description": "Side-effect cleanup state captured when the Attempt is sealed.",
+      "enum": [
+        "PENDING",
+        "CLEANED",
+        "CLEANUP_FAILED",
+        "LEAKED",
+        "NOT_APPLICABLE"
+      ],
+      "title": "DataHygiene",
+      "type": "string"
+    },
+    "EvidenceCompleteness": {
+      "description": "Required-evidence coverage axis.",
+      "enum": [
+        "PENDING",
+        "COMPLETE",
+        "PARTIAL",
+        "MISSING",
+        "NOT_APPLICABLE"
+      ],
+      "title": "EvidenceCompleteness",
+      "type": "string"
+    },
+    "EvidenceIntegrity": {
+      "description": "Independent evidence verification axis.",
+      "enum": [
+        "UNVERIFIED",
+        "VERIFIED",
+        "INVALID"
+      ],
+      "title": "EvidenceIntegrity",
+      "type": "string"
+    },
+    "ExecutionInfluence": {
+      "description": "Who influenced the execution actions.",
+      "enum": [
+        "AUTONOMOUS",
+        "MANUAL_ASSISTED",
+        "MANUAL_ONLY"
+      ],
+      "title": "ExecutionInfluence",
+      "type": "string"
+    },
+    "OutcomeClass": {
+      "description": "Stable high-level cause family independent of Verdict.",
+      "enum": [
+        "BUSINESS",
+        "DEPENDENCY",
+        "PLATFORM",
+        "USER",
+        "AUTOMATION",
+        "POLICY",
+        "UNKNOWN"
+      ],
+      "title": "OutcomeClass",
+      "type": "string"
+    },
+    "Verdict": {
+      "description": "Minimal business judgment axis used by Result Center.",
+      "enum": [
+        "PENDING",
+        "PASSED",
+        "FAILED",
+        "INCONCLUSIVE",
+        "NOT_EVALUATED"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable hashed terminal fact used only when no AttemptSeal exists.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.attempt-closure-notice/0.1",
+      "default": "atlas.attempt-closure-notice/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "executionUnitId": {
+      "format": "uuid",
+      "title": "Executionunitid",
+      "type": "string"
+    },
+    "unitAttemptId": {
+      "format": "uuid",
+      "title": "Unitattemptid",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "unitKey": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Unitkey",
+      "type": "string"
+    },
+    "attemptNumber": {
+      "minimum": 1,
+      "title": "Attemptnumber",
+      "type": "integer"
+    },
+    "sourceStatus": {
+      "$ref": "#/$defs/AttemptClosureSourceStatus"
+    },
+    "verdict": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "outcomeClass": {
+      "$ref": "#/$defs/OutcomeClass"
+    },
+    "closureReason": {
+      "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+      "title": "Closurereason",
+      "type": "string"
+    },
+    "dataHygiene": {
+      "$ref": "#/$defs/DataHygiene"
+    },
+    "evidenceCompleteness": {
+      "$ref": "#/$defs/EvidenceCompleteness"
+    },
+    "evidenceIntegrity": {
+      "$ref": "#/$defs/EvidenceIntegrity"
+    },
+    "executionInfluence": {
+      "$ref": "#/$defs/ExecutionInfluence"
+    },
+    "closedAt": {
+      "format": "date-time",
+      "title": "Closedat",
+      "type": "string"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "noticeHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Noticehash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "executionUnitId",
+    "unitAttemptId",
+    "manifestHash",
+    "unitKey",
+    "attemptNumber",
+    "sourceStatus",
+    "verdict",
+    "outcomeClass",
+    "closureReason",
+    "dataHygiene",
+    "evidenceCompleteness",
+    "evidenceIntegrity",
+    "executionInfluence",
+    "closedAt",
+    "createdAt",
+    "noticeHash"
+  ],
+  "title": "AttemptClosureNotice",
+  "type": "object"
+}

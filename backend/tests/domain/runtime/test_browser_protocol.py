@@ -166,7 +166,8 @@ def test_bundle_and_envelope_are_exact_and_tamper_evident(
     assert descriptor.object_ref.startswith("session-vault://")
     assert descriptor.actor_slot == "operator"
 
-    tampered = envelope.model_copy(update={"ciphertext": "A" + envelope.ciphertext[1:]})
+    replacement = "B" if envelope.ciphertext.startswith("A") else "A"
+    tampered = envelope.model_copy(update={"ciphertext": replacement + envelope.ciphertext[1:]})
     with pytest.raises(BrowserContextEnvelopeError, match="authentication"):
         codec.open(tampered, contract=bundle.execution_contract)
     with pytest.raises(BrowserContextEnvelopeError, match="stale"):
@@ -387,9 +388,7 @@ def test_live_projected_report_fields_reject_unbounded_identifiers(
         BrowserRuntimeReportKind.ACTION_EXECUTED,
     }
     actor_slot = (
-        "operator"
-        if is_action or kind is BrowserRuntimeReportKind.OBSERVATION_CAPTURED
-        else None
+        "operator" if is_action or kind is BrowserRuntimeReportKind.OBSERVATION_CAPTURED else None
     )
 
     with pytest.raises(ValidationError, match=key):

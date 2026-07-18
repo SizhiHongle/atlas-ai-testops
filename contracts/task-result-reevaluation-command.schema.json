@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-result-reevaluation-command/0.1/schema.json",
+  "additionalProperties": false,
+  "description": "Hashed command fact proving that re-evaluation was explicitly requested.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.task-result-reevaluation-command/0.1",
+      "default": "atlas.task-result-reevaluation-command/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "sourceSnapshotId": {
+      "format": "uuid",
+      "title": "Sourcesnapshotid",
+      "type": "string"
+    },
+    "targetPolicyVersion": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Targetpolicyversion",
+      "type": "string"
+    },
+    "targetPolicyDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Targetpolicydigest",
+      "type": "string"
+    },
+    "clientMutationId": {
+      "maxLength": 200,
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "title": "Clientmutationid",
+      "type": "string"
+    },
+    "requestedBy": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Requestedby"
+    },
+    "requestedAt": {
+      "format": "date-time",
+      "title": "Requestedat",
+      "type": "string"
+    },
+    "commandHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Commandhash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "sourceSnapshotId",
+    "targetPolicyDigest",
+    "clientMutationId",
+    "requestedAt",
+    "commandHash"
+  ],
+  "title": "TaskResultReevaluationCommand",
+  "type": "object"
+}

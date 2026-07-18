@@ -1,0 +1,670 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-result-snapshot/0.3/schema.json",
+  "$defs": {
+    "ResultPassRate": {
+      "additionalProperties": false,
+      "description": "Exact rational pass rate without floating-point or rounding ambiguity.",
+      "properties": {
+        "numerator": {
+          "minimum": 0,
+          "title": "Numerator",
+          "type": "integer"
+        },
+        "denominator": {
+          "minimum": 0,
+          "title": "Denominator",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "numerator",
+        "denominator"
+      ],
+      "title": "ResultPassRate",
+      "type": "object"
+    },
+    "TaskDataHygieneCounts": {
+      "additionalProperties": false,
+      "description": "Task-level distribution of the DataHygiene axis.",
+      "properties": {
+        "pending": {
+          "minimum": 0,
+          "title": "Pending",
+          "type": "integer"
+        },
+        "cleaned": {
+          "minimum": 0,
+          "title": "Cleaned",
+          "type": "integer"
+        },
+        "cleanupFailed": {
+          "minimum": 0,
+          "title": "Cleanupfailed",
+          "type": "integer"
+        },
+        "leaked": {
+          "minimum": 0,
+          "title": "Leaked",
+          "type": "integer"
+        },
+        "notApplicable": {
+          "minimum": 0,
+          "title": "Notapplicable",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pending",
+        "cleaned",
+        "cleanupFailed",
+        "leaked",
+        "notApplicable"
+      ],
+      "title": "TaskDataHygieneCounts",
+      "type": "object"
+    },
+    "TaskEvidenceCompletenessCounts": {
+      "additionalProperties": false,
+      "description": "Task-level distribution of the EvidenceCompleteness axis.",
+      "properties": {
+        "pending": {
+          "minimum": 0,
+          "title": "Pending",
+          "type": "integer"
+        },
+        "complete": {
+          "minimum": 0,
+          "title": "Complete",
+          "type": "integer"
+        },
+        "partial": {
+          "minimum": 0,
+          "title": "Partial",
+          "type": "integer"
+        },
+        "missing": {
+          "minimum": 0,
+          "title": "Missing",
+          "type": "integer"
+        },
+        "notApplicable": {
+          "minimum": 0,
+          "title": "Notapplicable",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pending",
+        "complete",
+        "partial",
+        "missing",
+        "notApplicable"
+      ],
+      "title": "TaskEvidenceCompletenessCounts",
+      "type": "object"
+    },
+    "TaskEvidenceIntegrityCounts": {
+      "additionalProperties": false,
+      "description": "Task-level distribution of the EvidenceIntegrity axis.",
+      "properties": {
+        "unverified": {
+          "minimum": 0,
+          "title": "Unverified",
+          "type": "integer"
+        },
+        "verified": {
+          "minimum": 0,
+          "title": "Verified",
+          "type": "integer"
+        },
+        "invalid": {
+          "minimum": 0,
+          "title": "Invalid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "unverified",
+        "verified",
+        "invalid"
+      ],
+      "title": "TaskEvidenceIntegrityCounts",
+      "type": "object"
+    },
+    "TaskExecutionInfluenceCounts": {
+      "additionalProperties": false,
+      "description": "Task-level distribution of the ExecutionInfluence axis.",
+      "properties": {
+        "autonomous": {
+          "minimum": 0,
+          "title": "Autonomous",
+          "type": "integer"
+        },
+        "manualAssisted": {
+          "minimum": 0,
+          "title": "Manualassisted",
+          "type": "integer"
+        },
+        "manualOnly": {
+          "minimum": 0,
+          "title": "Manualonly",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "autonomous",
+        "manualAssisted",
+        "manualOnly"
+      ],
+      "title": "TaskExecutionInfluenceCounts",
+      "type": "object"
+    },
+    "TaskOutcomeClassCounts": {
+      "additionalProperties": false,
+      "description": "Task-level distribution of the OutcomeClass axis.",
+      "properties": {
+        "business": {
+          "minimum": 0,
+          "title": "Business",
+          "type": "integer"
+        },
+        "dependency": {
+          "minimum": 0,
+          "title": "Dependency",
+          "type": "integer"
+        },
+        "platform": {
+          "minimum": 0,
+          "title": "Platform",
+          "type": "integer"
+        },
+        "user": {
+          "minimum": 0,
+          "title": "User",
+          "type": "integer"
+        },
+        "automation": {
+          "minimum": 0,
+          "title": "Automation",
+          "type": "integer"
+        },
+        "policy": {
+          "minimum": 0,
+          "title": "Policy",
+          "type": "integer"
+        },
+        "unknown": {
+          "minimum": 0,
+          "title": "Unknown",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "business",
+        "dependency",
+        "platform",
+        "user",
+        "automation",
+        "policy",
+        "unknown"
+      ],
+      "title": "TaskOutcomeClassCounts",
+      "type": "object"
+    },
+    "TaskResultAxisDistributions": {
+      "additionalProperties": false,
+      "description": "Complete fixed-cardinality axis distributions for one Task snapshot.",
+      "properties": {
+        "dataHygiene": {
+          "$ref": "#/$defs/TaskDataHygieneCounts"
+        },
+        "evidenceCompleteness": {
+          "$ref": "#/$defs/TaskEvidenceCompletenessCounts"
+        },
+        "evidenceIntegrity": {
+          "$ref": "#/$defs/TaskEvidenceIntegrityCounts"
+        },
+        "executionInfluence": {
+          "$ref": "#/$defs/TaskExecutionInfluenceCounts"
+        },
+        "stability": {
+          "$ref": "#/$defs/TaskStabilityCounts"
+        },
+        "outcomeClass": {
+          "$ref": "#/$defs/TaskOutcomeClassCounts"
+        }
+      },
+      "required": [
+        "dataHygiene",
+        "evidenceCompleteness",
+        "evidenceIntegrity",
+        "executionInfluence",
+        "stability",
+        "outcomeClass"
+      ],
+      "title": "TaskResultAxisDistributions",
+      "type": "object"
+    },
+    "TaskStabilityCounts": {
+      "additionalProperties": false,
+      "description": "Task-level distribution of the Stability axis.",
+      "properties": {
+        "unknown": {
+          "minimum": 0,
+          "title": "Unknown",
+          "type": "integer"
+        },
+        "stable": {
+          "minimum": 0,
+          "title": "Stable",
+          "type": "integer"
+        },
+        "infraRecovered": {
+          "minimum": 0,
+          "title": "Infrarecovered",
+          "type": "integer"
+        },
+        "flakySuspect": {
+          "minimum": 0,
+          "title": "Flakysuspect",
+          "type": "integer"
+        },
+        "flakyConfirmed": {
+          "minimum": 0,
+          "title": "Flakyconfirmed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "unknown",
+        "stable",
+        "infraRecovered",
+        "flakySuspect",
+        "flakyConfirmed"
+      ],
+      "title": "TaskStabilityCounts",
+      "type": "object"
+    },
+    "TaskVerdictCounts": {
+      "additionalProperties": false,
+      "description": "Manifest-conserving final Verdict counts.",
+      "properties": {
+        "passed": {
+          "minimum": 0,
+          "title": "Passed",
+          "type": "integer"
+        },
+        "failed": {
+          "minimum": 0,
+          "title": "Failed",
+          "type": "integer"
+        },
+        "inconclusive": {
+          "minimum": 0,
+          "title": "Inconclusive",
+          "type": "integer"
+        },
+        "notEvaluated": {
+          "minimum": 0,
+          "title": "Notevaluated",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "passed",
+        "failed",
+        "inconclusive",
+        "notEvaluated"
+      ],
+      "title": "TaskVerdictCounts",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "finality": {
+            "const": "QUALITY_FINAL"
+          }
+        },
+        "required": [
+          "finality"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "atlas.task-result-snapshot/0.1"
+          },
+          "aggregationPolicyVersion": {
+            "const": "0.1.0"
+          },
+          "unitHygieneResolutionRevisionIds": {
+            "type": "null"
+          },
+          "inputHygieneResolutionSetHash": {
+            "type": "null"
+          },
+          "reevaluationSourceSnapshotId": {
+            "type": "null"
+          },
+          "reevaluationCommandId": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "finality": {
+            "const": "FULLY_RESOLVED"
+          }
+        },
+        "required": [
+          "finality"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "atlas.task-result-snapshot/0.2"
+          },
+          "aggregationPolicyVersion": {
+            "const": "0.2.0"
+          },
+          "unitHygieneResolutionRevisionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100000,
+            "minItems": 1,
+            "type": "array"
+          },
+          "inputHygieneResolutionSetHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reevaluationSourceSnapshotId": {
+            "type": "null"
+          },
+          "reevaluationCommandId": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "unitHygieneResolutionRevisionIds",
+          "inputHygieneResolutionSetHash"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "finality": {
+            "const": "REEVALUATED"
+          }
+        },
+        "required": [
+          "finality"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "atlas.task-result-snapshot/0.3"
+          },
+          "aggregationPolicyVersion": {
+            "const": "0.3.0"
+          },
+          "unitHygieneResolutionRevisionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100000,
+            "minItems": 1,
+            "type": "array"
+          },
+          "inputHygieneResolutionSetHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reevaluationSourceSnapshotId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reevaluationCommandId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unitHygieneResolutionRevisionIds",
+          "inputHygieneResolutionSetHash",
+          "reevaluationSourceSnapshotId",
+          "reevaluationCommandId"
+        ]
+      }
+    }
+  ],
+  "description": "Immutable hashed Task-level projection over exact UnitResolution revisions.",
+  "properties": {
+    "schemaVersion": {
+      "default": "atlas.task-result-snapshot/0.1",
+      "enum": [
+        "atlas.task-result-snapshot/0.1",
+        "atlas.task-result-snapshot/0.2",
+        "atlas.task-result-snapshot/0.3"
+      ],
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "finality": {
+      "default": "QUALITY_FINAL",
+      "enum": [
+        "QUALITY_FINAL",
+        "FULLY_RESOLVED",
+        "REEVALUATED"
+      ],
+      "title": "Finality",
+      "type": "string"
+    },
+    "unitResolutionRevisionIds": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 100000,
+      "minItems": 1,
+      "title": "Unitresolutionrevisionids",
+      "type": "array"
+    },
+    "inputResolutionSetHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Inputresolutionsethash",
+      "type": "string"
+    },
+    "unitHygieneResolutionRevisionIds": {
+      "anyOf": [
+        {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unithygieneresolutionrevisionids"
+    },
+    "inputHygieneResolutionSetHash": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Inputhygieneresolutionsethash"
+    },
+    "reevaluationSourceSnapshotId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reevaluationsourcesnapshotid"
+    },
+    "reevaluationCommandId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reevaluationcommandid"
+    },
+    "aggregationPolicyVersion": {
+      "default": "0.1.0",
+      "enum": [
+        "0.1.0",
+        "0.2.0",
+        "0.3.0"
+      ],
+      "title": "Aggregationpolicyversion",
+      "type": "string"
+    },
+    "aggregationPolicyDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Aggregationpolicydigest",
+      "type": "string"
+    },
+    "projectionWatermark": {
+      "format": "date-time",
+      "title": "Projectionwatermark",
+      "type": "string"
+    },
+    "manifestCount": {
+      "maximum": 100000,
+      "minimum": 1,
+      "title": "Manifestcount",
+      "type": "integer"
+    },
+    "verdictCounts": {
+      "$ref": "#/$defs/TaskVerdictCounts"
+    },
+    "axisDistributions": {
+      "$ref": "#/$defs/TaskResultAxisDistributions"
+    },
+    "rawPassRate": {
+      "$ref": "#/$defs/ResultPassRate"
+    },
+    "trustedPassRate": {
+      "$ref": "#/$defs/ResultPassRate"
+    },
+    "autonomousPassRate": {
+      "$ref": "#/$defs/ResultPassRate"
+    },
+    "decisivePassRate": {
+      "$ref": "#/$defs/ResultPassRate"
+    },
+    "supersedesSnapshotId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedessnapshotid"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "snapshotHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Snapshothash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "manifestHash",
+    "revision",
+    "unitResolutionRevisionIds",
+    "inputResolutionSetHash",
+    "aggregationPolicyDigest",
+    "projectionWatermark",
+    "manifestCount",
+    "verdictCounts",
+    "axisDistributions",
+    "rawPassRate",
+    "trustedPassRate",
+    "autonomousPassRate",
+    "decisivePassRate",
+    "createdAt",
+    "snapshotHash"
+  ],
+  "title": "TaskResultSnapshot",
+  "type": "object"
+}

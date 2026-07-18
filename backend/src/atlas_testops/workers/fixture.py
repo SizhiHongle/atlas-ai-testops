@@ -8,6 +8,8 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from atlas_testops.application.fixture_runs import FixtureWorkerService
+from atlas_testops.application.result_hygiene import ResultHygieneProjectionService
+from atlas_testops.application.result_projection import ResultProjectionService
 from atlas_testops.core.config import Settings, get_settings
 from atlas_testops.infrastructure.adapters.fixture_registry import FixtureOperationRegistry
 from atlas_testops.infrastructure.database import Database
@@ -32,11 +34,11 @@ async def run_worker(settings: Settings) -> None:
         cleanup_grace=timedelta(seconds=settings.fixture_cleanup_grace_seconds),
         cleanup_max_attempts=settings.fixture_cleanup_max_attempts,
         reconcile_max_attempts=settings.fixture_reconcile_max_attempts,
-        recovery_claim_ttl=timedelta(
-            seconds=settings.fixture_recovery_claim_ttl_seconds
-        ),
+        recovery_claim_ttl=timedelta(seconds=settings.fixture_recovery_claim_ttl_seconds),
         retry_initial=timedelta(seconds=settings.fixture_retry_initial_seconds),
         retry_maximum=timedelta(seconds=settings.fixture_retry_maximum_seconds),
+        result_hygiene_projection=ResultHygieneProjectionService(),
+        result_projection=ResultProjectionService(),
     )
     activities = FixtureActivities(service)
     client = await Client.connect(

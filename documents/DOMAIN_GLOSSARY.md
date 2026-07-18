@@ -1,6 +1,6 @@
 # Atlas 统一领域术语
 
-更新时间：2026-07-16
+更新时间：2026-07-18
 
 本文件是跨文档对象命名的规范来源。Word 设计稿负责解释产品和实现背景，机器可读 Schema 负责约束线协议。
 
@@ -47,6 +47,8 @@ TaskPlanVersion
         -> AttemptSeal
       -> UnitResolutionRevision
     -> TaskResultSnapshot
+      -> FailureClusterRevision
+        -> FailureClassificationRevision
     -> TaskGateDecision
 ```
 
@@ -71,9 +73,16 @@ TaskPlanVersion
 | `ExecutionUnit` | CaseVersion 与矩阵单元形成的逻辑测试槽位 | P5-00A 已落地；Manifest 身份创建后不可变，PostgreSQL |
 | `TaskRetryPolicy` | TaskRun Manifest 冻结的自动基础设施重试边界 | `atlas.task-retry-policy/0.1`；限制 per-Unit 次数、Run 总预算、指数退避 / jitter，并以 `infra-retry` policy digest 绑定；只作用于显式 `INFRA_ERROR` |
 | `UnitAttempt` | ExecutionUnit 的一次真实执行 | 自动基础设施重试创建确定性、gapless 新 Attempt；旧 Attempt 不覆盖，Activity retry 不创建新 Attempt，原始 deadline 不延长；Assertion / 产品失败与 `OUTCOME_UNKNOWN` 不自动重试 |
-| `AttemptSeal` | Attempt 关闭时产生的不可变事实包 | P5-00A 已提供正式宿主；Seal 待 P6 后续，永久不可变。当前 Task Workflow 因没有 Seal 而绝不表达 `PASSED`；成功执行只得到 `FINISHED_UNSEALED` / `INCONCLUSIVE` |
-| `UnitResolutionRevision` | 对多个 Attempt 的追加式解释 | 只追加 Revision，可重建 |
-| `TaskResultSnapshot` | 绑定 Manifest 和策略版本的可复现任务结论 | 不可变快照 |
+| `AttemptSeal` | 受信 Runtime 对一个正式 UnitAttempt 产生的 Ed25519 签名终态事实包 | P6-03A 已落地；精确绑定 Manifest、Unit、Execution Ticket、Evidence Policy、Runtime Digest 与事件链，永久不可变；只有已验证且已落库的 Seal 才允许 Task Workflow 表达 `PASSED` |
+| `ResultRef` | FinalizeResult 接受 AttemptSeal 后返回的稳定不透明引用 | 同一 Attempt + 同一 Seal digest 返回同一引用；同一 Attempt 的不同有效 digest 追加 Integrity Incident，不能覆盖既有 Fact |
+| `AttemptClosureNotice` | CLOSED UnitAttempt 未产生 AttemptSeal 时的不可变终态事实 | P6-03B 已落地；与 Seal 每 Attempt 互斥，只能表达 `INCONCLUSIVE / NOT_EVALUATED`，不能制造业务通过或失败 |
+| `UnitResolutionRevision` | 对一个 ExecutionUnit 全部终态 Attempt 的追加式解释 | P6-03B 已落地；绑定完整 Seal / ClosureNotice 输入集合、固定策略版本、decisive Attempt 与 Stability，exact replay 不新增 Revision |
+| `TaskResultSnapshot` | 绑定 Manifest、确定 Quality / Hygiene revision 集合、水位与聚合策略的可复现任务结论 | P7-01A 已落地 `QUALITY_FINAL`；P7-01B1 已落地 `FULLY_RESOLVED`；P7-01B2 已落地绑定 exact Full 源、显式命令与新 Policy 的 `REEVALUATED`；全部 Revision 追加写入，旧快照不修改 |
+| `TaskResultReevaluationCommand` | 请求以一个确定 Full Snapshot 和冻结目标 Policy 追加重评结果的显式命令事实 | P7-01B2 已落地；命令永久不可变并按 `clientMutationId` 幂等，策略发布、Task Worker 和 Fixture Worker 不会自动创建 |
+| `FailureClusterRevision` | 对一个 exact TaskResultSnapshot 中需要诊断的 UnitResolution 按冻结 FailureSignal 指纹形成的追加式集合 | P7-02A 已落地；数据库要求 manifest-ordered 完整同信号集合，不能拆分、漏项、跨 Snapshot 合并或包含 clean trusted pass |
+| `FailureClassificationRevision` | 对一个 exact FailureClusterRevision 的证据化归因判断 | P7-02A 已落地；保留 domain、hypothesis、exact confidence、supporting / contradicting evidence、gap、author 与 judgment；人工复核只追加 Revision，不修改 Verdict 或 Snapshot |
+| `AttemptFixtureBinding` | 正式 UnitAttempt 与 exact FixtureRun 的不可变一对一关联 | P7-01B0 已落地；复核 Execution kind / identity、Tenant / Project / Task / Unit、Environment、Blueprint、Compiled Plan 与 requestedAt，避免靠可变查询猜测清理来源 |
+| `UnitHygieneResolutionRevision` | 对一个 ExecutionUnit 全部 Attempt 清理事实的追加式解释 | P7-01B0 已落地；冻结 Fixture cleanup revision、Manifest、ResourceRecord / CleanupAttempt / Reconcile 观察集合与 watermarks；重试成功不能掩盖较早 Attempt 的资源泄漏 |
 | `TaskGateDecision` | 针对确定 Result Snapshot 作出的门禁决定 | 追加式审计事实 |
 
 ## 作者态与发布态对象链

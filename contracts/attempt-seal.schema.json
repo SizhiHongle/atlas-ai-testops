@@ -1,0 +1,309 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/attempt-seal/1.0/schema.json",
+  "$defs": {
+    "AttemptEventChain": {
+      "additionalProperties": false,
+      "description": "Exact terminal head and count of the trusted runtime event chain.",
+      "properties": {
+        "head": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Head",
+          "type": "string"
+        },
+        "eventCount": {
+          "maximum": 10000000,
+          "minimum": 1,
+          "title": "Eventcount",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "head",
+        "eventCount"
+      ],
+      "title": "AttemptEventChain",
+      "type": "object"
+    },
+    "AttemptSealSignature": {
+      "additionalProperties": false,
+      "description": "Frozen signing metadata carried by an AttemptSeal.",
+      "properties": {
+        "alg": {
+          "const": "EdDSA",
+          "default": "EdDSA",
+          "title": "Alg",
+          "type": "string"
+        },
+        "kid": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$",
+          "title": "Kid",
+          "type": "string"
+        },
+        "jcs": {
+          "const": true,
+          "default": true,
+          "title": "Jcs",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kid"
+      ],
+      "title": "AttemptSealSignature",
+      "type": "object"
+    },
+    "DataHygiene": {
+      "description": "Side-effect cleanup state captured when the Attempt is sealed.",
+      "enum": [
+        "PENDING",
+        "CLEANED",
+        "CLEANUP_FAILED",
+        "LEAKED",
+        "NOT_APPLICABLE"
+      ],
+      "title": "DataHygiene",
+      "type": "string"
+    },
+    "EvidenceCompleteness": {
+      "description": "Required-evidence coverage axis.",
+      "enum": [
+        "PENDING",
+        "COMPLETE",
+        "PARTIAL",
+        "MISSING",
+        "NOT_APPLICABLE"
+      ],
+      "title": "EvidenceCompleteness",
+      "type": "string"
+    },
+    "EvidenceIntegrity": {
+      "description": "Independent evidence verification axis.",
+      "enum": [
+        "UNVERIFIED",
+        "VERIFIED",
+        "INVALID"
+      ],
+      "title": "EvidenceIntegrity",
+      "type": "string"
+    },
+    "ExecutionInfluence": {
+      "description": "Who influenced the execution actions.",
+      "enum": [
+        "AUTONOMOUS",
+        "MANUAL_ASSISTED",
+        "MANUAL_ONLY"
+      ],
+      "title": "ExecutionInfluence",
+      "type": "string"
+    },
+    "OutcomeClass": {
+      "description": "Stable high-level cause family independent of Verdict.",
+      "enum": [
+        "BUSINESS",
+        "DEPENDENCY",
+        "PLATFORM",
+        "USER",
+        "AUTOMATION",
+        "POLICY",
+        "UNKNOWN"
+      ],
+      "title": "OutcomeClass",
+      "type": "string"
+    },
+    "Stability": {
+      "description": "Attempt-level placeholder for the later Unit resolution axis.",
+      "enum": [
+        "UNKNOWN",
+        "STABLE",
+        "INFRA_RECOVERED",
+        "FLAKY_SUSPECT",
+        "FLAKY_CONFIRMED"
+      ],
+      "title": "Stability",
+      "type": "string"
+    },
+    "Verdict": {
+      "description": "Minimal business judgment axis used by Result Center.",
+      "enum": [
+        "PENDING",
+        "PASSED",
+        "FAILED",
+        "INCONCLUSIVE",
+        "NOT_EVALUATED"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Signed immutable fact accepted as the only Result Center input.",
+  "properties": {
+    "schemaVersion": {
+      "const": "attempt-seal/1.0",
+      "default": "attempt-seal/1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "sealId": {
+      "format": "uuid",
+      "title": "Sealid",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "executionUnitId": {
+      "format": "uuid",
+      "title": "Executionunitid",
+      "type": "string"
+    },
+    "unitAttemptId": {
+      "format": "uuid",
+      "title": "Unitattemptid",
+      "type": "string"
+    },
+    "manifestId": {
+      "format": "uuid",
+      "title": "Manifestid",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "unitKey": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Unitkey",
+      "type": "string"
+    },
+    "executionTicketId": {
+      "format": "uuid",
+      "title": "Executionticketid",
+      "type": "string"
+    },
+    "executionTicketDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Executionticketdigest",
+      "type": "string"
+    },
+    "oracleVerdict": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "outcomeClass": {
+      "$ref": "#/$defs/OutcomeClass"
+    },
+    "closureReason": {
+      "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+      "title": "Closurereason",
+      "type": "string"
+    },
+    "lifecycle": {
+      "const": "SEALED",
+      "default": "SEALED",
+      "title": "Lifecycle",
+      "type": "string"
+    },
+    "dataHygiene": {
+      "$ref": "#/$defs/DataHygiene"
+    },
+    "evidenceCompleteness": {
+      "$ref": "#/$defs/EvidenceCompleteness"
+    },
+    "evidenceIntegrity": {
+      "$ref": "#/$defs/EvidenceIntegrity"
+    },
+    "executionInfluence": {
+      "$ref": "#/$defs/ExecutionInfluence"
+    },
+    "stability": {
+      "$ref": "#/$defs/Stability",
+      "default": "UNKNOWN"
+    },
+    "oracleResultsHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Oracleresultshash",
+      "type": "string"
+    },
+    "artifactManifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Artifactmanifesthash",
+      "type": "string"
+    },
+    "eventChain": {
+      "$ref": "#/$defs/AttemptEventChain"
+    },
+    "evidencePolicyDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Evidencepolicydigest",
+      "type": "string"
+    },
+    "runtimeDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Runtimedigest",
+      "type": "string"
+    },
+    "sealedAt": {
+      "format": "date-time",
+      "title": "Sealedat",
+      "type": "string"
+    },
+    "signature": {
+      "$ref": "#/$defs/AttemptSealSignature"
+    },
+    "signatureValue": {
+      "pattern": "^base64url:[A-Za-z0-9_-]{86}$",
+      "title": "Signaturevalue",
+      "type": "string"
+    },
+    "contentHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Contenthash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "sealId",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "executionUnitId",
+    "unitAttemptId",
+    "manifestId",
+    "manifestHash",
+    "unitKey",
+    "executionTicketId",
+    "executionTicketDigest",
+    "oracleVerdict",
+    "outcomeClass",
+    "closureReason",
+    "dataHygiene",
+    "evidenceCompleteness",
+    "evidenceIntegrity",
+    "executionInfluence",
+    "oracleResultsHash",
+    "artifactManifestHash",
+    "eventChain",
+    "evidencePolicyDigest",
+    "runtimeDigest",
+    "sealedAt",
+    "signature",
+    "signatureValue",
+    "contentHash"
+  ],
+  "title": "AttemptSeal",
+  "type": "object"
+}

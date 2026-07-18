@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/attempt-fixture-binding/0.1/schema.json",
+  "additionalProperties": false,
+  "description": "Hashed append-only proof of the Attempt-to-Fixture authority bridge.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.attempt-fixture-binding/0.1",
+      "default": "atlas.attempt-fixture-binding/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "executionUnitId": {
+      "format": "uuid",
+      "title": "Executionunitid",
+      "type": "string"
+    },
+    "unitAttemptId": {
+      "format": "uuid",
+      "title": "Unitattemptid",
+      "type": "string"
+    },
+    "fixtureRunId": {
+      "format": "uuid",
+      "title": "Fixturerunid",
+      "type": "string"
+    },
+    "fixtureBlueprintVersionId": {
+      "format": "uuid",
+      "title": "Fixtureblueprintversionid",
+      "type": "string"
+    },
+    "environmentId": {
+      "format": "uuid",
+      "title": "Environmentid",
+      "type": "string"
+    },
+    "fixturePlanDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Fixtureplandigest",
+      "type": "string"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "bindingHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Bindinghash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "executionUnitId",
+    "unitAttemptId",
+    "fixtureRunId",
+    "fixtureBlueprintVersionId",
+    "environmentId",
+    "fixturePlanDigest",
+    "createdAt",
+    "bindingHash"
+  ],
+  "title": "AttemptFixtureBinding",
+  "type": "object"
+}

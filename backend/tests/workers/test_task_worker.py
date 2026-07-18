@@ -7,6 +7,7 @@ from typing import Any, cast
 import pytest
 from pydantic import SecretStr
 
+from atlas_testops.application.result_hygiene import ResultHygieneProjectionService
 from atlas_testops.application.task_orchestration import TaskUnitExecutionPort
 from atlas_testops.core.config import Settings
 from atlas_testops.orchestration.tasks import (
@@ -115,9 +116,15 @@ async def test_worker_wires_isolated_queues_and_closes_database(
             events.append("close")
 
     class FakeService:
-        def __init__(self, database: object) -> None:
+        def __init__(
+            self,
+            database: object,
+            *,
+            result_hygiene_projection_service: object,
+        ) -> None:
             events.append("service")
             captured["service_database"] = database
+            captured["result_hygiene_projection_service"] = result_hygiene_projection_service
 
     class FakeActivities:
         def __init__(self, service: object, received_executor: object) -> None:
@@ -175,6 +182,10 @@ async def test_worker_wires_isolated_queues_and_closes_database(
 
     assert captured["database_settings"] is settings
     assert captured["executor"] is executor
+    assert isinstance(
+        captured["result_hygiene_projection_service"],
+        ResultHygieneProjectionService,
+    )
     assert captured["temporal"] == ("temporal:7233", "task-namespace")
     assert events[-1] == "close"
     assert events.index("open") < events.index("run:atlas-task-run")
@@ -211,8 +222,16 @@ async def test_worker_cancels_peer_and_closes_database_when_one_poller_fails(
             events.append("close")
 
     class FakeService:
-        def __init__(self, _database: object) -> None:
-            pass
+        def __init__(
+            self,
+            _database: object,
+            *,
+            result_hygiene_projection_service: object,
+        ) -> None:
+            assert isinstance(
+                result_hygiene_projection_service,
+                ResultHygieneProjectionService,
+            )
 
     class FakeActivities:
         def __init__(self, _service: object, _executor: object) -> None:

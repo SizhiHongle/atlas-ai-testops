@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/unit-resolution-revision/0.1/schema.json",
+  "$defs": {
+    "DataHygiene": {
+      "description": "Side-effect cleanup state captured when the Attempt is sealed.",
+      "enum": [
+        "PENDING",
+        "CLEANED",
+        "CLEANUP_FAILED",
+        "LEAKED",
+        "NOT_APPLICABLE"
+      ],
+      "title": "DataHygiene",
+      "type": "string"
+    },
+    "EvidenceCompleteness": {
+      "description": "Required-evidence coverage axis.",
+      "enum": [
+        "PENDING",
+        "COMPLETE",
+        "PARTIAL",
+        "MISSING",
+        "NOT_APPLICABLE"
+      ],
+      "title": "EvidenceCompleteness",
+      "type": "string"
+    },
+    "EvidenceIntegrity": {
+      "description": "Independent evidence verification axis.",
+      "enum": [
+        "UNVERIFIED",
+        "VERIFIED",
+        "INVALID"
+      ],
+      "title": "EvidenceIntegrity",
+      "type": "string"
+    },
+    "ExecutionInfluence": {
+      "description": "Who influenced the execution actions.",
+      "enum": [
+        "AUTONOMOUS",
+        "MANUAL_ASSISTED",
+        "MANUAL_ONLY"
+      ],
+      "title": "ExecutionInfluence",
+      "type": "string"
+    },
+    "OutcomeClass": {
+      "description": "Stable high-level cause family independent of Verdict.",
+      "enum": [
+        "BUSINESS",
+        "DEPENDENCY",
+        "PLATFORM",
+        "USER",
+        "AUTOMATION",
+        "POLICY",
+        "UNKNOWN"
+      ],
+      "title": "OutcomeClass",
+      "type": "string"
+    },
+    "Stability": {
+      "description": "Attempt-level placeholder for the later Unit resolution axis.",
+      "enum": [
+        "UNKNOWN",
+        "STABLE",
+        "INFRA_RECOVERED",
+        "FLAKY_SUSPECT",
+        "FLAKY_CONFIRMED"
+      ],
+      "title": "Stability",
+      "type": "string"
+    },
+    "Verdict": {
+      "description": "Minimal business judgment axis used by Result Center.",
+      "enum": [
+        "PENDING",
+        "PASSED",
+        "FAILED",
+        "INCONCLUSIVE",
+        "NOT_EVALUATED"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One append-only interpretation of every terminal Attempt for a Unit.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.unit-resolution-revision/0.1",
+      "default": "atlas.unit-resolution-revision/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "unitResolutionId": {
+      "format": "uuid",
+      "title": "Unitresolutionid",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "executionUnitId": {
+      "format": "uuid",
+      "title": "Executionunitid",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "unitKey": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Unitkey",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "inputSealIds": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 100,
+      "title": "Inputsealids",
+      "type": "array"
+    },
+    "inputClosureNoticeIds": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 100,
+      "title": "Inputclosurenoticeids",
+      "type": "array"
+    },
+    "inputSetHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Inputsethash",
+      "type": "string"
+    },
+    "effectiveVerdict": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "outcomeClass": {
+      "$ref": "#/$defs/OutcomeClass"
+    },
+    "closureReason": {
+      "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+      "title": "Closurereason",
+      "type": "string"
+    },
+    "dataHygiene": {
+      "$ref": "#/$defs/DataHygiene"
+    },
+    "evidenceCompleteness": {
+      "$ref": "#/$defs/EvidenceCompleteness"
+    },
+    "evidenceIntegrity": {
+      "$ref": "#/$defs/EvidenceIntegrity"
+    },
+    "executionInfluence": {
+      "$ref": "#/$defs/ExecutionInfluence"
+    },
+    "stability": {
+      "$ref": "#/$defs/Stability"
+    },
+    "decisiveUnitAttemptId": {
+      "format": "uuid",
+      "title": "Decisiveunitattemptid",
+      "type": "string"
+    },
+    "decisiveAttemptNumber": {
+      "minimum": 1,
+      "title": "Decisiveattemptnumber",
+      "type": "integer"
+    },
+    "resolutionPolicyVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Resolutionpolicyversion",
+      "type": "string"
+    },
+    "resolutionPolicyDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Resolutionpolicydigest",
+      "type": "string"
+    },
+    "supersedesRevisionId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedesrevisionid"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "unitResolutionId",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "executionUnitId",
+    "manifestHash",
+    "unitKey",
+    "revision",
+    "inputSealIds",
+    "inputClosureNoticeIds",
+    "inputSetHash",
+    "effectiveVerdict",
+    "outcomeClass",
+    "closureReason",
+    "dataHygiene",
+    "evidenceCompleteness",
+    "evidenceIntegrity",
+    "executionInfluence",
+    "stability",
+    "decisiveUnitAttemptId",
+    "decisiveAttemptNumber",
+    "resolutionPolicyDigest",
+    "createdAt"
+  ],
+  "title": "UnitResolutionRevision",
+  "type": "object"
+}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import Literal, cast
 from uuid import UUID
 
 from psycopg import AsyncConnection
@@ -20,6 +20,14 @@ from atlas_testops.application.ports.fixture_operations import (
     FixtureOperationError,
     FixtureOperationInvocation,
     FixtureOperationProvider,
+)
+from atlas_testops.application.result_hygiene import (
+    ResultHygieneProjectionError,
+    ResultHygieneProjectionService,
+)
+from atlas_testops.application.result_projection import (
+    ResultProjectionError,
+    ResultProjectionService,
 )
 from atlas_testops.core.contracts import new_entity_id, utc_now
 from atlas_testops.core.errors import ApplicationError, ErrorCode
@@ -149,6 +157,7 @@ class FixtureRunService:
         idempotency_repository: IdempotencyRepository | None = None,
         audit_repository: AuditRepository | None = None,
         outbox_repository: OutboxRepository | None = None,
+        result_hygiene_projection: ResultHygieneProjectionService | None = None,
     ) -> None:
         self._database = database
         self._dispatcher = dispatcher
@@ -159,6 +168,7 @@ class FixtureRunService:
         self._idempotency = idempotency_repository or IdempotencyRepository()
         self._audit = audit_repository or AuditRepository()
         self._outbox = outbox_repository or OutboxRepository()
+        self._result_hygiene = result_hygiene_projection
 
     async def start(
         self,
@@ -317,6 +327,17 @@ class FixtureRunService:
                         "相同 Environment、BlueprintVersion 与 executionId 的 FixtureRun 已存在。"
                     )
                 run = _public_run(record)
+                if self._result_hygiene is not None:
+                    try:
+                        await self._result_hygiene.bind_fixture_run(
+                            connection,
+                            fixture_run=run,
+                            created_at=now,
+                        )
+                    except ResultHygieneProjectionError as error:
+                        raise _conflict(
+                            "FixtureRun 与正式 Task UnitAttempt 的绑定不一致。"
+                        ) from error
                 await self._record_control_event(
                     connection,
                     actor=actor,
@@ -669,6 +690,8 @@ class FixtureWorkerService:
         retry_initial: timedelta = timedelta(seconds=2),
         retry_maximum: timedelta = timedelta(minutes=5),
         repository: FixtureRunRepository | None = None,
+        result_hygiene_projection: ResultHygieneProjectionService | None = None,
+        result_projection: ResultProjectionService | None = None,
     ) -> None:
         if not 1 <= cleanup_max_attempts <= 32:
             raise ValueError("cleanup_max_attempts must be between one and 32")
@@ -687,6 +710,8 @@ class FixtureWorkerService:
         self._retry_initial = retry_initial
         self._retry_maximum = retry_maximum
         self._runs = repository or FixtureRunRepository()
+        self._result_hygiene = result_hygiene_projection
+        self._result_projection = result_projection
 
     async def load_plan(self, tenant_id: UUID, run_id: UUID) -> FixtureWorkerPlan:
         now = utc_now()
@@ -1225,6 +1250,24 @@ class FixtureWorkerService:
                 if result is None:
                     raise RuntimeError("fixture release could not be finalized")
                 final = result
+            if self._result_hygiene is not None:
+                try:
+                    hygiene_resolution = await self._result_hygiene.project_fixture_cleanup(
+                        connection,
+                        fixture_run_id=run_id,
+                        created_at=final.updated_at,
+                    )
+                    if hygiene_resolution is not None and self._result_projection is not None:
+                        await self._result_projection.snapshot_task_fully_resolved_by_id(
+                            connection,
+                            task_run_id=hygiene_resolution.task_run_id,
+                            created_at=await _database_now(connection),
+                        )
+                except (
+                    ResultHygieneProjectionError,
+                    ResultProjectionError,
+                ) as error:
+                    raise RuntimeError(error.error_code) from error
             resources = await self._runs.list_resources(connection, run_id)
             unresolved = await self._runs.count_exhausted_reconciliations(
                 connection,
@@ -1256,21 +1299,21 @@ class FixtureWorkerService:
             not 3 <= len(worker_identity) <= 160
             or not worker_identity[0].isalnum()
             or any(
-                not (character.isalnum() or character in "._:-")
-                for character in worker_identity
+                not (character.isalnum() or character in "._:-") for character in worker_identity
             )
         ):
             raise ValueError("fixture cleanup worker identity is invalid")
         observed_at = utc_now()
         async with self._database.transaction(DatabaseContext(tenant_id=tenant_id)) as connection:
-            reconcile_retried, reconcile_exhausted = (
-                await self._runs.recover_stale_reconcile_claims(
-                    connection,
-                    stale_before=observed_at - self._recovery_claim_ttl,
-                    retry_at=observed_at,
-                    max_attempts=self._reconcile_max_attempts,
-                    limit=limit,
-                )
+            (
+                reconcile_retried,
+                reconcile_exhausted,
+            ) = await self._runs.recover_stale_reconcile_claims(
+                connection,
+                stale_before=observed_at - self._recovery_claim_ttl,
+                retry_at=observed_at,
+                max_attempts=self._reconcile_max_attempts,
+                limit=limit,
             )
             cleanup_retried, cleanup_leaked = await self._runs.recover_stale_cleanup_claims(
                 connection,
@@ -1473,7 +1516,7 @@ class FixtureWorkerService:
                     if cleanup.verify_operation is not None
                     else None
                 )
-            except (FixtureOperationNotRegisteredError, FixtureOperationCapabilityError):
+            except FixtureOperationNotRegisteredError, FixtureOperationCapabilityError:
                 await self._fail_claimed_cleanup(
                     connection,
                     resource=resource,
@@ -1668,9 +1711,7 @@ class FixtureWorkerService:
             if node.reconcile_state in {
                 FixtureReconcileState.RUNNING,
                 FixtureReconcileState.EXHAUSTED,
-            } or (
-                node.next_reconcile_at is not None and node.next_reconcile_at > now
-            ):
+            } or (node.next_reconcile_at is not None and node.next_reconcile_at > now):
                 return FixtureNodeActivityResult(
                     node_id=node.node_id,
                     status=node.status,
@@ -1902,11 +1943,10 @@ class FixtureWorkerService:
                 inputs=claim.inputs,
             )
             resource_id = new_entity_id()
-            orphaned = (
-                run.cancel_requested_at is not None
-                or run.status
-                not in {FixtureRunStatus.REQUESTED, FixtureRunStatus.RUNNING}
-            )
+            orphaned = run.cancel_requested_at is not None or run.status not in {
+                FixtureRunStatus.REQUESTED,
+                FixtureRunStatus.RUNNING,
+            }
             await self._runs.record_resource(
                 connection,
                 run=run,
@@ -2412,9 +2452,7 @@ class FixtureWorkerService:
 
     def _reconcile_context(self, claim: _NodeReconcileClaim) -> FixtureOperationContext:
         reconcile = claim.atom.contract.reconcile_contract
-        timeout_seconds = (
-            reconcile.operation.timeout_seconds if reconcile is not None else 30
-        )
+        timeout_seconds = reconcile.operation.timeout_seconds if reconcile is not None else 30
         now = utc_now()
         return FixtureOperationContext(
             tenant_id=claim.run.tenant_id,
@@ -2559,10 +2597,7 @@ def _cleanup_evidence(
             observed_at=observed_at,
         )
         for atom_version_id, digest in sorted(
-            {
-                node.atom_version_id: node.atom_digest
-                for node in run.compiled_plan.nodes
-            }.items(),
+            {node.atom_version_id: node.atom_digest for node in run.compiled_plan.nodes}.items(),
             key=lambda item: str(item[0]),
         )
     ]
@@ -2583,6 +2618,16 @@ def _cleanup_evidence(
         )
     )
     return tuple(evidence)
+
+
+async def _database_now(connection: AsyncConnection[DictRow]) -> datetime:
+    """Read the transaction timestamp required by immutable Result guards."""
+
+    cursor = await connection.execute("select transaction_timestamp() as observed_at")
+    row = await cursor.fetchone()
+    if row is None:
+        raise RuntimeError("database transaction timestamp is unavailable")
+    return cast(datetime, row["observed_at"])
 
 
 def _safe_failure_code(value: str) -> str:

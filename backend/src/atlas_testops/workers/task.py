@@ -8,6 +8,7 @@ import logging
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from atlas_testops.application.result_hygiene import ResultHygieneProjectionService
 from atlas_testops.application.task_orchestration import (
     TaskUnitExecutionPort,
     TaskWorkerService,
@@ -43,7 +44,10 @@ async def run_worker(
         raise RuntimeError("Task Attempt queue does not match the trusted workflow contract")
 
     database = Database(settings)
-    service = TaskWorkerService(database)
+    service = TaskWorkerService(
+        database,
+        result_hygiene_projection_service=ResultHygieneProjectionService(),
+    )
     activities = TaskOrchestrationActivities(service, executor)
     client = await Client.connect(
         settings.temporal_address,

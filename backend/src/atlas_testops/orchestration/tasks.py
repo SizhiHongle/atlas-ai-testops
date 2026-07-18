@@ -80,6 +80,7 @@ class TaskOrchestrationInvariantError(RuntimeError):
 
 TaskAttemptBeginStatus = Literal["READY", "CANCELED", "REJECTED"]
 TaskAttemptExecutionStatus = Literal[
+    "RESULT_FINALIZED",
     "EXECUTED_UNSEALED",
     "FAILED",
     "INFRA_ERROR",
@@ -87,6 +88,7 @@ TaskAttemptExecutionStatus = Literal[
     "CANCELED",
 ]
 TaskAttemptWorkflowStatus = Literal[
+    "PASSED",
     "FINISHED_UNSEALED",
     "FAILED",
     "INFRA_ERROR",
@@ -94,6 +96,7 @@ TaskAttemptWorkflowStatus = Literal[
     "CANCELED",
 ]
 TaskRunWorkflowStatus = Literal[
+    "PASSED",
     "FINISHED_UNSEALED",
     "FAILED",
     "INCONCLUSIVE",
@@ -109,6 +112,7 @@ TaskAttemptBatchSettleState = Literal[
 
 _SAFE_ATTEMPT_STATUSES = frozenset(
     {
+        "PASSED",
         "FINISHED_UNSEALED",
         "FAILED",
         "INFRA_ERROR",
@@ -116,7 +120,9 @@ _SAFE_ATTEMPT_STATUSES = frozenset(
         "CANCELED",
     }
 )
-_SAFE_RUN_STATUSES = frozenset({"FINISHED_UNSEALED", "FAILED", "INCONCLUSIVE", "CANCELED"})
+_SAFE_RUN_STATUSES = frozenset(
+    {"PASSED", "FINISHED_UNSEALED", "FAILED", "INCONCLUSIVE", "CANCELED"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -204,11 +210,13 @@ class TaskUnitExecutionRequest:
 
 @dataclass(frozen=True, slots=True)
 class TaskAttemptExecutionPayload:
-    """Typed execution-port result; it deliberately cannot claim PASSED."""
+    """Typed execution-port result; only ResultRef can unlock trusted PASS."""
 
     status: TaskAttemptExecutionStatus
     error_code: str | None = None
     retry_after_seconds: int | None = None
+    result_ref_id: str | None = None
+    seal_content_hash: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,6 +237,8 @@ class TaskAttemptWorkflowPayload:
     status: TaskAttemptWorkflowStatus
     error_code: str | None = None
     retry_after_seconds: int | None = None
+    result_ref_id: str | None = None
+    seal_content_hash: str | None = None
     schema_version: str = TASK_WORKFLOW_RESULT_SCHEMA
 
 
@@ -276,7 +286,7 @@ class TaskRunFinishInput:
 
 @dataclass(frozen=True, slots=True)
 class TaskRunWorkflowPayload:
-    """Root result that cannot represent an unsealed run as PASSED."""
+    """Root result that represents PASS only when every Unit is sealed."""
 
     task_run_id: str
     status: TaskRunWorkflowStatus
@@ -1294,9 +1304,16 @@ def _decode_attempt_input(raw: object) -> UnitAttemptWorkflowInput:
 def _decode_execution_payload(raw: object) -> TaskAttemptExecutionPayload:
     if isinstance(raw, TaskAttemptExecutionPayload):
         return raw
-    if not isinstance(raw, dict) or set(raw) not in (
-        {"status", "error_code"},
-        {"status", "error_code", "retry_after_seconds"},
+    required_fields = {"status", "error_code"}
+    optional_fields = {
+        "retry_after_seconds",
+        "result_ref_id",
+        "seal_content_hash",
+    }
+    if (
+        not isinstance(raw, dict)
+        or not required_fields <= set(raw)
+        or set(raw) - (required_fields | optional_fields)
     ):
         raise TypeError("Task execution payload has an invalid shape")
     payload = cast(dict[str, object], raw)
@@ -1304,6 +1321,8 @@ def _decode_execution_payload(raw: object) -> TaskAttemptExecutionPayload:
         status=cast(TaskAttemptExecutionStatus, _string_field(payload["status"])),
         error_code=_optional_string_field(payload["error_code"]),
         retry_after_seconds=_optional_integer_field(payload.get("retry_after_seconds")),
+        result_ref_id=_optional_string_field(payload.get("result_ref_id")),
+        seal_content_hash=_optional_string_field(payload.get("seal_content_hash")),
     )
 
 
@@ -1321,7 +1340,8 @@ def _decode_attempt_result(raw: object) -> TaskAttemptWorkflowPayload:
     if (
         not isinstance(raw, dict)
         or not required_fields <= set(raw)
-        or set(raw) - (required_fields | {"retry_after_seconds"})
+        or set(raw)
+        - (required_fields | {"retry_after_seconds", "result_ref_id", "seal_content_hash"})
     ):
         raise TypeError("Task Attempt result has an invalid shape")
     payload = cast(dict[str, object], raw)
@@ -1332,6 +1352,8 @@ def _decode_attempt_result(raw: object) -> TaskAttemptWorkflowPayload:
         status=cast(TaskAttemptWorkflowStatus, _string_field(payload["status"])),
         error_code=_optional_string_field(payload["error_code"]),
         retry_after_seconds=_optional_integer_field(payload.get("retry_after_seconds")),
+        result_ref_id=_optional_string_field(payload.get("result_ref_id")),
+        seal_content_hash=_optional_string_field(payload.get("seal_content_hash")),
         schema_version=_string_field(payload["schema_version"]),
     )
 
@@ -1649,6 +1671,7 @@ def _validate_begin_payload(payload: TaskAttemptBeginPayload) -> None:
 
 def _validate_execution_payload(payload: TaskAttemptExecutionPayload) -> None:
     if payload.status not in {
+        "RESULT_FINALIZED",
         "EXECUTED_UNSEALED",
         "FAILED",
         "INFRA_ERROR",
@@ -1662,6 +1685,19 @@ def _validate_execution_payload(payload: TaskAttemptExecutionPayload) -> None:
         or not 1 <= payload.retry_after_seconds <= 3_600
     ):
         raise ValueError("Task Attempt retry-after is invalid")
+    has_result_ref = payload.result_ref_id is not None or payload.seal_content_hash is not None
+    if payload.status == "RESULT_FINALIZED":
+        if (
+            payload.error_code is not None
+            or payload.retry_after_seconds is not None
+            or payload.result_ref_id is None
+            or payload.seal_content_hash is None
+            or str(UUID(payload.result_ref_id)) != payload.result_ref_id
+            or fullmatch(r"sha256:[0-9a-f]{64}", payload.seal_content_hash) is None
+        ):
+            raise ValueError("Finalized Task Attempt requires an exact ResultRef")
+    elif has_result_ref:
+        raise ValueError("Only finalized Task execution can carry a ResultRef")
 
 
 def _validate_attempt_result(
@@ -1685,13 +1721,31 @@ def _validate_attempt_result(
         ),
         result,
     )
+    if result.result_ref_id is not None:
+        if (
+            result.status not in {"PASSED", "FAILED", "INCONCLUSIVE"}
+            or result.seal_content_hash is None
+            or result.retry_after_seconds is not None
+            or (
+                execution.status == "RESULT_FINALIZED"
+                and (
+                    result.result_ref_id != execution.result_ref_id
+                    or result.seal_content_hash != execution.seal_content_hash
+                )
+            )
+        ):
+            raise ValueError("UnitAttempt sealed result is not database-authoritative")
+        return
+    if execution.status == "RESULT_FINALIZED":
+        raise ValueError("Finalized Task execution lost its ResultRef")
     expected_status: TaskAttemptWorkflowStatus = (
         "FINISHED_UNSEALED" if execution.status == "EXECUTED_UNSEALED" else execution.status
     )
-    if result.status != expected_status:
+    if (
+        result.status != expected_status
+        or result.retry_after_seconds != execution.retry_after_seconds
+    ):
         raise ValueError("UnitAttempt result does not match the execution outcome")
-    if result.retry_after_seconds != execution.retry_after_seconds:
-        raise ValueError("UnitAttempt result changed the retry-after hint")
 
 
 def _validate_attempt_result_identity(
@@ -1707,6 +1761,15 @@ def _validate_attempt_result_identity(
         or result.status not in _SAFE_ATTEMPT_STATUSES
         or result.schema_version != TASK_WORKFLOW_RESULT_SCHEMA
         or not _is_safe_error_code(result.error_code)
+        or (result.result_ref_id is None) != (result.seal_content_hash is None)
+        or (
+            result.result_ref_id is not None
+            and (
+                str(UUID(result.result_ref_id)) != result.result_ref_id
+                or result.seal_content_hash is None
+                or fullmatch(r"sha256:[0-9a-f]{64}", result.seal_content_hash) is None
+            )
+        )
         or (
             result.retry_after_seconds is not None
             and (
@@ -1732,8 +1795,10 @@ def _validate_run_result(
         result.canceled_units,
         result.skipped_units,
     )
+    passed = sum(item.status == "PASSED" for item in request.outcomes)
+    unsealed = sum(item.status == "FINISHED_UNSEALED" for item in request.outcomes)
     expected_counts = (
-        sum(item.status == "FINISHED_UNSEALED" for item in request.outcomes),
+        passed + unsealed,
         sum(item.status == "FAILED" for item in request.outcomes),
         sum(item.status in {"INCONCLUSIVE", "INFRA_ERROR"} for item in request.outcomes),
         sum(item.status == "CANCELED" for item in request.outcomes),
@@ -1751,8 +1816,10 @@ def _validate_run_result(
         expected_status = "FAILED"
     elif expected_counts[2]:
         expected_status = "INCONCLUSIVE"
-    else:
+    elif unsealed:
         expected_status = "FINISHED_UNSEALED"
+    else:
+        expected_status = "PASSED"
     if (
         result.task_run_id != request.request.task_run_id
         or result.status not in _SAFE_RUN_STATUSES
@@ -1762,7 +1829,7 @@ def _validate_run_result(
         or counts != expected_counts
         or sum(counts) != total_units
     ):
-        raise ValueError("TaskRun Workflow returned an invalid unsealed result")
+        raise ValueError("TaskRun Workflow returned an invalid trusted result")
 
 
 def _is_safe_error_code(value: str | None) -> bool:

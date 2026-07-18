@@ -26,6 +26,21 @@ from tests.infrastructure.test_task_run_repository import NOW, _aggregate, _seal
 from atlas_testops.application.task_execution import TaskAdmissionSnapshot
 from atlas_testops.application.task_orchestration import TaskWorkerService
 from atlas_testops.core.errors import ApplicationError, ErrorCode
+from atlas_testops.domain.result import (
+    AttemptEventChain,
+    AttemptSeal,
+    AttemptSealContent,
+    AttemptSealSignature,
+    DataHygiene,
+    EvidenceCompleteness,
+    EvidenceIntegrity,
+    ExecutionInfluence,
+    OutcomeClass,
+    ResultRef,
+    Stability,
+    Verdict,
+    attempt_seal_content_hash,
+)
 from atlas_testops.domain.task import (
     TASK_RUN_MANIFEST_SCHEMA_VERSION,
     ExecutionLifecycle,
@@ -436,11 +451,61 @@ class _CommandRepository:
         return self.applied
 
 
+class _ResultRepository:
+    def __init__(
+        self,
+        *,
+        seals: dict[UUID, AttemptSeal] | None = None,
+        refs: dict[UUID, ResultRef] | None = None,
+    ) -> None:
+        self.seals = seals or {}
+        self.refs = refs or {}
+
+    async def get_seal_by_attempt(
+        self,
+        _connection: object,
+        unit_attempt_id: UUID,
+    ) -> AttemptSeal | None:
+        return self.seals.get(unit_attempt_id)
+
+    async def get_ref_by_attempt(
+        self,
+        _connection: object,
+        unit_attempt_id: UUID,
+    ) -> ResultRef | None:
+        return self.refs.get(unit_attempt_id)
+
+
+class _ResultProjection:
+    def __init__(self) -> None:
+        self.snapshot_calls: list[dict[str, object]] = []
+        self.fully_resolved_snapshot_calls: list[dict[str, object]] = []
+
+    async def close_without_seal(self, *_args: object, **_kwargs: object) -> object:
+        return object()
+
+    async def resolve_unit(self, *_args: object, **_kwargs: object) -> object:
+        return object()
+
+    async def snapshot_task(self, *_args: object, **_kwargs: object) -> object:
+        self.snapshot_calls.append(_kwargs)
+        return object()
+
+    async def snapshot_task_fully_resolved(
+        self,
+        *_args: object,
+        **_kwargs: object,
+    ) -> object:
+        self.fully_resolved_snapshot_calls.append(_kwargs)
+        return object()
+
+
 def _fixture(
     *,
     unit_count: int = 2,
     observed_at: object = NOW + timedelta(minutes=1),
     command_repository: _CommandRepository | None = None,
+    result_repository: _ResultRepository | None = None,
 ) -> tuple[TaskWorkerService, _Database, _TaskRepository, _StateRepository, _Admission]:
     raw_run, manifest, units, attempts = _aggregate(unit_count=unit_count)
     run = _sealed_run(raw_run, unit_count=unit_count)
@@ -453,10 +518,12 @@ def _fixture(
         task_repository=cast(Any, tasks),
         state_repository=cast(Any, state),
         admission_service=cast(Any, admission),
+        result_repository=cast(Any, result_repository or _ResultRepository()),
         command_repository=cast(
             TaskRunCommandRepository,
             command_repository or _CommandRepository(),
         ),
+        result_projection_service=cast(Any, _ResultProjection()),
     )
     return service, database, tasks, state, admission
 
@@ -639,6 +706,62 @@ def _closed(
             "updated_at": NOW + timedelta(minutes=3),
         }
     )
+
+
+def _accepted_result(
+    tasks: _TaskRepository,
+    *,
+    verdict: Verdict = Verdict.PASSED,
+) -> tuple[AttemptSeal, ResultRef]:
+    run = tasks.run
+    unit = tasks.units[0]
+    attempt = tasks.attempts[0]
+    digest = "sha256:" + "a" * 64
+    content = AttemptSealContent(
+        seal_id=uuid4(),
+        tenant_id=run.tenant_id,
+        project_id=run.project_id,
+        task_run_id=run.id,
+        execution_unit_id=unit.id,
+        unit_attempt_id=attempt.id,
+        manifest_id=run.id,
+        manifest_hash=run.manifest_hash,
+        unit_key=unit.unit_key,
+        execution_ticket_id=uuid4(),
+        execution_ticket_digest=digest,
+        oracle_verdict=verdict,
+        outcome_class=OutcomeClass.BUSINESS,
+        closure_reason="ORACLE_PASSED" if verdict is Verdict.PASSED else "ORACLE_FAILED",
+        data_hygiene=DataHygiene.CLEANED,
+        evidence_completeness=EvidenceCompleteness.COMPLETE,
+        evidence_integrity=EvidenceIntegrity.VERIFIED,
+        execution_influence=ExecutionInfluence.AUTONOMOUS,
+        stability=Stability.STABLE,
+        oracle_results_hash=digest,
+        artifact_manifest_hash=digest,
+        event_chain=AttemptEventChain(head=digest, event_count=4),
+        evidence_policy_digest=digest,
+        runtime_digest=digest,
+        sealed_at=NOW + timedelta(minutes=2),
+        signature=AttemptSealSignature(kid="runtime-key-1"),
+    )
+    seal = AttemptSeal(
+        **content.model_dump(mode="python"),
+        signature_value="base64url:" + "A" * 86,
+        content_hash=attempt_seal_content_hash(content),
+    )
+    result_ref = ResultRef(
+        id=uuid4(),
+        tenant_id=seal.tenant_id,
+        project_id=seal.project_id,
+        task_run_id=seal.task_run_id,
+        execution_unit_id=seal.execution_unit_id,
+        unit_attempt_id=seal.unit_attempt_id,
+        seal_id=seal.seal_id,
+        seal_content_hash=seal.content_hash,
+        created_at=NOW + timedelta(minutes=2),
+    )
+    return seal, result_ref
 
 
 def _outcome(
@@ -1075,6 +1198,60 @@ async def test_finish_attempt_maps_only_non_passed_safe_results(
 
 
 @pytest.mark.anyio
+async def test_sealed_result_recovers_lost_activity_response_and_passes_run() -> None:
+    results = _ResultRepository()
+    service, _, tasks, _, _ = _fixture(
+        unit_count=1,
+        result_repository=results,
+    )
+    tasks.replace_run(_running(tasks.run))
+    tasks.replace_unit(_running(tasks.units[0]))
+    tasks.replace_attempt(_closed(tasks.attempts[0], ExecutionQuality.PASSED))
+    seal, result_ref = _accepted_result(tasks)
+    results.seals[seal.unit_attempt_id] = seal
+    results.refs[seal.unit_attempt_id] = result_ref
+    attempt_request = _attempt_request(tasks.run, tasks.units[0], tasks.attempts[0])
+
+    recovered = await service.finish_attempt(
+        TaskAttemptFinishInput(
+            attempt=attempt_request,
+            execution=TaskAttemptExecutionPayload(
+                status="INCONCLUSIVE",
+                error_code="TASK_ATTEMPT_ACTIVITY_FAILED",
+            ),
+        )
+    )
+
+    assert recovered.status == "PASSED"
+    assert recovered.error_code is None
+    assert recovered.result_ref_id == str(result_ref.id)
+    assert recovered.seal_content_hash == seal.content_hash
+
+    settled = await service.settle_attempt_batch(
+        TaskAttemptBatchSettleInput(
+            request=_root_request(tasks.run),
+            outcomes=(recovered,),
+        )
+    )
+    assert settled.final_outcomes == (recovered,)
+    assert tasks.units[0].lifecycle is ExecutionLifecycle.CLOSED
+    assert tasks.units[0].quality is ExecutionQuality.PASSED
+
+    finished = await service.finish_run(
+        TaskRunFinishInput(
+            request=_root_request(tasks.run),
+            outcomes=(recovered,),
+            cancel_requested=False,
+            skipped_units=0,
+        )
+    )
+    assert finished.status == "PASSED"
+    assert finished.completed_units == 1
+    assert tasks.run.lifecycle is ExecutionLifecycle.CLOSED
+    assert tasks.run.quality is ExecutionQuality.PASSED
+
+
+@pytest.mark.anyio
 async def test_settle_attempt_batch_appends_exact_infrastructure_retry_and_replays() -> None:
     service, _, tasks, _, _ = _fixture(unit_count=1)
     _enable_retry_policy(tasks)
@@ -1440,6 +1617,18 @@ async def test_finish_run_reduces_non_passed_children_and_replays(
     calls_before_replay = list(state.calls)
     assert await service.finish_run(command) == result
     assert state.calls == calls_before_replay
+    snapshot_calls = cast(Any, service)._result_projection.snapshot_calls
+    fully_resolved_calls = (
+        cast(Any, service)._result_projection.fully_resolved_snapshot_calls
+    )
+    assert len(snapshot_calls) == 2
+    assert all(call["run"].lifecycle is ExecutionLifecycle.CLOSED for call in snapshot_calls)
+    assert all(call["manifest"] == tasks.manifest for call in snapshot_calls)
+    assert len(fully_resolved_calls) == 2
+    assert all(
+        call["run"].lifecycle is ExecutionLifecycle.CLOSED
+        for call in fully_resolved_calls
+    )
 
 
 @pytest.mark.anyio
@@ -1786,7 +1975,7 @@ async def test_finish_run_fails_closed_on_terminal_quality_or_identity_conflict(
 
 
 @pytest.mark.anyio
-async def test_finish_run_never_accepts_passed_child() -> None:
+async def test_finish_run_never_accepts_unsealed_passed_child() -> None:
     service, _, tasks, _, _ = _fixture(unit_count=1)
     passed = TaskAttemptWorkflowPayload(
         execution_unit_id=str(tasks.units[0].id),
@@ -1801,5 +1990,5 @@ async def test_finish_run_never_accepts_passed_child() -> None:
         skipped_units=0,
     )
 
-    with pytest.raises(RuntimeError, match="TASK_ATTEMPT_STATUS_INVALID"):
+    with pytest.raises(RuntimeError, match="TASK_ATTEMPT_RESULT_INVALID"):
         await service.finish_run(command)

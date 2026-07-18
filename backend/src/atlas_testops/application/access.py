@@ -109,6 +109,15 @@ class ActorContext:
             for grant in self.grants
         )
 
+    def can_review_results(self, project_id: UUID) -> bool:
+        """Failure attribution review requires explicit reviewer authority."""
+
+        return self.is_organization_admin() or any(
+            grant.project_id == project_id
+            and grant.role in {PlatformRole.PROJECT_ADMIN, PlatformRole.CASE_REVIEWER}
+            for grant in self.grants
+        )
+
     def visible_project_ids(self) -> frozenset[UUID] | None:
         """None 表示允许全部；集合用于 Repository 下推项目过滤。"""
 

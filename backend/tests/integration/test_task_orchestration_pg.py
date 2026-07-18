@@ -22,6 +22,12 @@ from atlas_testops.application.task_orchestration import TaskWorkerService
 from atlas_testops.application.task_reruns import TaskRunRerunService
 from atlas_testops.core.config import Settings
 from atlas_testops.core.contracts import new_entity_id
+from atlas_testops.domain.result import (
+    AttemptClosureSourceStatus,
+    OutcomeClass,
+    Stability,
+    Verdict,
+)
 from atlas_testops.domain.task import (
     TASK_RUN_MANIFEST_SCHEMA_VERSION,
     ExecutionLifecycle,
@@ -37,6 +43,7 @@ from atlas_testops.domain.task import (
     unit_retry_attempt_id,
 )
 from atlas_testops.infrastructure.database import Database, DatabaseContext
+from atlas_testops.infrastructure.repositories.results import ResultFactRepository
 from atlas_testops.infrastructure.repositories.task_execution_tickets import (
     TaskExecutionTicketRepository,
 )
@@ -274,9 +281,7 @@ async def _exercise_manual_infrastructure_rerun(
             request_id=f"task-rerun-create:{aggregate.run.id}",
             development_override=True,
         )
-        request = RequestTaskRunInfraFailureRerun(
-            client_mutation_id="integration-infra-rerun-001"
-        )
+        request = RequestTaskRunInfraFailureRerun(client_mutation_id="integration-infra-rerun-001")
         reruns = TaskRunRerunService(database)
         created = await reruns.rerun_infrastructure_failures(
             actor,
@@ -296,10 +301,7 @@ async def _exercise_manual_infrastructure_rerun(
         assert replay.status_code == 200
         assert replay.value.id == created.value.id
         assert created.value.rerun_of_task_run_id == source.id
-        assert (
-            created.value.rerun_selection_mode
-            is TaskRunRerunSelectionMode.INFRA_FAILURES
-        )
+        assert created.value.rerun_selection_mode is TaskRunRerunSelectionMode.INFRA_FAILURES
 
         async with database.transaction(context) as connection:
             child_manifest = await repository.get_manifest(
@@ -311,12 +313,10 @@ async def _exercise_manual_infrastructure_rerun(
                 connection,
                 created.value.id,
             )
-            start_intent = (
-                await TaskExecutionStateRepository().get_workflow_start_intent(
-                    connection,
-                    owner_kind="TASK_RUN",
-                    owner_id=created.value.id,
-                )
+            start_intent = await TaskExecutionStateRepository().get_workflow_start_intent(
+                connection,
+                owner_kind="TASK_RUN",
+                owner_id=created.value.id,
             )
         assert child_manifest is not None
         assert len(child_manifest.units) == len(child_units) == len(child_attempts) == 1
@@ -430,12 +430,42 @@ async def _exercise_infrastructure_retry(
             tenant_id=aggregate.run.tenant_id,
             request_id=f"task-retry-verify:{aggregate.run.id}",
         )
+        result_repository = ResultFactRepository()
         async with database.transaction(context) as connection:
             attempts = await repository.list_attempts(connection, aggregate.unit.id)
             stored_unit = await repository.get_unit(connection, aggregate.unit.id)
+            first_closure = await result_repository.get_closure_by_attempt(
+                connection,
+                attempts[0].id,
+            )
+            retry_closure = await result_repository.get_closure_by_attempt(
+                connection,
+                attempts[1].id,
+            )
+            resolution = await result_repository.get_latest_resolution(
+                connection,
+                aggregate.unit.id,
+            )
         assert tuple(item.attempt_number for item in attempts) == (1, 2)
         assert attempts[0].quality is ExecutionQuality.INFRA_ERROR
         assert attempts[1].quality is ExecutionQuality.INCONCLUSIVE
+        assert first_closure is not None
+        assert first_closure.source_status is AttemptClosureSourceStatus.INFRA_ERROR
+        assert first_closure.verdict is Verdict.INCONCLUSIVE
+        assert first_closure.outcome_class is OutcomeClass.PLATFORM
+        assert retry_closure is not None
+        assert retry_closure.source_status is AttemptClosureSourceStatus.FINISHED_UNSEALED
+        assert retry_closure.verdict is Verdict.INCONCLUSIVE
+        assert resolution is not None
+        assert resolution.revision == 2
+        assert resolution.input_seal_ids == ()
+        assert resolution.input_closure_notice_ids == (
+            first_closure.id,
+            retry_closure.id,
+        )
+        assert resolution.decisive_unit_attempt_id == attempts[1].id
+        assert resolution.effective_verdict is Verdict.INCONCLUSIVE
+        assert resolution.stability is Stability.UNKNOWN
         assert stored_unit is not None
         assert stored_unit.lifecycle is ExecutionLifecycle.CLOSED
         assert stored_unit.quality is ExecutionQuality.INCONCLUSIVE
@@ -531,17 +561,13 @@ async def _exercise_task_worker_service(
         tampered_digest = task_unit_execution_ticket_digest(**tampered_values)
         with pytest.raises(RaiseException, match="exact stored dependencies"):
             async with database.transaction(ticket_context) as connection:
-                cursor = await connection.execute(
-                    "select transaction_timestamp() as observed_at"
-                )
+                cursor = await connection.execute("select transaction_timestamp() as observed_at")
                 row = await cursor.fetchone()
                 assert row is not None
                 tampered = stored_prepared_ticket.model_copy(
                     update={
                         "id": new_entity_id(),
-                        "environment_revision": (
-                            stored_prepared_ticket.environment_revision + 1
-                        ),
+                        "environment_revision": (stored_prepared_ticket.environment_revision + 1),
                         "ticket_digest": tampered_digest,
                         "created_at": row["observed_at"],
                     }
@@ -590,6 +616,15 @@ async def _exercise_task_worker_service(
                 after_seq=0,
                 limit=100,
             )
+            result_repository = ResultFactRepository()
+            stored_closure = await result_repository.get_closure_by_attempt(
+                connection,
+                aggregate.attempt.id,
+            )
+            stored_resolution = await result_repository.get_latest_resolution(
+                connection,
+                aggregate.unit.id,
+            )
 
         assert stored_run is not None
         assert stored_unit is not None
@@ -597,15 +632,41 @@ async def _exercise_task_worker_service(
         assert stored_ticket is not None
         assert stored_ticket.ticket_digest == prepared.ticket_digest
         assert stored_ticket.unit_attempt_id == aggregate.attempt.id
+        assert stored_closure is not None
+        assert stored_closure.source_status is AttemptClosureSourceStatus.FINISHED_UNSEALED
+        assert stored_closure.verdict is Verdict.INCONCLUSIVE
+        assert stored_resolution is not None
+        assert stored_resolution.revision == 1
+        assert stored_resolution.input_seal_ids == ()
+        assert stored_resolution.input_closure_notice_ids == (stored_closure.id,)
+        assert stored_resolution.decisive_unit_attempt_id == aggregate.attempt.id
+        assert stored_resolution.effective_verdict is Verdict.INCONCLUSIVE
         cross_tenant_context = DatabaseContext(
             tenant_id=seeded.other_tenant_id,
             request_id=f"task-worker-ticket-cross-tenant:{aggregate.attempt.id}",
         )
         async with database.transaction(cross_tenant_context) as connection:
-            assert await ticket_repository.get(
-                connection,
-                stored_ticket.id,
-            ) is None
+            assert (
+                await ticket_repository.get(
+                    connection,
+                    stored_ticket.id,
+                )
+                is None
+            )
+            assert (
+                await result_repository.get_closure_by_attempt(
+                    connection,
+                    aggregate.attempt.id,
+                )
+                is None
+            )
+            assert (
+                await result_repository.get_latest_resolution(
+                    connection,
+                    aggregate.unit.id,
+                )
+                is None
+            )
 
         with pytest.raises(InsufficientPrivilege):
             async with database.transaction(context) as connection:
@@ -616,6 +677,15 @@ async def _exercise_task_worker_service(
                     where id = %s
                     """,
                     (_WRONG_REQUEST_DIGEST, stored_ticket.id),
+                )
+        with pytest.raises(InsufficientPrivilege):
+            async with database.transaction(context) as connection:
+                await connection.execute(
+                    """
+                    delete from atlas.attempt_closure_notice
+                    where id = %s
+                    """,
+                    (stored_closure.id,),
                 )
         assert all(
             projection.lifecycle is ExecutionLifecycle.CLOSED

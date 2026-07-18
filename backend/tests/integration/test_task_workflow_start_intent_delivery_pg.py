@@ -51,6 +51,31 @@ def _claim(
     ).fetchall()
 
 
+def _claim_until(
+    connection: psycopg.Connection[tuple[object, ...]],
+    *,
+    claimed_by: str,
+    namespace: str,
+    lease_seconds: int,
+    intent_id: object,
+) -> tuple[object, ...]:
+    """Drain bounded older backlog until the target eligible intent is returned."""
+
+    for _ in range(256):
+        claims = _claim(
+            connection,
+            claimed_by=claimed_by,
+            namespace=namespace,
+            lease_seconds=lease_seconds,
+        )
+        target = next((row for row in claims if row[0] == intent_id), None)
+        if target is not None:
+            return target
+        if not claims:
+            break
+    raise AssertionError("target Task Workflow start intent was not claimable")
+
+
 def test_dispatcher_can_only_execute_fenced_functions_owned_by_rls_bypass_role() -> None:
     """Prevent a local superuser from hiding an unusable production permission model."""
 
@@ -161,12 +186,15 @@ def test_delivery_state_machine_fences_retries_and_terminal_states() -> None:
 
     with psycopg.connect(OWNER_DATABASE_URL) as connection:
         connection.execute("set session authorization atlas_dispatcher")
-        assert _claim(
-            connection,
-            claimed_by="integration-wrong-namespace",
-            namespace="integration-missing-namespace",
-            lease_seconds=1,
-        ) == []
+        assert (
+            _claim(
+                connection,
+                claimed_by="integration-wrong-namespace",
+                namespace="integration-missing-namespace",
+                lease_seconds=1,
+            )
+            == []
+        )
 
         initial_claims = _claim(
             connection,
@@ -184,13 +212,13 @@ def test_delivery_state_machine_fences_retries_and_terminal_states() -> None:
         first_attempts = first[15]
 
         sleep(1.1)
-        takeover_claims = _claim(
+        takeover = _claim_until(
             connection,
             claimed_by="integration-state-b",
             namespace=namespace,
             lease_seconds=30,
+            intent_id=intent_id,
         )
-        takeover = next(row for row in takeover_claims if row[0] == intent_id)
         assert takeover[13] != first_token
         assert takeover[14] == first_revision + 1
         assert takeover[15] == first_attempts + 1
@@ -219,13 +247,13 @@ def test_delivery_state_machine_fences_retries_and_terminal_states() -> None:
         assert intent_id not in {row[0] for row in early_claims}
 
         sleep(0.3)
-        due_claims = _claim(
+        due = _claim_until(
             connection,
             claimed_by="integration-state-c",
             namespace=namespace,
             lease_seconds=30,
+            intent_id=intent_id,
         )
-        due = next(row for row in due_claims if row[0] == intent_id)
         started = connection.execute(
             """
             select atlas.mark_task_workflow_start_intent_started(%s, %s, %s)

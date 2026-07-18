@@ -12,12 +12,26 @@ from psycopg import AsyncConnection
 from psycopg.rows import DictRow
 from pydantic import JsonValue
 
+from atlas_testops.application.result_hygiene import (
+    ResultHygieneProjectionError,
+    ResultHygieneProjectionService,
+)
+from atlas_testops.application.result_projection import (
+    ResultProjectionError,
+    ResultProjectionService,
+)
 from atlas_testops.application.task_execution import (
     TaskAdmissionService,
     TaskAdmissionSnapshot,
 )
 from atlas_testops.core.contracts import new_entity_id
 from atlas_testops.core.errors import ApplicationError, ErrorCode
+from atlas_testops.domain.result import (
+    AttemptClosureSourceStatus,
+    AttemptSeal,
+    ResultRef,
+    Verdict,
+)
 from atlas_testops.domain.task import (
     ExecutionHygiene,
     ExecutionLifecycle,
@@ -29,6 +43,7 @@ from atlas_testops.domain.task import (
     TaskRun,
     TaskRunCommandIntent,
     TaskRunCommandType,
+    TaskRunManifest,
     TaskUnitExecutionTicket,
     UnitAttempt,
     task_run_workflow_id,
@@ -37,6 +52,7 @@ from atlas_testops.domain.task import (
     unit_retry_attempt_id,
 )
 from atlas_testops.infrastructure.database import Database, DatabaseContext
+from atlas_testops.infrastructure.repositories.results import ResultFactRepository
 from atlas_testops.infrastructure.repositories.task_execution_tickets import (
     TaskExecutionTicketRepository,
 )
@@ -125,12 +141,21 @@ class TaskWorkerService:
         state_repository: TaskExecutionStateRepository | None = None,
         admission_service: TaskAdmissionService | None = None,
         ticket_repository: TaskExecutionTicketRepository | None = None,
+        result_repository: ResultFactRepository | None = None,
         command_repository: TaskRunCommandRepository | None = None,
+        result_projection_service: ResultProjectionService | None = None,
+        result_hygiene_projection_service: ResultHygieneProjectionService | None = None,
     ) -> None:
         self._database = database
         self._tasks = task_repository or TaskRunRepository()
         self._state = state_repository or TaskExecutionStateRepository()
         self._tickets = ticket_repository or TaskExecutionTicketRepository()
+        self._results = result_repository or ResultFactRepository()
+        self._result_projection = result_projection_service or ResultProjectionService(
+            result_repository=self._results,
+            task_repository=self._tasks,
+        )
+        self._result_hygiene_projection = result_hygiene_projection_service
         self._commands = command_repository or TaskRunCommandRepository()
         self._admission = admission_service or TaskAdmissionService(
             database,
@@ -156,6 +181,7 @@ class TaskWorkerService:
                 manifest_hash=(manifest.manifest_hash if manifest is not None else None),
             )
             assert run is not None
+            assert manifest is not None
             if run.materialization_state is not TaskMaterializationState.SEALED:
                 raise _worker_error("TASK_RUN_NOT_SEALED")
             if run.lifecycle not in {
@@ -487,6 +513,8 @@ class TaskWorkerService:
                         status=outcome.status,
                         error_code=error_code,
                         retry_after_seconds=outcome.retry_after_seconds,
+                        result_ref_id=outcome.result_ref_id,
+                        seal_content_hash=outcome.seal_content_hash,
                         events=events,
                         now=now,
                     )
@@ -494,15 +522,25 @@ class TaskWorkerService:
                     continue
                 if attempt.quality is not quality:
                     raise _worker_error("TASK_ATTEMPT_RESULT_CONFLICT")
-                _require_exact_attempt_result_event(
-                    events,
-                    unit=unit,
+                sealed = await self._load_exact_sealed_outcome(
+                    connection,
                     attempt=attempt,
-                    quality=quality,
                     status=outcome.status,
                     error_code=error_code,
                     retry_after_seconds=outcome.retry_after_seconds,
+                    result_ref_id=outcome.result_ref_id,
+                    seal_content_hash=outcome.seal_content_hash,
                 )
+                if sealed is None:
+                    _require_exact_attempt_result_event(
+                        events,
+                        unit=unit,
+                        attempt=attempt,
+                        quality=quality,
+                        status=outcome.status,
+                        error_code=error_code,
+                        retry_after_seconds=outcome.retry_after_seconds,
+                    )
                 if unit.lifecycle is ExecutionLifecycle.CLOSED:
                     if unit.quality is not quality:
                         raise _worker_error("TASK_ATTEMPT_RESULT_CONFLICT")
@@ -834,7 +872,6 @@ class TaskWorkerService:
 
         attempt_request = request.attempt
         tenant_id, _, task_run_id, unit_id, attempt_id = _attempt_ids(attempt_request)
-        quality, workflow_status, safe_code = _execution_outcome(request)
         context = _worker_context(tenant_id, f"task-attempt-finish:{attempt_id}")
         async with self._database.transaction(context) as connection:
             run, unit, attempt = await self._lock_attempt_chain(
@@ -849,6 +886,37 @@ class TaskWorkerService:
                 unit=unit,
                 attempt=attempt,
             )
+            accepted_seal = await self._results.get_seal_by_attempt(
+                connection,
+                attempt.id,
+            )
+            if accepted_seal is not None:
+                result_ref = await self._results.get_ref_by_attempt(
+                    connection,
+                    attempt.id,
+                )
+                if result_ref is None:
+                    raise _worker_error("TASK_RESULT_REF_MISSING")
+                _require_exact_sealed_attempt(
+                    attempt=attempt,
+                    seal=accepted_seal,
+                    result_ref=result_ref,
+                    supplied_result_ref_id=request.execution.result_ref_id,
+                    supplied_content_hash=request.execution.seal_content_hash,
+                    require_supplied=request.execution.status == "RESULT_FINALIZED",
+                )
+                await self._resolve_unit_result(
+                    connection,
+                    unit=unit,
+                    created_at=await _database_now(connection),
+                )
+                return _sealed_attempt_payload(
+                    attempt_request,
+                    seal=accepted_seal,
+                    result_ref=result_ref,
+                )
+
+            quality, workflow_status, safe_code = _execution_outcome(request)
             if attempt.lifecycle is ExecutionLifecycle.CLOSED:
                 if attempt.quality is not quality:
                     raise _worker_error("TASK_ATTEMPT_RESULT_CONFLICT")
@@ -861,6 +929,14 @@ class TaskWorkerService:
                     status=workflow_status,
                     error_code=safe_code,
                     retry_after_seconds=request.execution.retry_after_seconds,
+                )
+                await self._close_attempt_result_without_seal(
+                    connection,
+                    unit=unit,
+                    attempt=attempt,
+                    source_status=workflow_status,
+                    closure_reason=safe_code or _SAFE_ERROR_CODE,
+                    created_at=await _database_now(connection),
                 )
                 return _attempt_payload(
                     attempt_request,
@@ -920,7 +996,7 @@ class TaskWorkerService:
                         retry_after_seconds=request.execution.retry_after_seconds,
                     ),
                 )
-            await self._transition_attempt(
+            closed_attempt = await self._transition_attempt(
                 connection,
                 run,
                 unit,
@@ -931,6 +1007,14 @@ class TaskWorkerService:
                 finalized_at=attempt.finalized_at,
                 closed_at=now,
                 event_type="unit_attempt.closed",
+            )
+            await self._close_attempt_result_without_seal(
+                connection,
+                unit=unit,
+                attempt=closed_attempt,
+                source_status=workflow_status,
+                closure_reason=safe_code or _SAFE_ERROR_CODE,
+                created_at=now,
             )
             return _attempt_payload(
                 attempt_request,
@@ -953,6 +1037,7 @@ class TaskWorkerService:
                 manifest_hash=(manifest.manifest_hash if manifest is not None else None),
             )
             assert run is not None
+            assert manifest is not None
             run = await self._settle_control_before_finish(connection, run)
             if run.lifecycle is ExecutionLifecycle.CANCELING and not (request.cancel_requested):
                 request = replace(request, cancel_requested=True)
@@ -986,6 +1071,12 @@ class TaskWorkerService:
                 if run.quality is not _run_quality(result.status):
                     raise _worker_error("TASK_RUN_RESULT_CONFLICT")
                 _require_exact_run_result_event(events, run=run, result=result)
+                await self._snapshot_task_result(
+                    connection,
+                    run=run,
+                    manifest=manifest,
+                    created_at=now,
+                )
                 await self._apply_finish_commands(
                     connection,
                     request=request,
@@ -1023,7 +1114,7 @@ class TaskWorkerService:
                     event_type="task_run.finalized",
                     payload=_run_result_payload(result),
                 )
-            await self._transition_run(
+            run = await self._transition_run(
                 connection,
                 run,
                 lifecycle=ExecutionLifecycle.CLOSED,
@@ -1032,6 +1123,12 @@ class TaskWorkerService:
                 finalized_at=run.finalized_at,
                 closed_at=now,
                 event_type="task_run.closed",
+            )
+            await self._snapshot_task_result(
+                connection,
+                run=run,
+                manifest=manifest,
+                created_at=now,
             )
             await self._apply_finish_commands(
                 connection,
@@ -1164,7 +1261,16 @@ class TaskWorkerService:
             attempts_by_unit.setdefault(attempt.execution_unit_id, []).append(attempt)
 
         planned: list[
-            tuple[ExecutionUnit, UnitAttempt, ExecutionQuality, str, str, int | None]
+            tuple[
+                ExecutionUnit,
+                UnitAttempt,
+                ExecutionQuality,
+                str,
+                str | None,
+                int | None,
+                str | None,
+                str | None,
+            ]
         ] = []
         for index, unit in enumerate(units):
             expected_ordinal = index + 1
@@ -1204,6 +1310,8 @@ class TaskWorkerService:
                 error_code = _safe_outcome_error_code(outcome)
                 status = outcome.status
                 retry_after_seconds = outcome.retry_after_seconds
+                result_ref_id = outcome.result_ref_id
+                seal_content_hash = outcome.seal_content_hash
             else:
                 if len(unit_attempts) != 1:
                     raise _worker_error("TASK_RUN_SKIPPED_CHILD_CONFLICT")
@@ -1211,6 +1319,8 @@ class TaskWorkerService:
                 error_code = "TASK_RUN_CANCELED_BEFORE_DISPATCH"
                 status = "CANCELED"
                 retry_after_seconds = None
+                result_ref_id = None
+                seal_content_hash = None
             planned.append(
                 (
                     unit,
@@ -1219,6 +1329,8 @@ class TaskWorkerService:
                     status,
                     error_code,
                     retry_after_seconds,
+                    result_ref_id,
+                    seal_content_hash,
                 )
             )
 
@@ -1229,6 +1341,8 @@ class TaskWorkerService:
             status,
             error_code,
             retry_after_seconds,
+            result_ref_id,
+            seal_content_hash,
         ) in enumerate(planned):
             locked_unit = await self._tasks.get_unit_for_update(
                 connection,
@@ -1268,6 +1382,8 @@ class TaskWorkerService:
                 status=status,
                 error_code=error_code,
                 retry_after_seconds=retry_after_seconds,
+                result_ref_id=result_ref_id,
+                seal_content_hash=seal_content_hash,
                 events=events,
                 now=now,
             )
@@ -1281,16 +1397,33 @@ class TaskWorkerService:
         attempt: UnitAttempt,
         quality: ExecutionQuality,
         status: str,
-        error_code: str,
+        error_code: str | None,
         retry_after_seconds: int | None,
+        result_ref_id: str | None,
+        seal_content_hash: str | None,
         events: tuple[TaskExecutionEvent, ...],
         now: datetime,
     ) -> None:
-        """Finish a missing child acknowledgement without inventing PASSED."""
+        """Finish a missing child acknowledgement using Seal truth when present."""
 
-        if quality in {ExecutionQuality.PENDING, ExecutionQuality.PASSED}:
+        sealed = (
+            await self._load_exact_sealed_outcome(
+                connection,
+                attempt=attempt,
+                status=status,
+                error_code=error_code,
+                retry_after_seconds=retry_after_seconds,
+                result_ref_id=result_ref_id,
+                seal_content_hash=seal_content_hash,
+            )
+            if attempt.lifecycle is ExecutionLifecycle.CLOSED
+            else None
+        )
+        if quality is ExecutionQuality.PENDING or (
+            quality is ExecutionQuality.PASSED and sealed is None
+        ):
             raise _worker_error("TASK_ATTEMPT_RESULT_INVALID")
-        if attempt.lifecycle is ExecutionLifecycle.CLOSED:
+        if attempt.lifecycle is ExecutionLifecycle.CLOSED and sealed is None:
             _require_exact_attempt_result_event(
                 events,
                 unit=unit,
@@ -1299,6 +1432,14 @@ class TaskWorkerService:
                 status=status,
                 error_code=error_code,
                 retry_after_seconds=retry_after_seconds,
+            )
+            await self._close_attempt_result_without_seal(
+                connection,
+                unit=unit,
+                attempt=attempt,
+                source_status=status,
+                closure_reason=error_code or _SAFE_ERROR_CODE,
+                created_at=now,
             )
         if unit.lifecycle is ExecutionLifecycle.CLOSED:
             if (
@@ -1323,6 +1464,8 @@ class TaskWorkerService:
             status=status,
             error_code=error_code,
             retry_after_seconds=retry_after_seconds,
+            result_ref_id=result_ref_id,
+            seal_content_hash=seal_content_hash,
         )
         if attempt.lifecycle is not ExecutionLifecycle.CLOSED:
             if attempt.lifecycle is ExecutionLifecycle.FINALIZING:
@@ -1375,6 +1518,14 @@ class TaskWorkerService:
                 finalized_at=attempt.finalized_at,
                 closed_at=attempt.closed_at or now,
                 event_type="unit_attempt.closed",
+            )
+            await self._close_attempt_result_without_seal(
+                connection,
+                unit=unit,
+                attempt=attempt,
+                source_status=status,
+                closure_reason=error_code or _SAFE_ERROR_CODE,
+                created_at=now,
             )
         elif attempt.quality is not quality:
             raise _worker_error("TASK_ATTEMPT_RESULT_CONFLICT")
@@ -1445,6 +1596,8 @@ class TaskWorkerService:
             status=outcome.status,
             error_code=_safe_outcome_error_code(outcome),
             retry_after_seconds=outcome.retry_after_seconds,
+            result_ref_id=outcome.result_ref_id,
+            seal_content_hash=outcome.seal_content_hash,
         )
         if unit.lifecycle is ExecutionLifecycle.FINALIZING:
             if unit.quality not in {ExecutionQuality.PENDING, quality}:
@@ -1473,6 +1626,43 @@ class TaskWorkerService:
             closed_at=unit.closed_at or now,
             event_type="execution_unit.closed",
         )
+
+    async def _load_exact_sealed_outcome(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        attempt: UnitAttempt,
+        status: str,
+        error_code: str | None,
+        retry_after_seconds: int | None,
+        result_ref_id: str | None,
+        seal_content_hash: str | None,
+    ) -> tuple[AttemptSeal, ResultRef] | None:
+        """Validate a child outcome against the accepted immutable ResultRef."""
+
+        seal = await self._results.get_seal_by_attempt(connection, attempt.id)
+        if seal is None:
+            if result_ref_id is not None or seal_content_hash is not None or status == "PASSED":
+                raise _worker_error("TASK_RESULT_REF_MISSING")
+            return None
+        result_ref = await self._results.get_ref_by_attempt(connection, attempt.id)
+        if result_ref is None:
+            raise _worker_error("TASK_RESULT_REF_MISSING")
+        _require_exact_sealed_attempt(
+            attempt=attempt,
+            seal=seal,
+            result_ref=result_ref,
+            supplied_result_ref_id=result_ref_id,
+            supplied_content_hash=seal_content_hash,
+            require_supplied=True,
+        )
+        if (
+            status != _sealed_workflow_status(seal.oracle_verdict)
+            or error_code != _sealed_error_code(seal)
+            or retry_after_seconds is not None
+        ):
+            raise _worker_error("TASK_SEALED_RESULT_CONFLICT")
+        return seal, result_ref
 
     async def _lock_attempt_chain(
         self,
@@ -1555,6 +1745,82 @@ class TaskWorkerService:
             payload=payload,
         )
         return updated
+
+    async def _close_attempt_result_without_seal(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        unit: ExecutionUnit,
+        attempt: UnitAttempt,
+        source_status: str,
+        closure_reason: str,
+        created_at: datetime,
+    ) -> None:
+        try:
+            status = AttemptClosureSourceStatus(source_status)
+        except ValueError:
+            raise _worker_error("RESULT_CLOSURE_STATUS_INVALID") from None
+        try:
+            await self._result_projection.close_without_seal(
+                connection,
+                unit=unit,
+                attempt=attempt,
+                source_status=status,
+                closure_reason=closure_reason,
+                created_at=created_at,
+            )
+        except ResultProjectionError as error:
+            raise _worker_error(error.error_code) from error
+
+    async def _resolve_unit_result(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        unit: ExecutionUnit,
+        created_at: datetime,
+    ) -> None:
+        try:
+            await self._result_projection.resolve_unit(
+                connection,
+                unit=unit,
+                created_at=created_at,
+            )
+            if self._result_hygiene_projection is not None:
+                await self._result_hygiene_projection.project_unit(
+                    connection,
+                    unit=unit,
+                    created_at=created_at,
+                )
+        except ResultProjectionError as error:
+            raise _worker_error(error.error_code) from error
+        except ResultHygieneProjectionError as error:
+            raise _worker_error(error.error_code) from error
+
+    async def _snapshot_task_result(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        run: TaskRun,
+        manifest: TaskRunManifest,
+        created_at: datetime,
+    ) -> None:
+        """Create one exact final Task snapshot inside the Run closure transaction."""
+
+        try:
+            await self._result_projection.snapshot_task(
+                connection,
+                run=run,
+                manifest=manifest,
+                created_at=created_at,
+            )
+            await self._result_projection.snapshot_task_fully_resolved(
+                connection,
+                run=run,
+                manifest=manifest,
+                created_at=created_at,
+            )
+        except ResultProjectionError as error:
+            raise _worker_error(error.error_code) from error
 
     async def _list_events(
         self,
@@ -2020,6 +2286,27 @@ def _execution_outcome(
     request: TaskAttemptFinishInput,
 ) -> tuple[ExecutionQuality, str, str | None]:
     execution = request.execution
+    has_result_ref = execution.result_ref_id is not None or execution.seal_content_hash is not None
+    if execution.status == "RESULT_FINALIZED":
+        if (
+            execution.error_code is not None
+            or execution.retry_after_seconds is not None
+            or execution.result_ref_id is None
+            or execution.seal_content_hash is None
+            or fullmatch(r"sha256:[0-9a-f]{64}", execution.seal_content_hash) is None
+        ):
+            raise _worker_error("TASK_RESULT_REF_INVALID")
+        try:
+            UUID(execution.result_ref_id)
+        except ValueError:
+            raise _worker_error("TASK_RESULT_REF_INVALID") from None
+        return (
+            ExecutionQuality.INCONCLUSIVE,
+            "INCONCLUSIVE",
+            "TASK_RESULT_REF_MISSING",
+        )
+    if has_result_ref:
+        raise _worker_error("TASK_RESULT_REF_UNEXPECTED")
     if execution.retry_after_seconds is not None and (
         execution.status != "INFRA_ERROR"
         or type(execution.retry_after_seconds) is not int
@@ -2051,8 +2338,11 @@ def _attempt_payload(
     status: str,
     error_code: str | None,
     retry_after_seconds: int | None = None,
+    result_ref_id: str | None = None,
+    seal_content_hash: str | None = None,
 ) -> TaskAttemptWorkflowPayload:
     if status not in {
+        "PASSED",
         "FINISHED_UNSEALED",
         "FAILED",
         "INFRA_ERROR",
@@ -2067,6 +2357,8 @@ def _attempt_payload(
         status=status,  # type: ignore[arg-type]
         error_code=error_code,
         retry_after_seconds=retry_after_seconds,
+        result_ref_id=result_ref_id,
+        seal_content_hash=seal_content_hash,
     )
 
 
@@ -2075,8 +2367,11 @@ def _attempt_result_payload(
     status: str,
     error_code: str | None,
     retry_after_seconds: int | None = None,
+    result_ref_id: str | None = None,
+    seal_content_hash: str | None = None,
 ) -> dict[str, JsonValue]:
     if status not in {
+        "PASSED",
         "FINISHED_UNSEALED",
         "FAILED",
         "INFRA_ERROR",
@@ -2088,6 +2383,20 @@ def _attempt_result_payload(
         raise _worker_error("TASK_ATTEMPT_ERROR_CODE_INVALID")
     if retry_after_seconds is not None and not 1 <= retry_after_seconds <= 3_600:
         raise _worker_error("TASK_ATTEMPT_RETRY_AFTER_INVALID")
+    has_result_ref = result_ref_id is not None or seal_content_hash is not None
+    if status == "PASSED" and not has_result_ref:
+        raise _worker_error("TASK_RESULT_REF_MISSING")
+    if has_result_ref and (
+        result_ref_id is None
+        or seal_content_hash is None
+        or fullmatch(r"sha256:[0-9a-f]{64}", seal_content_hash) is None
+    ):
+        raise _worker_error("TASK_RESULT_REF_INVALID")
+    if result_ref_id is not None:
+        try:
+            UUID(result_ref_id)
+        except ValueError:
+            raise _worker_error("TASK_RESULT_REF_INVALID") from None
     payload: dict[str, JsonValue] = {
         "schemaVersion": TASK_WORKFLOW_RESULT_SCHEMA,
         "status": status,
@@ -2095,6 +2404,9 @@ def _attempt_result_payload(
     }
     if retry_after_seconds is not None:
         payload["retryAfterSeconds"] = retry_after_seconds
+    if result_ref_id is not None:
+        payload["resultRefId"] = result_ref_id
+        payload["sealContentHash"] = seal_content_hash
     return payload
 
 
@@ -2188,6 +2500,8 @@ def _require_exact_attempt_result_event(
 
 
 def _outcome_quality(status: str) -> ExecutionQuality:
+    if status == "PASSED":
+        return ExecutionQuality.PASSED
     if status == "FAILED":
         return ExecutionQuality.FAILED
     if status == "CANCELED":
@@ -2199,7 +2513,7 @@ def _outcome_quality(status: str) -> ExecutionQuality:
     raise _worker_error("TASK_ATTEMPT_STATUS_INVALID")
 
 
-def _safe_outcome_error_code(outcome: TaskAttemptWorkflowPayload) -> str:
+def _safe_outcome_error_code(outcome: TaskAttemptWorkflowPayload) -> str | None:
     if (
         outcome.error_code is not None
         and fullmatch(r"[A-Z][A-Z0-9_]{0,63}", outcome.error_code) is not None
@@ -2213,7 +2527,79 @@ def _safe_outcome_error_code(outcome: TaskAttemptWorkflowPayload) -> str:
         return "TASK_INFRA_ERROR"
     if outcome.status == "FINISHED_UNSEALED":
         return _SAFE_ERROR_CODE
+    if outcome.status == "PASSED":
+        return None
     return "TASK_ATTEMPT_WORKFLOW_INCONCLUSIVE"
+
+
+def _sealed_workflow_status(verdict: Verdict) -> str:
+    if verdict is Verdict.PASSED:
+        return "PASSED"
+    if verdict is Verdict.FAILED:
+        return "FAILED"
+    return "INCONCLUSIVE"
+
+
+def _sealed_quality(verdict: Verdict) -> ExecutionQuality:
+    return _outcome_quality(_sealed_workflow_status(verdict))
+
+
+def _sealed_error_code(seal: AttemptSeal) -> str | None:
+    if seal.oracle_verdict is Verdict.PASSED:
+        return None
+    if fullmatch(r"[A-Z][A-Z0-9_]{0,63}", seal.closure_reason) is not None:
+        return seal.closure_reason
+    return "TASK_SEALED_OUTCOME"
+
+
+def _sealed_attempt_payload(
+    request: UnitAttemptWorkflowInput,
+    *,
+    seal: AttemptSeal,
+    result_ref: ResultRef,
+) -> TaskAttemptWorkflowPayload:
+    return _attempt_payload(
+        request,
+        status=_sealed_workflow_status(seal.oracle_verdict),
+        error_code=_sealed_error_code(seal),
+        result_ref_id=str(result_ref.id),
+        seal_content_hash=seal.content_hash,
+    )
+
+
+def _require_exact_sealed_attempt(
+    *,
+    attempt: UnitAttempt,
+    seal: AttemptSeal,
+    result_ref: ResultRef,
+    supplied_result_ref_id: str | None,
+    supplied_content_hash: str | None,
+    require_supplied: bool,
+) -> None:
+    expected_quality = _sealed_quality(seal.oracle_verdict)
+    if (
+        attempt.lifecycle is not ExecutionLifecycle.CLOSED
+        or attempt.quality is not expected_quality
+        or seal.tenant_id != attempt.tenant_id
+        or seal.project_id != attempt.project_id
+        or seal.task_run_id != attempt.task_run_id
+        or seal.execution_unit_id != attempt.execution_unit_id
+        or seal.unit_attempt_id != attempt.id
+        or seal.manifest_hash != attempt.manifest_hash
+        or seal.unit_key != attempt.unit_key
+        or result_ref.tenant_id != seal.tenant_id
+        or result_ref.project_id != seal.project_id
+        or result_ref.task_run_id != seal.task_run_id
+        or result_ref.execution_unit_id != seal.execution_unit_id
+        or result_ref.unit_attempt_id != seal.unit_attempt_id
+        or result_ref.seal_id != seal.seal_id
+        or result_ref.seal_content_hash != seal.content_hash
+    ):
+        raise _worker_error("TASK_SEALED_RESULT_CONFLICT")
+    if require_supplied and (
+        supplied_result_ref_id != str(result_ref.id) or supplied_content_hash != seal.content_hash
+    ):
+        raise _worker_error("TASK_RESULT_REF_CONFLICT")
 
 
 def _is_queued_or_closed_canceled(
@@ -2234,7 +2620,9 @@ def _is_queued_or_closed_canceled(
 
 
 def _run_result(request: TaskRunFinishInput) -> TaskRunWorkflowPayload:
-    completed = sum(item.status == "FINISHED_UNSEALED" for item in request.outcomes)
+    passed = sum(item.status == "PASSED" for item in request.outcomes)
+    unsealed = sum(item.status == "FINISHED_UNSEALED" for item in request.outcomes)
+    completed = passed + unsealed
     failed = sum(item.status == "FAILED" for item in request.outcomes)
     inconclusive = sum(item.status in {"INCONCLUSIVE", "INFRA_ERROR"} for item in request.outcomes)
     canceled = sum(item.status == "CANCELED" for item in request.outcomes)
@@ -2244,8 +2632,10 @@ def _run_result(request: TaskRunFinishInput) -> TaskRunWorkflowPayload:
         status = "FAILED"
     elif inconclusive:
         status = "INCONCLUSIVE"
-    else:
+    elif unsealed:
         status = "FINISHED_UNSEALED"
+    else:
+        status = "PASSED"
     return TaskRunWorkflowPayload(
         task_run_id=request.request.task_run_id,
         status=status,  # type: ignore[arg-type]
@@ -2306,6 +2696,8 @@ def _run_result_events(
 
 
 def _run_quality(status: str) -> ExecutionQuality:
+    if status == "PASSED":
+        return ExecutionQuality.PASSED
     if status == "FAILED":
         return ExecutionQuality.FAILED
     if status == "CANCELED":
