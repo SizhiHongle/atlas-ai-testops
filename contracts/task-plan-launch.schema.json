@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-plan-launch/0.1/schema.json",
+  "$defs": {
+    "TaskRetryPolicy": {
+      "additionalProperties": false,
+      "description": "Frozen bounded policy for safe, explicitly classified infrastructure retries.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.task-retry-policy/0.1",
+          "default": "atlas.task-retry-policy/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "infraRetryAttempts": {
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Infraretryattempts",
+          "type": "integer"
+        },
+        "maxTotalInfraRetries": {
+          "maximum": 256,
+          "minimum": 0,
+          "title": "Maxtotalinfraretries",
+          "type": "integer"
+        },
+        "initialBackoffSeconds": {
+          "maximum": 300,
+          "minimum": 1,
+          "title": "Initialbackoffseconds",
+          "type": "integer"
+        },
+        "maximumBackoffSeconds": {
+          "maximum": 3600,
+          "minimum": 1,
+          "title": "Maximumbackoffseconds",
+          "type": "integer"
+        },
+        "jitterPercent": {
+          "maximum": 50,
+          "minimum": 0,
+          "title": "Jitterpercent",
+          "type": "integer"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "infraRetryAttempts",
+        "maxTotalInfraRetries",
+        "initialBackoffSeconds",
+        "maximumBackoffSeconds",
+        "jitterPercent",
+        "contentDigest"
+      ],
+      "title": "TaskRetryPolicy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Manually launch one exact published TaskPlanVersion.",
+  "properties": {
+    "clientMutationId": {
+      "maxLength": 200,
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+      "title": "Clientmutationid",
+      "type": "string"
+    },
+    "iterationId": {
+      "anyOf": [
+        {
+          "maxLength": 160,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Iterationid"
+    },
+    "retryPolicy": {
+      "$ref": "#/$defs/TaskRetryPolicy"
+    }
+  },
+  "required": [
+    "clientMutationId",
+    "retryPolicy"
+  ],
+  "title": "StartTaskPlanVersionRun",
+  "type": "object"
+}

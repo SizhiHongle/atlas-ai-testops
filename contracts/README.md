@@ -32,7 +32,9 @@
 - `identity-profile.schema.json`：`atlas.identity-profile/0.1`，冻结 Case actor 到 TestRole 的无秘密映射，不包含账号、Credential、Lease 或 Session。
 - `browser-profile.schema.json`：`atlas.browser-profile/0.1`，冻结 Browser revision、Viewport、Locale、Timezone 与 Runtime image/capability attestation digest。
 - `data-profile.schema.json`：`atlas.data-profile/0.1`，冻结 exact Fixture Blueprint、Compiled Plan 与无秘密 Run Inputs；dispatch admission 会按 exact Fixture `run_input_schema` 复验。
+- `task-plan.schema.json`：稳定 TaskPlan Catalog 根，记录 Project 内唯一 `taskKey`、名称、状态、创建者和 Revision。
 - `task-plan-version.schema.json`：`atlas.task-plan/0.1`，冻结 pinned CaseVersion、矩阵、四类正式 Profile Version 与 Policy Digest；数据库验证同作用域、发布态和 Case / Fixture exact compatibility，并对结构化 JSON 缺键 / null fail-closed。
+- `task-plan-launch.schema.json`：Manual Launch 请求；绑定 `clientMutationId`、可选 Iteration 与已发布 `infra-retry` 摘要对应的完整 `TaskRetryPolicy`。
 - `task-run-manifest.schema.json`：兼容历史 `atlas.task-run-manifest/0.1`，当前 `0.2` 冻结完整 Unit 集、触发指纹、策略、`TaskRetryPolicy` 与可重算 Manifest Hash；Repository 与 PostgreSQL 双层校验 exact PlanVersion provenance，自动重试仅接受 policy-bound `INFRA_ERROR`。
 - `task-run.schema.json`：正式批次的三轴状态、稳定 request digest、`MATERIALIZING → SEALED` 完整性门禁、namespace-scoped Temporal identity，以及 P5-00D3B 的不可变 `rerunOfTaskRunId + INFRA_FAILURES` child lineage。
 - `execution-unit.schema.json`：Manifest 中一个 exact CaseVersion × Matrix Cell 的逻辑执行槽位，绑定 `executionProfileVersionId`，不复用 DebugRun-scoped ExecutionContract。

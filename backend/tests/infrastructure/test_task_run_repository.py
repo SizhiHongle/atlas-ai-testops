@@ -490,6 +490,49 @@ async def test_create_plan_and_version_serialize_immutable_snapshots() -> None:
 
 
 @pytest.mark.anyio
+async def test_task_plan_catalog_queries_use_stable_keyset_ordering() -> None:
+    plan = _task_plan()
+    version = _task_plan_version()
+    cursor = TimeCursor(created_at=NOW, id=uid(99))
+    connection = StubConnection(
+        StubCursor(row=_row(plan)),
+        StubCursor(rows=(_row(plan),)),
+        StubCursor(rows=(_version_row(version),)),
+    )
+    repository = TaskRunRepository()
+
+    assert await repository.get_task_plan(
+        cast(AsyncConnection[DictRow], connection),
+        plan.id,
+        for_share=True,
+    ) == plan
+    plans = await repository.list_task_plans(
+        cast(AsyncConnection[DictRow], connection),
+        project_id=plan.project_id,
+        cursor=cursor,
+        limit=26,
+    )
+    versions = await repository.list_task_plan_versions(
+        cast(AsyncConnection[DictRow], connection),
+        task_plan_id=plan.id,
+        cursor=cursor,
+        limit=26,
+    )
+
+    assert plans == (plan,)
+    assert versions == (version,)
+    assert "for share" in connection.calls[0][0].lower()
+    assert "(updated_at, id) <" in connection.calls[1][0]
+    assert connection.calls[1][1] == (
+        plan.project_id,
+        cursor.created_at,
+        cursor.id,
+        26,
+    )
+    assert "(published_at, id) <" in connection.calls[2][0]
+
+
+@pytest.mark.anyio
 async def test_plan_and_version_exact_replay_return_existing_but_mutation_conflicts() -> None:
     plan = _task_plan()
     version = _task_plan_version()

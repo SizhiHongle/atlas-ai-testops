@@ -53,6 +53,10 @@ P6-02B2 的 `LiveSession`、`ControlLease`、控制 Epoch / Fence 和持久化 `
 38. P5-00D3A 的自动 retry 只对 frozen policy 允许的明确 `INFRA_ERROR` 追加 gapless 新 UnitAttempt；旧 Attempt、原始 deadline 与逻辑 Unit identity 不覆盖。
 39. P5-00D3B 的 manual infra-failure rerun 不属于 command 或 Workflow Signal。它只接受 `SEALED / CLOSED` parent，创建不可变 `rerunOfTaskRunId + INFRA_FAILURES` child Run，并使用全新 Run / Unit / Attempt / Temporal identity。
 40. `20260717_0031` 的数据库 Manifest Guard 必须从 parent 当前最终事实重算每个且仅有 `CLOSED / INFRA_ERROR` 的 Unit，并证明 Plan、schema、iteration、policies、retry policy 与 compiler 不漂移；客户端不能提供或缩减选择列表。
+41. P5-00E1 将 TaskPlan 编写定义为稳定 Catalog 根加 append-only published Version，不引入可变 TaskPlan Draft。`RUN_OPERATOR+` 可以创建与发布，但每次写入必须有可审计 Actor、`Idempotency-Key == clientMutationId`，并与 Audit / Outbox 同事务提交。
+42. TaskPlanVersion 公共发布请求只携带 exact Case / Profile / Fixture / Environment / Policy 引用；应用层生成 ID、时间、`versionRef` 与 canonical digest，PostgreSQL Guard 仍是同作用域和发布态的最终事实门禁。E1 不创建 Profile、不物化 TaskRun，也不把发布描述为已启动。
+43. P5-00E2 的 Manual Launch 只从 exact published TaskPlanVersion 编译。Identity 必须与 Unit CaseVersion 兼容，Data 必须与该 Case Profile 的 Fixture Blueprint 兼容；Environment 与 Browser 才可跨轴组合。编译后超过 64 Units 或任一 Case 缺少兼容 Profile 时 fail-closed。
+44. Manual Launch 请求的完整 `TaskRetryPolicy` 必须匹配 Plan Version 冻结的 `infra-retry` digest。稳定 trigger fingerprint 绑定 Plan Version 与 `clientMutationId`；Manifest v0.2、Run / Unit / 首 Attempt、15 分钟 execution window、Seal、Start Intent、Event、Audit / Outbox 与幂等完成在同一短事务提交。
 
 ## 后果
 
@@ -63,7 +67,7 @@ P6-02B2 的 `LiveSession`、`ControlLease`、控制 Epoch / Fence 和持久化 `
 - Schedule、CI、Webhook 与公共 API 接入必须复用 stable request digest / insert-or-get 协议；不能把服务端生成的 Run ID 与时间当作同一 triggerFingerprint 的幂等身份。
 - P5-00B2A 已落地 Pending Start Intent 的 Claim / Lease / Retry / Started / Failed 状态机、Temporal Consumer 和到期 Claim 恢复；稳定 Request ID 与 collision verification 覆盖 Start 成功但 Ack 前崩溃。该能力只证明交付，不把 `STARTED` 伪装成 Workflow 已完成或 Task 已成功。
 - P5-00B2B 已落地最多 64 Units 的真实 Task Root / UnitAttempt Workflow、固定双 Queue、8-child batch、deadline、短数据库 Activity、瞬时故障耐久重试、单次副作用与 exact-event replay。真实 PostgreSQL 已验证 tenant scope、Run → Unit → Attempt 锁、Revision CAS、最小权限和 migration 往返；真实 Temporal 已验证双 Worker、跨 batch、deterministic child ID、deadline 排队、三次数据库瞬时故障后恢复、同 Root replay、History 脱敏、非 PASS 收敛、原生 Child 取消的未知结果与 Root 取消后已完成 Child 结果保留。
-- P5-00C 已补充 TaskRun / Manifest / Unit / Attempt / Event 查询；P5-00D1 已落地 immutable Execution Ticket、Prepare Activity 与 ticket-bound Port Protocol；P5-00D2A/D2B 已落地 durable Cancel、batch-boundary Pause / Resume、Signal delivery、Cancel 抢占与 command status；P5-00D3A/D3B 已分别落地 automatic infra retry 与创建新 child Run 的 manual infra-failure rerun，但没有提供真实 SaaS production Adapter。Task Plan authoring、旧 Run RETRY command / Takeover、Schedule / CI Adapter、超过 64 Units 的分区物化、AttemptSeal、Result 和 UnitAttempt-scoped Live control 仍属于后续切片。Intent Consumer 与 Task Worker 在部署注入真实执行 Adapter 前保持默认关闭。
+- P5-00C 已补充 TaskRun / Manifest / Unit / Attempt / Event 查询；P5-00D1 已落地 immutable Execution Ticket、Prepare Activity 与 ticket-bound Port Protocol；P5-00D2A/D2B 已落地 durable Cancel、batch-boundary Pause / Resume、Signal delivery、Cancel 抢占与 command status；P5-00D3A/D3B 已分别落地 automatic infra retry 与创建新 child Run 的 manual infra-failure rerun；P5-00E1/E2 已落地 TaskPlan Catalog、不可变版本发布与首次 Manual Launch，但没有提供真实 SaaS production Adapter。旧 Run RETRY command / Takeover、Schedule / CI Adapter、超过 64 Units 的分区物化、AttemptSeal、Result 和 UnitAttempt-scoped Live control 仍属于后续切片。Intent Consumer 与 Task Worker 在部署注入真实执行 Adapter 前保持默认关闭。
 - 同一 Trigger 的重复提交可由数据库唯一约束和后续应用幂等协议收敛为一个逻辑 TaskRun。
 - 任务重跑、失败项重跑和用例重试不会改写历史结果，为后续 Result Snapshot、Gate 和 Flaky 解释保留完整事实。
 - DebugRun 的 ExecutionContract、EvidenceManifest 与 Live Cursor 继续保持原协议；正式 Attempt 将使用独立 Contract、AttemptSeal 和 Live 协议，避免可空多态宿主。

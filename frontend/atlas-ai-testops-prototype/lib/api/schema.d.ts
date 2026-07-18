@@ -1090,6 +1090,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/{projectId}/task-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 Project 的 TaskPlan */
+        get: operations["list_task_plans_v1_projects__projectId__task_plans_get"];
+        put?: never;
+        /** 创建可复用 TaskPlan */
+        post: operations["create_task_plan_v1_projects__projectId__task_plans_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{projectId}/task-runs": {
         parameters: {
             query?: never;
@@ -1163,6 +1181,75 @@ export interface paths {
         get: operations["current_session_v1_session_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-plan-versions/{taskPlanVersionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 按 ID 读取精确 TaskPlanVersion */
+        get: operations["get_task_plan_version_v1_task_plan_versions__taskPlanVersionId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-plan-versions/{taskPlanVersionId}:run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 手动启动已发布 TaskPlanVersion */
+        post: operations["launch_task_plan_version_v1_task_plan_versions__taskPlanVersionId__run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-plans/{taskPlanId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 TaskPlan */
+        get: operations["get_task_plan_v1_task_plans__taskPlanId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-plans/{taskPlanId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 TaskPlan 的不可变版本 */
+        get: operations["list_task_plan_versions_v1_task_plans__taskPlanId__versions_get"];
+        put?: never;
+        /** 发布不可变 TaskPlanVersion */
+        post: operations["publish_task_plan_version_v1_task_plans__taskPlanId__versions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2514,6 +2601,27 @@ export interface components {
             version: string;
         };
         /**
+         * CaseExecutionProfileRef
+         * @description Typed immutable reference slots for one pinned CaseVersion.
+         */
+        CaseExecutionProfileRef: {
+            /**
+             * Caseversionid
+             * Format: uuid
+             */
+            caseVersionId: string;
+            /**
+             * Executionprofileversionid
+             * Format: uuid
+             */
+            executionProfileVersionId: string;
+            /**
+             * Fixtureblueprintversionid
+             * Format: uuid
+             */
+            fixtureBlueprintVersionId: string;
+        };
+        /**
          * CaseVersion
          * @description Published TestCase snapshot consumed later only by exact ID.
          */
@@ -2964,6 +3072,18 @@ export interface components {
             name: string;
             /** Projectkey */
             projectKey: string;
+        };
+        /**
+         * CreateTaskPlan
+         * @description Create a stable reusable TaskPlan identity.
+         */
+        CreateTaskPlan: {
+            /** Clientmutationid */
+            clientMutationId: string;
+            /** Name */
+            name: string;
+            /** Taskkey */
+            taskKey: string;
         };
         /**
          * CreateTenant
@@ -5528,6 +5648,24 @@ export interface components {
             version: string;
         };
         /**
+         * PublishTaskPlanVersion
+         * @description Publish one immutable TaskPlanVersion from exact reviewed dependencies.
+         */
+        PublishTaskPlanVersion: {
+            /** Clientmutationid */
+            clientMutationId: string;
+            matrix: components["schemas"]["TaskMatrixDefinition"];
+            /** Pinnedcaseversionids */
+            pinnedCaseVersionIds: string[];
+            /** Policydigests */
+            policyDigests: {
+                [key: string]: string;
+            };
+            profileRefs: components["schemas"]["TaskProfileRefs"];
+            /** Version */
+            version: string;
+        };
+        /**
          * ReapedLeaseBatch
          * @description 单次过期回收批次的安全摘要。
          */
@@ -5931,6 +6069,17 @@ export interface components {
             runKind: components["schemas"]["FixtureRunKind"];
         };
         /**
+         * StartTaskPlanVersionRun
+         * @description Manually launch one exact published TaskPlanVersion.
+         */
+        StartTaskPlanVersionRun: {
+            /** Clientmutationid */
+            clientMutationId: string;
+            /** Iterationid */
+            iterationId?: string | null;
+            retryPolicy: components["schemas"]["TaskRetryPolicy"];
+        };
+        /**
          * SurfaceRef
          * @description Exact published semantic page contract reference.
          */
@@ -6010,6 +6159,168 @@ export interface components {
          * @enum {string}
          */
         TaskMaterializationState: "MATERIALIZING" | "SEALED";
+        /**
+         * TaskMatrixDefinition
+         * @description Explicit V1 matrix axes without executable expressions.
+         */
+        TaskMatrixDefinition: {
+            /** Browserprofileversionids */
+            browserProfileVersionIds: string[];
+            /** Dataprofileversionids */
+            dataProfileVersionIds: string[];
+            /** Environmentids */
+            environmentIds: string[];
+            /** Identityprofileversionids */
+            identityProfileVersionIds: string[];
+        };
+        /**
+         * TaskPlan
+         * @description Stable identity for a versioned reusable task plan.
+         */
+        TaskPlan: {
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Createdby
+             * Format: uuid
+             */
+            createdBy: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Revision */
+            revision: number;
+            status: components["schemas"]["TaskPlanStatus"];
+            /** Taskkey */
+            taskKey: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * TaskPlanPage
+         * @description Cursor page of reusable TaskPlans for one Project.
+         */
+        TaskPlanPage: {
+            /** Items */
+            items: components["schemas"]["TaskPlan"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * TaskPlanStatus
+         * @description Lifecycle of a stable TaskPlan identity.
+         * @enum {string}
+         */
+        TaskPlanStatus: "ACTIVE" | "ARCHIVED";
+        /**
+         * TaskPlanVersion
+         * @description Published immutable TaskPlan snapshot consumed only by exact ID.
+         */
+        TaskPlanVersion: {
+            /** Contentdigest */
+            contentDigest: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            matrix: components["schemas"]["TaskMatrixDefinition"];
+            /** Pinnedcaseversionids */
+            pinnedCaseVersionIds: string[];
+            /** Policydigests */
+            policyDigests: {
+                [key: string]: string;
+            };
+            profileRefs: components["schemas"]["TaskProfileRefs"];
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Publishedat
+             * Format: date-time
+             */
+            publishedAt: string;
+            /**
+             * Publishedby
+             * Format: uuid
+             */
+            publishedBy: string;
+            /**
+             * Revision
+             * @constant
+             */
+            revision: 1;
+            /**
+             * Schemaversion
+             * @default atlas.task-plan/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.task-plan/0.1";
+            /**
+             * Taskplanid
+             * Format: uuid
+             */
+            taskPlanId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            /** Version */
+            version: string;
+            /** Versionref */
+            versionRef: string;
+        };
+        /**
+         * TaskPlanVersionPage
+         * @description Cursor page of immutable versions for one TaskPlan.
+         */
+        TaskPlanVersionPage: {
+            /** Items */
+            items: components["schemas"]["TaskPlanVersion"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * TaskProfileRefs
+         * @description Structured per-case profiles with no user-provided code or expressions.
+         */
+        TaskProfileRefs: {
+            /** Caseprofiles */
+            caseProfiles: components["schemas"]["CaseExecutionProfileRef"][];
+        };
         /**
          * TaskRetryPolicy
          * @description Frozen bounded policy for safe, explicitly classified infrastructure retries.
@@ -14079,6 +14390,190 @@ export interface operations {
             };
         };
     };
+    list_task_plans_v1_projects__projectId__task_plans_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPlanPage"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能编写 TaskPlan */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Project、TaskPlan 或版本不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态、依赖门禁或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_task_plan_v1_projects__projectId__task_plans_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTaskPlan"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPlan"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能编写 TaskPlan */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Project、TaskPlan 或版本不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态、依赖门禁或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     list_task_runs_v1_projects__projectId__task_runs_get: {
         parameters: {
             query?: {
@@ -14611,6 +15106,459 @@ export interface operations {
                 };
             };
             /** @description PlatformPrincipal 已存在 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_task_plan_version_v1_task_plan_versions__taskPlanVersionId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                taskPlanVersionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPlanVersion"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能编写 TaskPlan */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Project、TaskPlan 或版本不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态、依赖门禁或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    launch_task_plan_version_v1_task_plan_versions__taskPlanVersionId__run_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                taskPlanVersionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartTaskPlanVersionRun"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskRun"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能运行该 TaskPlan */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Project、TaskPlan 或版本不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 策略、矩阵、依赖门禁或幂等输入冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_task_plan_v1_task_plans__taskPlanId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                taskPlanId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPlan"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能编写 TaskPlan */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Project、TaskPlan 或版本不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态、依赖门禁或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_task_plan_versions_v1_task_plans__taskPlanId__versions_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                taskPlanId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPlanVersionPage"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能编写 TaskPlan */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Project、TaskPlan 或版本不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态、依赖门禁或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    publish_task_plan_version_v1_task_plans__taskPlanId__versions_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                taskPlanId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishTaskPlanVersion"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPlanVersion"];
+                };
+            };
+            /** @description 请求或幂等协议无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能编写 TaskPlan */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Project、TaskPlan 或版本不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 唯一键、状态、依赖门禁或幂等冲突 */
             409: {
                 headers: {
                     [name: string]: unknown;

@@ -219,6 +219,28 @@ class TaskPlan(FrozenWireModel):
         return self
 
 
+class CreateTaskPlan(FrozenWireModel):
+    """Create a stable reusable TaskPlan identity."""
+
+    task_key: str = Field(min_length=3, max_length=160, pattern=TASK_KEY_PATTERN)
+    name: str = Field(min_length=1, max_length=160)
+    client_mutation_id: str = Field(
+        min_length=8,
+        max_length=200,
+        pattern=CLIENT_MUTATION_ID_PATTERN,
+    )
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        """Reject blank names and persist the canonical display value."""
+
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("name must not be blank")
+        return normalized
+
+
 class TaskMatrixDefinition(FrozenWireModel):
     """Explicit V1 matrix axes without executable expressions."""
 
@@ -277,6 +299,56 @@ class TaskProfileRefs(FrozenWireModel):
         if len(set(case_ids)) != len(case_ids):
             raise ValueError("profileRefs must bind each CaseVersion exactly once")
         return tuple(sorted(values, key=lambda item: str(item.case_version_id)))
+
+
+class PublishTaskPlanVersion(FrozenWireModel):
+    """Publish one immutable TaskPlanVersion from exact reviewed dependencies."""
+
+    version: SemanticVersion
+    pinned_case_version_ids: tuple[UUID, ...] = Field(
+        min_length=1,
+        max_length=100_000,
+    )
+    matrix: TaskMatrixDefinition
+    profile_refs: TaskProfileRefs
+    policy_digests: dict[PolicyKey, Sha256Digest] = Field(
+        min_length=1,
+        max_length=64,
+        json_schema_extra={"additionalProperties": False},
+    )
+    client_mutation_id: str = Field(
+        min_length=8,
+        max_length=200,
+        pattern=CLIENT_MUTATION_ID_PATTERN,
+    )
+
+    @field_validator("pinned_case_version_ids")
+    @classmethod
+    def normalize_pinned_cases(cls, values: tuple[UUID, ...]) -> tuple[UUID, ...]:
+        """Canonicalize the exact CaseVersion set."""
+
+        return tuple(sorted(set(values), key=str))
+
+    @field_validator("policy_digests")
+    @classmethod
+    def normalize_policy_digests(cls, values: dict[str, str]) -> dict[str, str]:
+        """Validate and canonicalize safe policy digest references."""
+
+        for key, value in values.items():
+            if fullmatch(POLICY_KEY_PATTERN, key) is None:
+                raise ValueError("policyDigests contains an invalid policy key")
+            if fullmatch(DIGEST_PATTERN, value) is None:
+                raise ValueError("policyDigests values must be SHA-256 digests")
+        return dict(sorted(values.items()))
+
+    @model_validator(mode="after")
+    def validate_profile_coverage(self) -> Self:
+        """Require exactly one execution binding for every pinned CaseVersion."""
+
+        profile_case_ids = tuple(item.case_version_id for item in self.profile_refs.case_profiles)
+        if profile_case_ids != self.pinned_case_version_ids:
+            raise ValueError("profileRefs must match pinnedCaseVersionIds exactly")
+        return self
 
 
 def task_plan_version_ref(task_plan_id: UUID, version: str) -> str:
@@ -596,6 +668,23 @@ class TaskRetryPolicy(FrozenWireModel):
         if self.content_digest != expected_digest:
             raise ValueError("contentDigest must match the complete TaskRetryPolicy")
         return self
+
+
+class StartTaskPlanVersionRun(FrozenWireModel):
+    """Manually launch one exact published TaskPlanVersion."""
+
+    client_mutation_id: str = Field(
+        min_length=8,
+        max_length=200,
+        pattern=CLIENT_MUTATION_ID_PATTERN,
+    )
+    iteration_id: str | None = Field(
+        default=None,
+        min_length=3,
+        max_length=160,
+        pattern=REFERENCE_KEY_PATTERN,
+    )
+    retry_policy: TaskRetryPolicy
 
 
 class TaskRunManifest(FrozenWireModel):
@@ -1208,6 +1297,23 @@ def task_run_infra_rerun_trigger_fingerprint(
     return f"api:infra-rerun:{parent_task_run_id}:{digest.removeprefix('sha256:')}"
 
 
+def task_run_manual_trigger_fingerprint(
+    *,
+    task_plan_version_id: UUID,
+    client_mutation_id: str,
+) -> str:
+    """Derive the permanent idempotency identity for one manual launch."""
+
+    digest = canonical_digest(
+        {
+            "schemaVersion": "atlas.task-run-manual-request/0.1",
+            "taskPlanVersionId": str(task_plan_version_id),
+            "clientMutationId": client_mutation_id,
+        }
+    )
+    return f"api:manual:{task_plan_version_id}:{digest.removeprefix('sha256:')}"
+
+
 class RequestTaskRunCancel(FrozenWireModel):
     """Idempotent public request to cancel one exact TaskRun revision."""
 
@@ -1605,6 +1711,20 @@ class TaskRunPage(FrozenWireModel):
     """Cursor page of TaskRuns for one Project."""
 
     items: tuple[TaskRun, ...]
+    next_cursor: str | None = None
+
+
+class TaskPlanPage(FrozenWireModel):
+    """Cursor page of reusable TaskPlans for one Project."""
+
+    items: tuple[TaskPlan, ...]
+    next_cursor: str | None = None
+
+
+class TaskPlanVersionPage(FrozenWireModel):
+    """Cursor page of immutable versions for one TaskPlan."""
+
+    items: tuple[TaskPlanVersion, ...]
     next_cursor: str | None = None
 
 

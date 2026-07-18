@@ -100,6 +100,14 @@ class TaskRunCreateResult:
     manifest: TaskRunManifest
 
 
+@dataclass(frozen=True, slots=True)
+class TaskPlanLaunchBindings:
+    """Published compatibility edges needed by the bounded plan compiler."""
+
+    identity_case_by_id: dict[UUID, UUID]
+    data_blueprint_by_id: dict[UUID, UUID]
+
+
 class TaskRunRepository:
     """Persist task facts without handling authorization or external orchestration."""
 
@@ -371,13 +379,54 @@ class TaskRunRepository:
         self,
         connection: AsyncConnection[DictRow],
         task_plan_id: UUID,
+        *,
+        for_share: bool = False,
     ) -> TaskPlan | None:
+        lock_clause = " for share" if for_share else ""
         cursor = await connection.execute(
-            f"select {TASK_PLAN_COLUMNS} from atlas.task_plan where id = %s",
+            f"""
+            select {TASK_PLAN_COLUMNS}
+            from atlas.task_plan
+            where id = %s{lock_clause}
+            """,
             (task_plan_id,),
         )
         row = await cursor.fetchone()
         return TaskPlan.model_validate(row) if row is not None else None
+
+    async def list_task_plans(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        project_id: UUID,
+        cursor: TimeCursor | None,
+        limit: int,
+    ) -> tuple[TaskPlan, ...]:
+        """List one Project's TaskPlans with stable updated-time pagination."""
+
+        cursor_filter = ""
+        parameters: tuple[object, ...]
+        if cursor is None:
+            parameters = (project_id, limit)
+        else:
+            cursor_filter = "and (updated_at, id) < (%s, %s)"
+            parameters = (
+                project_id,
+                cursor.created_at,
+                cursor.id,
+                limit,
+            )
+        result = await connection.execute(
+            f"""
+            select {TASK_PLAN_COLUMNS}
+            from atlas.task_plan
+            where project_id = %s {cursor_filter}
+            order by updated_at desc, id desc
+            limit %s
+            """,
+            parameters,
+        )
+        return tuple(TaskPlan.model_validate(row) for row in await result.fetchall())
 
     async def get_task_plan_version(
         self,
@@ -394,6 +443,88 @@ class TaskRunRepository:
         )
         row = await cursor.fetchone()
         return TaskPlanVersion.model_validate(row) if row is not None else None
+
+    async def list_task_plan_versions(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        task_plan_id: UUID,
+        cursor: TimeCursor | None,
+        limit: int,
+    ) -> tuple[TaskPlanVersion, ...]:
+        """List one TaskPlan's immutable versions by publication time."""
+
+        cursor_filter = ""
+        parameters: tuple[object, ...]
+        if cursor is None:
+            parameters = (task_plan_id, limit)
+        else:
+            cursor_filter = "and (published_at, id) < (%s, %s)"
+            parameters = (
+                task_plan_id,
+                cursor.created_at,
+                cursor.id,
+                limit,
+            )
+        result = await connection.execute(
+            f"""
+            select {TASK_PLAN_VERSION_COLUMNS}
+            from atlas.task_plan_version
+            where task_plan_id = %s {cursor_filter}
+            order by published_at desc, id desc
+            limit %s
+            """,
+            parameters,
+        )
+        return tuple(
+            TaskPlanVersion.model_validate(row)
+            for row in await result.fetchall()
+        )
+
+    async def get_task_plan_launch_bindings(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        identity_profile_version_ids: tuple[UUID, ...],
+        data_profile_version_ids: tuple[UUID, ...],
+    ) -> TaskPlanLaunchBindings:
+        """Read only current published compatibility edges for Manual Launch."""
+
+        identity_cursor = await connection.execute(
+            """
+            select id, case_version_id
+            from atlas.identity_profile_version
+            where id = any(%s)
+              and tenant_id = %s
+              and project_id = %s
+              and status = 'PUBLISHED'
+              and content_digest = atlas.task_identity_profile_content_digest(id)
+            """,
+            (list(identity_profile_version_ids), tenant_id, project_id),
+        )
+        data_cursor = await connection.execute(
+            """
+            select id, blueprint_version_id
+            from atlas.data_profile_version
+            where id = any(%s)
+              and tenant_id = %s
+              and project_id = %s
+              and status = 'PUBLISHED'
+            """,
+            (list(data_profile_version_ids), tenant_id, project_id),
+        )
+        return TaskPlanLaunchBindings(
+            identity_case_by_id={
+                row["id"]: row["case_version_id"]
+                for row in await identity_cursor.fetchall()
+            },
+            data_blueprint_by_id={
+                row["id"]: row["blueprint_version_id"]
+                for row in await data_cursor.fetchall()
+            },
+        )
 
     async def get_run(
         self,

@@ -18,6 +18,7 @@ from atlas_testops.domain.task import (
     ExecutionQuality,
     ExecutionUnit,
     ExecutionUnitManifest,
+    PublishTaskPlanVersion,
     RequestTaskRunInfraFailureRerun,
     TaskExecutionEvent,
     TaskMaterializationState,
@@ -370,6 +371,32 @@ def test_task_plan_version_rejects_unknown_or_non_digest_policy_values() -> None
         )
     with pytest.raises(ValidationError, match="String should match pattern"):
         TaskPlanVersion.model_validate({**payload, "policyDigests": {"gate": "latest"}})
+
+
+def test_publish_task_plan_version_normalizes_and_requires_exact_case_coverage() -> None:
+    payload = task_plan_version_payload()
+    command = PublishTaskPlanVersion.model_validate(
+        {
+            "version": payload["version"],
+            "pinnedCaseVersionIds": payload["pinnedCaseVersionIds"],
+            "matrix": payload["matrix"],
+            "profileRefs": payload["profileRefs"],
+            "policyDigests": payload["policyDigests"],
+            "clientMutationId": "publish-task-plan-001",
+        }
+    )
+
+    assert command.pinned_case_version_ids == (uid(31), uid(32))
+    with pytest.raises(ValidationError, match="match pinnedCaseVersionIds"):
+        PublishTaskPlanVersion.model_validate(
+            {
+                **command.model_dump(mode="json", by_alias=True),
+                "profileRefs": profile_refs(uid(31)).model_dump(
+                    mode="json",
+                    by_alias=True,
+                ),
+            }
+        )
 
 
 def test_policy_digest_json_schema_constrains_keys_and_values() -> None:

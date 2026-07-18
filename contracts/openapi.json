@@ -1864,6 +1864,34 @@
         "title": "CapabilityDescriptor",
         "type": "object"
       },
+      "CaseExecutionProfileRef": {
+        "additionalProperties": false,
+        "description": "Typed immutable reference slots for one pinned CaseVersion.",
+        "properties": {
+          "caseVersionId": {
+            "format": "uuid",
+            "title": "Caseversionid",
+            "type": "string"
+          },
+          "executionProfileVersionId": {
+            "format": "uuid",
+            "title": "Executionprofileversionid",
+            "type": "string"
+          },
+          "fixtureBlueprintVersionId": {
+            "format": "uuid",
+            "title": "Fixtureblueprintversionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "caseVersionId",
+          "executionProfileVersionId",
+          "fixtureBlueprintVersionId"
+        ],
+        "title": "CaseExecutionProfileRef",
+        "type": "object"
+      },
       "CaseVersion": {
         "additionalProperties": false,
         "description": "Published TestCase snapshot consumed later only by exact ID.",
@@ -2972,6 +3000,39 @@
           "name"
         ],
         "title": "CreateProject",
+        "type": "object"
+      },
+      "CreateTaskPlan": {
+        "additionalProperties": false,
+        "description": "Create a stable reusable TaskPlan identity.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "taskKey": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$",
+            "title": "Taskkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskKey",
+          "name",
+          "clientMutationId"
+        ],
+        "title": "CreateTaskPlan",
         "type": "object"
       },
       "CreateTenant": {
@@ -8560,6 +8621,65 @@
         "title": "PublishCaseVersion",
         "type": "object"
       },
+      "PublishTaskPlanVersion": {
+        "additionalProperties": false,
+        "description": "Publish one immutable TaskPlanVersion from exact reviewed dependencies.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "matrix": {
+            "$ref": "#/components/schemas/TaskMatrixDefinition"
+          },
+          "pinnedCaseVersionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100000,
+            "minItems": 1,
+            "title": "Pinnedcaseversionids",
+            "type": "array"
+          },
+          "policyDigests": {
+            "additionalProperties": false,
+            "maxProperties": 64,
+            "minProperties": 1,
+            "patternProperties": {
+              "^[a-z][a-z0-9_.-]{1,127}$": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "title": "Policydigests",
+            "type": "object"
+          },
+          "profileRefs": {
+            "$ref": "#/components/schemas/TaskProfileRefs"
+          },
+          "version": {
+            "maxLength": 80,
+            "minLength": 5,
+            "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "pinnedCaseVersionIds",
+          "matrix",
+          "profileRefs",
+          "policyDigests",
+          "clientMutationId"
+        ],
+        "title": "PublishTaskPlanVersion",
+        "type": "object"
+      },
       "ReapedLeaseBatch": {
         "additionalProperties": false,
         "description": "单次过期回收批次的安全摘要。",
@@ -9382,6 +9502,42 @@
         "title": "StartFixtureRun",
         "type": "object"
       },
+      "StartTaskPlanVersionRun": {
+        "additionalProperties": false,
+        "description": "Manually launch one exact published TaskPlanVersion.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "iterationId": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 3,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iterationid"
+          },
+          "retryPolicy": {
+            "$ref": "#/components/schemas/TaskRetryPolicy"
+          }
+        },
+        "required": [
+          "clientMutationId",
+          "retryPolicy"
+        ],
+        "title": "StartTaskPlanVersionRun",
+        "type": "object"
+      },
       "SurfaceRef": {
         "additionalProperties": false,
         "description": "Exact published semantic page contract reference.",
@@ -9556,6 +9712,342 @@
         ],
         "title": "TaskMaterializationState",
         "type": "string"
+      },
+      "TaskMatrixDefinition": {
+        "additionalProperties": false,
+        "description": "Explicit V1 matrix axes without executable expressions.",
+        "properties": {
+          "browserProfileVersionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Browserprofileversionids",
+            "type": "array"
+          },
+          "dataProfileVersionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Dataprofileversionids",
+            "type": "array"
+          },
+          "environmentIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Environmentids",
+            "type": "array"
+          },
+          "identityProfileVersionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Identityprofileversionids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "environmentIds",
+          "browserProfileVersionIds",
+          "identityProfileVersionIds",
+          "dataProfileVersionIds"
+        ],
+        "title": "TaskMatrixDefinition",
+        "type": "object"
+      },
+      "TaskPlan": {
+        "additionalProperties": false,
+        "description": "Stable identity for a versioned reusable task plan.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "createdBy": {
+            "format": "uuid",
+            "title": "Createdby",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskPlanStatus"
+          },
+          "taskKey": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$",
+            "title": "Taskkey",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskKey",
+          "name",
+          "status",
+          "createdBy",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "TaskPlan",
+        "type": "object"
+      },
+      "TaskPlanPage": {
+        "additionalProperties": false,
+        "description": "Cursor page of reusable TaskPlans for one Project.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskPlan"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TaskPlanPage",
+        "type": "object"
+      },
+      "TaskPlanStatus": {
+        "description": "Lifecycle of a stable TaskPlan identity.",
+        "enum": [
+          "ACTIVE",
+          "ARCHIVED"
+        ],
+        "title": "TaskPlanStatus",
+        "type": "string"
+      },
+      "TaskPlanVersion": {
+        "additionalProperties": false,
+        "description": "Published immutable TaskPlan snapshot consumed only by exact ID.",
+        "properties": {
+          "contentDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Contentdigest",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "matrix": {
+            "$ref": "#/components/schemas/TaskMatrixDefinition"
+          },
+          "pinnedCaseVersionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100000,
+            "minItems": 1,
+            "title": "Pinnedcaseversionids",
+            "type": "array"
+          },
+          "policyDigests": {
+            "additionalProperties": false,
+            "maxProperties": 64,
+            "minProperties": 1,
+            "patternProperties": {
+              "^[a-z][a-z0-9_.-]{1,127}$": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "title": "Policydigests",
+            "type": "object"
+          },
+          "profileRefs": {
+            "$ref": "#/components/schemas/TaskProfileRefs"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "title": "Publishedat",
+            "type": "string"
+          },
+          "publishedBy": {
+            "format": "uuid",
+            "title": "Publishedby",
+            "type": "string"
+          },
+          "revision": {
+            "const": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schemaVersion": {
+            "const": "atlas.task-plan/0.1",
+            "default": "atlas.task-plan/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "taskPlanId": {
+            "format": "uuid",
+            "title": "Taskplanid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 80,
+            "minLength": 5,
+            "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+            "title": "Version",
+            "type": "string"
+          },
+          "versionRef": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Versionref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskPlanId",
+          "version",
+          "versionRef",
+          "pinnedCaseVersionIds",
+          "matrix",
+          "profileRefs",
+          "policyDigests",
+          "contentDigest",
+          "publishedBy",
+          "publishedAt",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "TaskPlanVersion",
+        "type": "object"
+      },
+      "TaskPlanVersionPage": {
+        "additionalProperties": false,
+        "description": "Cursor page of immutable versions for one TaskPlan.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskPlanVersion"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TaskPlanVersionPage",
+        "type": "object"
+      },
+      "TaskProfileRefs": {
+        "additionalProperties": false,
+        "description": "Structured per-case profiles with no user-provided code or expressions.",
+        "properties": {
+          "caseProfiles": {
+            "items": {
+              "$ref": "#/components/schemas/CaseExecutionProfileRef"
+            },
+            "maxItems": 100000,
+            "minItems": 1,
+            "title": "Caseprofiles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "caseProfiles"
+        ],
+        "title": "TaskProfileRefs",
+        "type": "object"
       },
       "TaskRetryPolicy": {
         "additionalProperties": false,
@@ -23371,6 +23863,324 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/task-plans": {
+      "get": {
+        "operationId": "list_task_plans_v1_projects__projectId__task_plans_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPlanPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或幂等协议无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能编写 TaskPlan"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Project、TaskPlan 或版本不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "唯一键、状态、依赖门禁或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "列出 Project 的 TaskPlan",
+        "tags": [
+          "task-plans"
+        ]
+      },
+      "post": {
+        "operationId": "create_task_plan_v1_projects__projectId__task_plans_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskPlan"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPlan"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或幂等协议无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能编写 TaskPlan"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Project、TaskPlan 或版本不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "唯一键、状态、依赖门禁或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "创建可复用 TaskPlan",
+        "tags": [
+          "task-plans"
+        ]
+      }
+    },
     "/v1/projects/{projectId}/task-runs": {
       "get": {
         "operationId": "list_task_runs_v1_projects__projectId__task_runs_get",
@@ -24282,6 +25092,750 @@
         "summary": "读取当前 Session",
         "tags": [
           "authentication"
+        ]
+      }
+    },
+    "/v1/task-plan-versions/{taskPlanVersionId}": {
+      "get": {
+        "operationId": "get_task_plan_version_v1_task_plan_versions__taskPlanVersionId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskPlanVersionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Taskplanversionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPlanVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或幂等协议无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能编写 TaskPlan"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Project、TaskPlan 或版本不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "唯一键、状态、依赖门禁或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "按 ID 读取精确 TaskPlanVersion",
+        "tags": [
+          "task-plans"
+        ]
+      }
+    },
+    "/v1/task-plan-versions/{taskPlanVersionId}:run": {
+      "post": {
+        "operationId": "launch_task_plan_version_v1_task_plan_versions__taskPlanVersionId__run_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskPlanVersionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Taskplanversionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartTaskPlanVersionRun"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或幂等协议无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能运行该 TaskPlan"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Project、TaskPlan 或版本不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "策略、矩阵、依赖门禁或幂等输入冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "手动启动已发布 TaskPlanVersion",
+        "tags": [
+          "task-plans"
+        ]
+      }
+    },
+    "/v1/task-plans/{taskPlanId}": {
+      "get": {
+        "operationId": "get_task_plan_v1_task_plans__taskPlanId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskPlanId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Taskplanid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPlan"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或幂等协议无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能编写 TaskPlan"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Project、TaskPlan 或版本不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "唯一键、状态、依赖门禁或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 TaskPlan",
+        "tags": [
+          "task-plans"
+        ]
+      }
+    },
+    "/v1/task-plans/{taskPlanId}/versions": {
+      "get": {
+        "operationId": "list_task_plan_versions_v1_task_plans__taskPlanId__versions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskPlanId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Taskplanid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPlanVersionPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或幂等协议无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能编写 TaskPlan"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Project、TaskPlan 或版本不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "唯一键、状态、依赖门禁或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "列出 TaskPlan 的不可变版本",
+        "tags": [
+          "task-plans"
+        ]
+      },
+      "post": {
+        "operationId": "publish_task_plan_version_v1_task_plans__taskPlanId__versions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskPlanId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Taskplanid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishTaskPlanVersion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPlanVersion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求或幂等协议无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能编写 TaskPlan"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Project、TaskPlan 或版本不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "唯一键、状态、依赖门禁或幂等冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "发布不可变 TaskPlanVersion",
+        "tags": [
+          "task-plans"
         ]
       }
     },

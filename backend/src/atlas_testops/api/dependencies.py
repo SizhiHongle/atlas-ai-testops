@@ -25,6 +25,8 @@ from atlas_testops.application.ports.evidence import EvidenceObjectReader
 from atlas_testops.application.ports.secrets import SecretProvider
 from atlas_testops.application.session_dispatcher import AuthSessionDispatcher
 from atlas_testops.application.task_commands import TaskRunCommandService
+from atlas_testops.application.task_launches import TaskPlanLaunchService
+from atlas_testops.application.task_plans import TaskPlanService
 from atlas_testops.application.task_reruns import TaskRunRerunService
 from atlas_testops.application.task_runs import TaskRunQueryService
 from atlas_testops.core.config import Settings
@@ -205,6 +207,18 @@ CaseVersionServiceDependency = Annotated[
 ]
 
 
+def get_task_plan_service(database: DatabaseDependency) -> TaskPlanService:
+    """Create the stateless TaskPlan authoring and publication service."""
+
+    return TaskPlanService(database)
+
+
+TaskPlanServiceDependency = Annotated[
+    TaskPlanService,
+    Depends(get_task_plan_service),
+]
+
+
 def get_debug_run_service(
     database: DatabaseDependency,
     dispatcher: OptionalDebugRunDispatcherDependency,
@@ -253,6 +267,24 @@ def get_task_run_rerun_service(database: DatabaseDependency) -> TaskRunRerunServ
 TaskRunRerunServiceDependency = Annotated[
     TaskRunRerunService,
     Depends(get_task_run_rerun_service),
+]
+
+
+def get_task_plan_launch_service(
+    database: DatabaseDependency,
+    settings: SettingsDependency,
+) -> TaskPlanLaunchService:
+    """Create the bounded manual TaskPlanVersion launch service."""
+
+    return TaskPlanLaunchService(
+        database,
+        temporal_namespace=settings.temporal_namespace,
+    )
+
+
+TaskPlanLaunchServiceDependency = Annotated[
+    TaskPlanLaunchService,
+    Depends(get_task_plan_launch_service),
 ]
 
 

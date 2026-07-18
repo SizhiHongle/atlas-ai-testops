@@ -16,6 +16,7 @@ from atlas_testops.api.v1.health import router as health_router
 from atlas_testops.api.v1.identity import router as identity_router
 from atlas_testops.api.v1.live import router as live_router
 from atlas_testops.api.v1.platform import router as platform_router
+from atlas_testops.api.v1.task_plans import router as task_plans_router
 from atlas_testops.api.v1.task_runs import router as task_runs_router
 
 api_router = APIRouter(
@@ -30,6 +31,7 @@ api_router.include_router(platform_router, tags=["platform"])
 api_router.include_router(cases_router, tags=["test-cases"])
 api_router.include_router(case_versions_router, tags=["case-versions"])
 api_router.include_router(debug_runs_router, tags=["debug-runs"])
+api_router.include_router(task_plans_router, tags=["task-plans"])
 api_router.include_router(task_runs_router, tags=["task-runs"])
 api_router.include_router(evidence_router, tags=["evidence"])
 api_router.include_router(live_router, tags=["debug-live"])

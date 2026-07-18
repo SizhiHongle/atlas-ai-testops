@@ -33,7 +33,9 @@ from atlas_testops.domain.task import (
     ExecutionProfileVersion,
     ExecutionUnit,
     IdentityProfileVersion,
+    StartTaskPlanVersionRun,
     TaskExecutionEvent,
+    TaskPlan,
     TaskPlanVersion,
     TaskRun,
     TaskRunCommandIntent,
@@ -68,6 +70,8 @@ BROWSER_RUNTIME_REPORT_SCHEMA = (
 TASK_PLAN_VERSION_SCHEMA = (
     REPOSITORY_ROOT / "contracts" / "task-plan-version.schema.json"
 )
+TASK_PLAN_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-plan.schema.json"
+TASK_PLAN_LAUNCH_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-plan-launch.schema.json"
 TASK_RUN_MANIFEST_SCHEMA = (
     REPOSITORY_ROOT / "contracts" / "task-run-manifest.schema.json"
 )
@@ -177,6 +181,14 @@ def main() -> None:
         TASK_PLAN_VERSION_SCHEMA: render_schema(
             TaskPlanVersion,
             "https://atlas.test/contracts/task-plan-version/0.1/schema.json",
+        ),
+        TASK_PLAN_SCHEMA: render_schema(
+            TaskPlan,
+            "https://atlas.test/contracts/task-plan/0.1/schema.json",
+        ),
+        TASK_PLAN_LAUNCH_SCHEMA: render_schema(
+            StartTaskPlanVersionRun,
+            "https://atlas.test/contracts/task-plan-launch/0.1/schema.json",
         ),
         TASK_RUN_MANIFEST_SCHEMA: render_schema(
             TaskRunManifest,
