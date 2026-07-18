@@ -15,7 +15,7 @@
 
 - 当前阶段：`P8 Comparable Insight Snapshot（基础中）`
 - 当前切片：`P8 V1 Quality Brief / DatasetCut / Snapshot / Insights 原型槽位接线`
-- 总体状态：P5 已建立正式执行宿主与最多 64 Units 的耐久编排；P6 已建立可信 Browser / Evidence / Attempt Result 事实链和只读 Live；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate、公开查询 API 与既有 Results 槽位接线。P8 V1 已基于 stable Result/Gate facts 实现固定 MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums current/baseline、可复现 DatasetCut、不可变 InsightSnapshot 与既有 Insights 槽位接线。Worker / Consumer 仍默认关闭，仓库仍不内置真实 SaaS production Adapter；Live control、Schedule / CI / Webhook、超过 64 Units 分区化和生产硬化继续按后续阶段落地
+- 总体状态：P5 已建立正式执行宿主与最多 64 Units 的耐久编排；P6 已建立可信 Browser / Evidence / Attempt Result 事实链、DebugRun 只读 Live 和 UnitAttempt-scoped Live Control；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate、公开查询 API 与既有 Results 槽位接线。P8 V1 已基于 stable Result/Gate facts 实现固定 MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums current/baseline、可复现 DatasetCut、不可变 InsightSnapshot 与既有 Insights 槽位接线。Worker / Consumer 仍默认关闭，仓库仍不内置真实 SaaS production Adapter；Schedule / CI / Webhook、超过 64 Units 分区化和生产硬化继续按后续阶段落地
 - 当前分支：`main`
 - 当前进入基线提交：`20b3e28`
 
@@ -28,8 +28,8 @@
 | P2 | TestRole、AccountPool、TestAccount、Lease 与 Auth Session | 已完成 | P2-01 至 P2-06 已验收；身份、租约、Secret Grant、加密 Session 与清理链已闭环 |
 | P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 已完成 | P3-00 至 P3-03 已验收；资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与三类发布证据闭环 |
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 后端完成 | P4-00 至 P4-03 已验收；作者态、不可变 DebugRun、精确绑定、Reviewer 发布门禁与 CaseVersion 冻结闭环已落地 |
-| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00E2 已验收；不可变 Ticket、ticket-bound Port、durable command、自动 infra retry、manual infra-failure child Run、TaskPlan 公共 API 与首次 Manual Launch 均有 PostgreSQL 证据。真实 SaaS Adapter、Schedule / CI、超过 64 Units 分区化与 Takeover 待后续 |
-| P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面、P6-02A 可信截图写入 / 受控读取、P6-03A AttemptSeal / ResultRef 与 P6-03B ClosureNotice / UnitResolutionRevision 已验收；P6-02B1 DebugRun Live 安全观察流已实现；P6-02B2 控制权待后续 |
+| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00E2 已验收；不可变 Ticket、ticket-bound Port、durable command、自动 infra retry、manual infra-failure child Run、TaskPlan 公共 API、首次 Manual Launch 与 P6-02B2 UnitAttempt Takeover 均有 PostgreSQL 证据。真实 SaaS Adapter、Schedule / CI / Webhook 与超过 64 Units 分区化待后续 |
+| P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面、P6-02A 可信截图写入 / 受控读取、P6-02B1 DebugRun Live 安全观察流、P6-02B2 UnitAttempt 控制权、P6-03A AttemptSeal / ResultRef 与 P6-03B ClosureNotice / UnitResolutionRevision 均已验收；真实 SaaS Operation、网络沙箱与 Multi-actor 仍需部署输入或后续实现 |
 | P7 | Result Fact、Snapshot、Classification 与 Gate | 已完成 | P6-03A/P6-03B 与 P7-01A 至 P7-03 已实现三阶段 Snapshot、FailureCluster / Classification、`0039` TaskGateDecision、公开 Result API、ETag 与既有 Results 槽位真实数据映射 |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 基础中 | V1 fixed MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums、DatasetCut、`0040` immutable InsightSnapshot、preview/pin/exact API 与既有 Insights 槽位映射已实现；Projector generation、Signal/Review 与异步 Export 待扩展 |
 | P9 | 隔离、并发、故障注入、黄金链路与 SLO 验收 | 未开始 | — |
@@ -590,11 +590,24 @@
 - 真实 PostgreSQL 集成测试覆盖轻量单 SQL `headSeq`、跨终止事件的无缺口 replay、终止后 `snapshot_outdated`、跨 Project / Tenant 404、32 KiB Payload 拒绝与事件 UPDATE / DELETE Trigger；Validation 失败后版本保持 0019、修复历史 Payload、重试成功，以及完整 `0018 ↔ 0021` Alembic 往返和 0021 concurrent drop / recreate 均已通过。
 - 最终 `make verify` 已完整通过：Ruff all、严格 mypy 233 files、pytest 521 passed / coverage 90.18%、真实 PostgreSQL retry + `0018 ↔ 0021` roundtrip、Contracts Checks、Python sdist / wheel、Frontend `check:api`、`tsc` 与 Vinext Production Build 全部成功；前端原型页面未修改。
 
-### P6-02B2 / P5 后续仍待落地
+## P6-02B2 范围
 
-- P5-00A 已建立 `TaskRun / ExecutionUnit / UnitAttempt` 正式宿主，P5-00B2A 已补充 durable Start Intent Consumer，P5-00B2B 已接入最多 64 Units 的真实 Root / Attempt Workflow 与短 Activity；正式 execution port 仍由部署侧后续提供。B2B 不创建 `LiveSession`、`AttemptSeal` 或其他现场事实；P6-02B2 将直接绑定正式 UnitAttempt，不能退回 DebugRun 多态宿主。
-- Browser `ControlLease`、控制权 Epoch / Fence、Action Safe Point Pause / Resume / Takeover Command、Human Takeover、Quiesce、持久化且绑定 Epoch / Fence 的 `ActionGrant` 均未实现。P5-00D2B 的 Task 级 Pause 只停止新 Unit 派发，不覆盖这些浏览器现场能力。当前 SSE 是只读 Observer 通道，不接受 Frame、Command、Action 或人工输入，也不把 P6-01 Worker 内部单次 Action 校验误称为持久化人工控制协议。
-- 首个真实 SaaS Operation / Published Route、容器级 Egress / DNS / UDP / WebRTC、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch、Multi-actor 和正式 AttemptSeal 仍按既有计划后续落地，缺少对应部署能力时继续 fail-closed。
+### 已实现
+
+- 建立 `atlas.live-session/0.1`、`atlas.control-lease/0.1`、`atlas.live-control-command/0.1`、`atlas.live-action-grant/0.1` 与 `atlas.unit-attempt-live-snapshot/0.1`。全部事实精确绑定一个正式 UnitAttempt、immutable Execution Ticket、TaskRun / ExecutionUnit 和 BrowserSession，不复用 DebugRun 多态宿主。
+- `20260718_0041` 建立五张 `FORCE RLS` 表、复合 Scope FK、单 Current Lease / Pending Command、单 Action、单次 Grant、单调 Epoch/Fence、状态机、不可更新/删除事实和最小列级权限。人工影响永久保留，数据库阻止 Human-influenced Attempt 封存为 `AUTONOMOUS`。
+- 公共 API 开放 Snapshot、异步 `PAUSE / RESUME / TAKEOVER / RETURN` 与 Command 查询。写命令要求强 Control Epoch `If-Match` 和独立 `Idempotency-Key`；同键 exact replay，不同请求冲突。Production Environment Takeover 在应用边界 fail-closed。
+- Worker 内部 API 继续使用 exact UnitAttempt Permit + HMAC，支持初始化、Agent Heartbeat、Action Safe Point / Reconcile acknowledgement，以及 ActionGrant 签发、恢复、原子消费和唯一 Receipt。Browser Worker 仍不读取控制面数据库。
+- Pause / Takeover 先进入 `QUIESCING`、撤销未消费 Grant 并等待已消费动作回执；Safe Point 后才提升 Epoch/Fence 并进入 `PAUSED` 或 Human Lease。Return 先进入 `RECONCILING`，重建 Page Revision 后才签发新 Agent Lease。
+- Heartbeat 只延长当前 Agent Lease，不改变 Owner、Epoch 或 Fence，并受 Attempt Deadline 上限约束。Tenant Reaper 以有界 `FOR UPDATE ... SKIP LOCKED` 批次回收过期 Lease，原子撤销未消费 Grant、拒绝 Pending Command、提升 Fence 并进入 `NO_CONTROLLER`。
+- 既有 Task Live 原型使用真实 TaskRun → ExecutionUnit → latest UnitAttempt → LiveSnapshot 映射，在原有 Agent Intent 和接管按钮槽位展示状态并提交 Takeover / Return；未修改 DOM、布局、样式、className 或交互结构。
+
+### 验证状态与后续边界
+
+- 真实 PostgreSQL 覆盖 Initialize replay、Heartbeat、Pause → Resume → Takeover → Return 全状态链、Safe Point、幂等冲突、陈旧 Epoch/Fence、单次 Grant / Receipt replay、TTL Reaper、RLS、最小权限和人工影响门禁。
+- 公共 API 覆盖率 100%，内部 API 96%，Domain 96%，Repository 94%；完整门禁为 1075 passed、coverage 90.22%，Ruff、严格 mypy 361 files、Contracts / OpenAPI 漂移、TypeScript 与 production build 全部通过。
+- P5-00D2B 的 Task Pause 仍只停止新 Unit 派发，与本切片的 Browser Action Safe Point 分离。SSE 仍是只读观察通道，不承载控制命令。
+- 首个真实 SaaS Operation / Published Route、容器级 Egress / DNS / UDP / WebRTC、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch、Multi-actor、production `TaskUnitExecutionPort`、Schedule / CI / Webhook 和超过 64 Units 的分区物化继续后续落地；缺少受信部署能力时保持 fail-closed。
 
 ## 验证记录
 
@@ -694,6 +707,7 @@
 | 2026-07-18 | P7-02A FailureCluster / FailureClassification | exact Snapshot-bound manifest-ordered Cluster、保守规则归因、immutable Evidence Ref、basis-point confidence、人工 append-only review、RBAC / Idempotency / Audit / Outbox、`0038` database guard | 通过；真实 PostgreSQL 已验证 Cluster / Classification canonical hash parity、exact replay、人工确认 revision、最小权限与 advisory-lock 并发边界；全新临时数据库从零升级到 `0038` 成功；完整门禁 1032 passed / coverage 90.08%，Ruff、严格 mypy 332 files、Contracts / OpenAPI 漂移与 Python sdist / wheel 全部通过；没有增加公共 Result API，前端原型未改 |
 | 2026-07-18 | P7-02B / P7-03 Trusted Result Decision | exact Snapshot + complete Classification set、fail-closed three-valued Gate、Result / Resolution / Cluster / Review / Gate API、ETag、既有 Results 槽位接线、`0039` guard | 通过；真实 PostgreSQL 验证 Gate hash parity、永久 replay、RLS 与最小权限；完整门禁 1048 passed / coverage 90.13%、Ruff、严格 mypy 342 files、Contracts / OpenAPI、Python 包与前端类型/生产构建全部通过；原型 DOM、布局、样式和交互未改 |
 | 2026-07-18 | P8 V1 Comparable Insight Snapshot | fixed MetricDefinition、qualityFinalizedAt、ratio-of-sums、current/baseline、DatasetCut、terrain / Gate risk、preview / pin / exact API、`0040` guard、既有 Insights 槽位接线 | 通过；真实 PostgreSQL 完整 Task → Result → Classification → Gate → Insight preview / pin / replay 链、RLS、append-only 与 `0040 ↔ 0039` 空表往返通过；完整门禁 1063 passed / coverage 90.16%、Ruff、严格 mypy 352 files、Contracts / OpenAPI、Python sdist / wheel、前端 API 漂移 / 类型 / production build 全部通过；未改原型结构 |
+| 2026-07-18 | P6-02B2 UnitAttempt Live Control | LiveSession / ControlLease、Epoch/Fence、Safe Point、Takeover / Return、Heartbeat / Reaper、持久化单次 ActionGrant、既有 Live 槽位接线、`0041` guard | 通过；真实 PostgreSQL 完整状态链、旧 Fence / Grant、TTL 回收、RLS 与人工影响门禁均通过；完整门禁 1075 passed / coverage 90.22%、Ruff、严格 mypy 361 files、Contracts / OpenAPI、TypeScript 与 production build 全部通过；未改原型 DOM、布局、样式或 className |
 
 ## P6-03A 范围
 
@@ -849,6 +863,6 @@
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
 - P3-03 已完成取消后补偿、Reconcile、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Evidence；生产环境仍需按 Tenant 配置 Temporal Schedule 和真实 Provider，缺失时继续 fail-closed。
-- P5-00B1 至 P5-00E2 已建立正式 Profile、Seal / CAS、durable Start、最多 64 Units Root / Attempt 编排、查询、immutable Ticket、reliable Cancel / Pause / Resume、有界基础设施自动重试、exact infra-failure child Run、TaskPlan Catalog / immutable publication 与首次 Manual Launch。P6 已提供完整 Attempt Fact 与 Unit Resolution，P7 已完成三阶段 TaskResultSnapshot、FailureCluster / Classification、TaskGateDecision 与公共 Result 查询，P8 V1 已完成 comparable Brief / DatasetCut / immutable Snapshot；但仓库仍无正式 production `TaskUnitExecutionPort`、Schedule / CI / Webhook Adapter、超过 64 Units 的可恢复分区物化和 UnitAttempt-scoped Live control。只有数据库中存在 exact Seal Fact 时才允许 Task Workflow 表达 `PASSED`，ClosureNotice 只能使 Resolution 得到 `INCONCLUSIVE / NOT_EVALUATED`。
-- P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；P6-02A Evidence Writer / 受控读取与 P6-02B1 DebugRun Live Snapshot / SSE 已完成。P6-02B2 的 UnitAttempt-scoped LiveSession、ControlLease、控制 Epoch / Fence、Human Takeover 与持久化 ActionGrant，以及真实 SaaS Operation / Route Registry、生产 Bucket Object Lock / Versioning、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
+- P5-00B1 至 P5-00E2 已建立正式 Profile、Seal / CAS、durable Start、最多 64 Units Root / Attempt 编排、查询、immutable Ticket、reliable Cancel / Pause / Resume、有界基础设施自动重试、exact infra-failure child Run、TaskPlan Catalog / immutable publication 与首次 Manual Launch。P6 已提供完整 Attempt Fact、Unit Resolution 和 UnitAttempt-scoped Live Control，P7 已完成三阶段 TaskResultSnapshot、FailureCluster / Classification、TaskGateDecision 与公共 Result 查询，P8 V1 已完成 comparable Brief / DatasetCut / immutable Snapshot；但仓库仍无正式 production `TaskUnitExecutionPort`、Schedule / CI / Webhook Adapter 和超过 64 Units 的可恢复分区物化。只有数据库中存在 exact Seal Fact 时才允许 Task Workflow 表达 `PASSED`，ClosureNotice 只能使 Resolution 得到 `INCONCLUSIVE / NOT_EVALUATED`。
+- P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；P6-02A Evidence Writer / 受控读取、P6-02B1 DebugRun Live Snapshot / SSE 与 P6-02B2 UnitAttempt LiveSession / ControlLease / Epoch / Fence / Human Takeover / ActionGrant 已完成。真实 SaaS Operation / Route Registry、生产 Bucket Object Lock / Versioning、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
 - 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

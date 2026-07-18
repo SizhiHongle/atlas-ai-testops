@@ -246,6 +246,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/internal/v1/live-control:reap-expired": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 回收当前 Tenant 的过期 Live controller */
+        post: operations["reap_expired_live_control_internal_v1_live_control_reap_expired_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/unit-attempts/{attemptId}/action-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 签发持久化、单次、Epoch/Fence 绑定的 ActionGrant */
+        post: operations["issue_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/unit-attempts/{attemptId}/action-grants/{grantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 恢复 ActionGrant 的单次消费与回执状态 */
+        get: operations["get_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants__grantId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/unit-attempts/{attemptId}/action-grants/{grantId}:complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 写入 ExecutionReceipt 并推进 Browser Revision */
+        post: operations["complete_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants__grantId__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/unit-attempts/{attemptId}/action-grants/{grantId}:consume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 在 Playwright 副作用前原子消费 ActionGrant */
+        post: operations["consume_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants__grantId__consume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/unit-attempts/{attemptId}/live-control:acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 确认 Safe Point 或 reconcile 并原子交换 Epoch/Fence */
+        post: operations["acknowledge_live_control_internal_v1_unit_attempts__attemptId__live_control_acknowledge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/unit-attempts/{attemptId}/live-control:heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 续租当前 Agent controller 且不改变 Epoch/Fence */
+        post: operations["heartbeat_live_control_internal_v1_unit_attempts__attemptId__live_control_heartbeat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/unit-attempts/{attemptId}/live-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 建立或精确重放 UnitAttempt LiveSession */
+        put: operations["initialize_live_session_internal_v1_unit_attempts__attemptId__live_session_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/account-pools/{poolId}": {
         parameters: {
             query?: never;
@@ -1885,6 +2021,108 @@ export interface paths {
         patch: operations["update_test_role_v1_test_roles__roleId__patch"];
         trace?: never;
     };
+    "/v1/unit-attempts/{attemptId}/commands/{commandId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 LiveControlCommand 状态 */
+        get: operations["get_unit_attempt_live_command_v1_unit_attempts__attemptId__commands__commandId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/unit-attempts/{attemptId}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 请求 UnitAttempt 在 Action Safe Point 暂停 */
+        post: operations["pause_unit_attempt_v1_unit_attempts__attemptId__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/unit-attempts/{attemptId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 请求恢复 Agent controller */
+        post: operations["resume_unit_attempt_v1_unit_attempts__attemptId__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/unit-attempts/{attemptId}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 请求 reconcile 后交还 Agent controller */
+        post: operations["return_unit_attempt_control_v1_unit_attempts__attemptId__return_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/unit-attempts/{attemptId}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取正式 UnitAttempt LiveSnapshot */
+        get: operations["get_unit_attempt_live_snapshot_v1_unit_attempts__attemptId__snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/unit-attempts/{attemptId}/takeover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 请求 quiesce 后安全交接给 Human controller */
+        post: operations["takeover_unit_attempt_v1_unit_attempts__attemptId__takeover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2255,6 +2493,27 @@ export interface components {
          * @enum {string}
          */
         AccountSyncStatus: "NOT_APPLICABLE" | "IN_SYNC" | "CONFLICT" | "TOMBSTONED";
+        /**
+         * AcknowledgeLiveControl
+         * @description Worker safe-point or reconcile acknowledgement.
+         */
+        AcknowledgeLiveControl: {
+            /** Agentownerid */
+            agentOwnerId: string;
+            /** Browserrevision */
+            browserRevision: number;
+            /** Checkpointdigest */
+            checkpointDigest: string;
+            /**
+             * Commandid
+             * Format: uuid
+             */
+            commandId: string;
+            /** Expectedcontrolepoch */
+            expectedControlEpoch: number;
+            /** Expectedfencingtoken */
+            expectedFencingToken: number;
+        };
         /**
          * AcquireAccountLease
          * @description 为一个 Execution 申请单个独占账号租约。
@@ -2995,6 +3254,24 @@ export interface components {
             nodeId: string;
         };
         /**
+         * CompleteLiveActionGrant
+         * @description Worker receipt attached after the adapter returns or becomes unknown.
+         */
+        CompleteLiveActionGrant: {
+            /** Controlepoch */
+            controlEpoch: number;
+            executionStatus: components["schemas"]["LiveActionExecutionStatus"];
+            /** Fencingtoken */
+            fencingToken: number;
+            /**
+             * Receiptid
+             * Format: uuid
+             */
+            receiptId: string;
+            /** Resultingpagerevision */
+            resultingPageRevision: number;
+        };
+        /**
          * ConnectorInstallation
          * @description 不暴露配置引用的 Connector 管理投影。
          */
@@ -3100,6 +3377,100 @@ export interface components {
          * @enum {string}
          */
         ConnectorStatus: "DRAFT" | "ACTIVE" | "DEGRADED" | "DISABLED";
+        /**
+         * ConsumeLiveActionGrant
+         * @description Worker-side compare-and-consume request before Playwright side effects.
+         */
+        ConsumeLiveActionGrant: {
+            /** Controlepoch */
+            controlEpoch: number;
+            /** Fencingtoken */
+            fencingToken: number;
+            /** Proposaldigest */
+            proposalDigest: string;
+        };
+        /**
+         * ControlLease
+         * @description Exclusive, short-lived controller lease with a monotonic fence.
+         */
+        ControlLease: {
+            /** Controlepoch */
+            controlEpoch: number;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Createdby */
+            createdBy?: string | null;
+            /**
+             * Executionunitid
+             * Format: uuid
+             */
+            executionUnitId: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /** Fencingtoken */
+            fencingToken: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Livesessionid
+             * Format: uuid
+             */
+            liveSessionId: string;
+            /** Ownerid */
+            ownerId: string;
+            ownerType: components["schemas"]["LiveControllerType"];
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Reason */
+            reason: string;
+            /** Releasedat */
+            releasedAt?: string | null;
+            /**
+             * Schemaversion
+             * @default atlas.control-lease/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.control-lease/0.1";
+            state: components["schemas"]["ControlLeaseState"];
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Unitattemptid
+             * Format: uuid
+             */
+            unitAttemptId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * ControlLeaseState
+         * @description Durable lifecycle for one exclusive controller lease.
+         * @enum {string}
+         */
+        ControlLeaseState: "ACTIVE" | "REVOKING" | "EXPIRED" | "RELEASED";
         /**
          * CreateAccountPool
          * @description 在一个 Environment 中创建独占账号池。
@@ -5530,6 +5901,21 @@ export interface components {
             ttlSeconds?: number | null;
         };
         /**
+         * HeartbeatLiveControl
+         * @description Renew the current Agent lease without changing its epoch or fence.
+         */
+        HeartbeatLiveControl: {
+            /** Controlepoch */
+            controlEpoch: number;
+            /** Fencingtoken */
+            fencingToken: number;
+            /**
+             * Requestedttlsec
+             * @default 120
+             */
+            requestedTtlSec: number;
+        };
+        /**
          * IdempotencyMode
          * @description Supported provider idempotency and reconciliation strategies.
          * @enum {string}
@@ -5543,6 +5929,26 @@ export interface components {
             /** Markerinput */
             markerInput?: string | null;
             mode: components["schemas"]["IdempotencyMode"];
+        };
+        /**
+         * InitializeLiveSession
+         * @description Worker request that establishes the initial Agent controller.
+         */
+        InitializeLiveSession: {
+            /**
+             * Browserrevision
+             * @default 1
+             */
+            browserRevision: number;
+            /** Browsersessionid */
+            browserSessionId: string;
+            /** Ownerid */
+            ownerId: string;
+            /**
+             * Requestedttlsec
+             * @default 120
+             */
+            requestedTtlSec: number;
         };
         /**
          * InsightBrief
@@ -5941,6 +6347,302 @@ export interface components {
             targetPort: string;
             value: components["schemas"]["JsonValue"];
         };
+        /**
+         * LiveActionExecutionStatus
+         * @description Adapter outcome attached after a consumed Grant.
+         * @enum {string}
+         */
+        LiveActionExecutionStatus: "SUCCEEDED" | "FAILED" | "OUTCOME_UNKNOWN";
+        /**
+         * LiveActionGrant
+         * @description Persistent, single-use, epoch/fence-bound action capability.
+         */
+        LiveActionGrant: {
+            /**
+             * Actionid
+             * Format: uuid
+             */
+            actionId: string;
+            /** Allowedadapter */
+            allowedAdapter: string;
+            /** Browsersessionid */
+            browserSessionId: string;
+            /** Completedat */
+            completedAt?: string | null;
+            /** Consumedat */
+            consumedAt?: string | null;
+            /** Controlepoch */
+            controlEpoch: number;
+            /**
+             * Controlleaseid
+             * Format: uuid
+             */
+            controlLeaseId: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            executionStatus?: components["schemas"]["LiveActionExecutionStatus"] | null;
+            /**
+             * Executionunitid
+             * Format: uuid
+             */
+            executionUnitId: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /** Fencingtoken */
+            fencingToken: number;
+            /**
+             * Grantid
+             * Format: uuid
+             */
+            grantId: string;
+            /**
+             * Livesessionid
+             * Format: uuid
+             */
+            liveSessionId: string;
+            /**
+             * Maxexecutions
+             * @default 1
+             * @constant
+             */
+            maxExecutions: 1;
+            /** Ownerid */
+            ownerId: string;
+            ownerType: components["schemas"]["LiveControllerType"];
+            /** Pageid */
+            pageId: string;
+            /** Pagerevision */
+            pageRevision: number;
+            /** Policydigest */
+            policyDigest: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Proposaldigest */
+            proposalDigest: string;
+            /** Receiptid */
+            receiptId?: string | null;
+            /** Resultingpagerevision */
+            resultingPageRevision?: number | null;
+            /** Revokedat */
+            revokedAt?: string | null;
+            /**
+             * Schemaversion
+             * @default atlas.live-action-grant/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.live-action-grant/0.1";
+            state: components["schemas"]["LiveActionGrantState"];
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Unitattemptid
+             * Format: uuid
+             */
+            unitAttemptId: string;
+        };
+        /**
+         * LiveActionGrantState
+         * @description Single-use action capability lifecycle.
+         * @enum {string}
+         */
+        LiveActionGrantState: "ISSUED" | "CONSUMED" | "COMPLETED" | "REVOKED";
+        /**
+         * LiveControlCommand
+         * @description Idempotent requested transition over one exact control epoch.
+         */
+        LiveControlCommand: {
+            /** Acceptedsessionrevision */
+            acceptedSessionRevision: number;
+            /** Appliedat */
+            appliedAt?: string | null;
+            /** Checkpointdigest */
+            checkpointDigest?: string | null;
+            /** Clientmutationid */
+            clientMutationId: string;
+            commandType: components["schemas"]["LiveControlCommandType"];
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Executionunitid
+             * Format: uuid
+             */
+            executionUnitId: string;
+            /** Expectedcontrolepoch */
+            expectedControlEpoch: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Livesessionid
+             * Format: uuid
+             */
+            liveSessionId: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Reason */
+            reason: string;
+            /** Requestedby */
+            requestedBy?: string | null;
+            /** Requestedttlsec */
+            requestedTtlSec?: number | null;
+            /** Resultingcontrolepoch */
+            resultingControlEpoch?: number | null;
+            /** Resultingfencingtoken */
+            resultingFencingToken?: number | null;
+            /**
+             * Schemaversion
+             * @default atlas.live-control-command/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.live-control-command/0.1";
+            status: components["schemas"]["LiveControlCommandStatus"];
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Unitattemptid
+             * Format: uuid
+             */
+            unitAttemptId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * LiveControlCommandStatus
+         * @description Durable command status visible to callers and Workers.
+         * @enum {string}
+         */
+        LiveControlCommandStatus: "PENDING" | "APPLIED" | "REJECTED";
+        /**
+         * LiveControlCommandType
+         * @description Commands accepted by the asynchronous live-control REST lane.
+         * @enum {string}
+         */
+        LiveControlCommandType: "PAUSE" | "RESUME" | "TAKEOVER" | "RETURN";
+        /**
+         * LiveControllerType
+         * @description The exclusive controller kind for one BrowserSession.
+         * @enum {string}
+         */
+        LiveControllerType: "AGENT" | "HUMAN";
+        /**
+         * LiveSession
+         * @description Rebuildable live projection rooted in one exact formal UnitAttempt.
+         */
+        LiveSession: {
+            /** Browserrevision */
+            browserRevision: number;
+            /** Browsersessionid */
+            browserSessionId: string;
+            /** Closedat */
+            closedAt?: string | null;
+            /** Controlepoch */
+            controlEpoch: number;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Executionticketdigest */
+            executionTicketDigest: string;
+            /**
+             * Executionticketid
+             * Format: uuid
+             */
+            executionTicketId: string;
+            /**
+             * Executionunitid
+             * Format: uuid
+             */
+            executionUnitId: string;
+            /** Fencingtoken */
+            fencingToken: number;
+            /**
+             * Humaninfluenced
+             * @default false
+             */
+            humanInfluenced: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Schemaversion
+             * @default atlas.live-session/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.live-session/0.1";
+            state: components["schemas"]["LiveSessionState"];
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Unitattemptid
+             * Format: uuid
+             */
+            unitAttemptId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * LiveSessionState
+         * @description Control-plane state independent from UnitAttempt lifecycle.
+         * @enum {string}
+         */
+        LiveSessionState: "AGENT_CONTROLLED" | "QUIESCING" | "PAUSED" | "RESUME_REQUESTED" | "HUMAN_CONTROLLED" | "RECONCILING" | "NO_CONTROLLER" | "CLOSED";
         /**
          * LoginCommand
          * @description 账号密码登录命令；Workspace Context 必须显式选择。
@@ -6428,6 +7130,19 @@ export interface components {
             reaped: number;
         };
         /**
+         * ReapedLiveControlBatch
+         * @description Bounded tenant-scoped expired controller reconciliation result.
+         */
+        ReapedLiveControlBatch: {
+            /**
+             * Observedat
+             * Format: date-time
+             */
+            observedAt: string;
+            /** Reaped */
+            reaped: number;
+        };
+        /**
          * ReconcileContract
          * @description A reviewed lookup used after an uncertain provider outcome.
          */
@@ -6568,6 +7283,46 @@ export interface components {
              * @enum {integer}
              */
             windowDays: 7 | 30 | 90;
+        };
+        /**
+         * RequestLiveActionGrant
+         * @description One exact structured action approved by a trusted policy boundary.
+         */
+        RequestLiveActionGrant: {
+            /**
+             * Actionid
+             * Format: uuid
+             */
+            actionId: string;
+            /** Allowedadapter */
+            allowedAdapter: string;
+            /** Controlepoch */
+            controlEpoch: number;
+            /** Fencingtoken */
+            fencingToken: number;
+            /** Pageid */
+            pageId: string;
+            /** Pagerevision */
+            pageRevision: number;
+            /** Policydigest */
+            policyDigest: string;
+            /** Proposaldigest */
+            proposalDigest: string;
+            /**
+             * Requestedttlsec
+             * @default 15
+             */
+            requestedTtlSec: number;
+        };
+        /**
+         * RequestLiveControl
+         * @description Safe public reason and bounded Human lease duration.
+         */
+        RequestLiveControl: {
+            /** Reason */
+            reason: string;
+            /** Requestedttlsec */
+            requestedTtlSec?: number | null;
         };
         /**
          * RequestTaskGateEvaluation
@@ -8259,6 +9014,26 @@ export interface components {
             temporalWorkflowId?: null;
         });
         /**
+         * UnitAttemptLiveSnapshot
+         * @description Consistent current control projection for one UnitAttempt.
+         */
+        UnitAttemptLiveSnapshot: {
+            lease?: components["schemas"]["ControlLease"] | null;
+            /**
+             * Observedat
+             * Format: date-time
+             */
+            observedAt: string;
+            pendingCommand?: components["schemas"]["LiveControlCommand"] | null;
+            /**
+             * Schemaversion
+             * @default atlas.unit-attempt-live-snapshot/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.unit-attempt-live-snapshot/0.1";
+            session: components["schemas"]["LiveSession"];
+        };
+        /**
          * UnitAttemptPage
          * @description Attempt-number page for one ExecutionUnit.
          */
@@ -9746,6 +10521,644 @@ export interface operations {
             };
             /** @description 服务内部错误 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    reap_expired_live_control_internal_v1_live_control_reap_expired_post: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReapedLiveControlBatch"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description LiveSession 或 ActionGrant 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Epoch/Fence、Safe Point 或单次消费冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    issue_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestLiveActionGrant"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionGrant"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description LiveSession 或 ActionGrant 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Epoch/Fence、Safe Point 或单次消费冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants__grantId__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+                grantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionGrant"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description LiveSession 或 ActionGrant 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Epoch/Fence、Safe Point 或单次消费冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    complete_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants__grantId__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+                grantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteLiveActionGrant"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionGrant"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description LiveSession 或 ActionGrant 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Epoch/Fence、Safe Point 或单次消费冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    consume_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants__grantId__consume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+                grantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsumeLiveActionGrant"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionGrant"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description LiveSession 或 ActionGrant 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Epoch/Fence、Safe Point 或单次消费冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    acknowledge_live_control_internal_v1_unit_attempts__attemptId__live_control_acknowledge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcknowledgeLiveControl"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitAttemptLiveSnapshot"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description LiveSession 或 ActionGrant 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Epoch/Fence、Safe Point 或单次消费冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    heartbeat_live_control_internal_v1_unit_attempts__attemptId__live_control_heartbeat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HeartbeatLiveControl"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitAttemptLiveSnapshot"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description LiveSession 或 ActionGrant 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Epoch/Fence、Safe Point 或单次消费冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    initialize_live_session_internal_v1_unit_attempts__attemptId__live_session_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InitializeLiveSession"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitAttemptLiveSnapshot"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description LiveSession 或 ActionGrant 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Epoch/Fence、Safe Point 或单次消费冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -20418,6 +21831,445 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProblemDetails"];
                 };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_unit_attempt_live_command_v1_unit_attempts__attemptId__commands__commandId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                attemptId: string;
+                commandId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveControlCommand"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description UnitAttempt LiveSession 不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    pause_unit_attempt_v1_unit_attempts__attemptId__pause_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestLiveControl"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveControlCommand"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色或 Environment 不能控制该 UnitAttempt */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description UnitAttempt LiveSession 不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Control Epoch、Lease、Safe Point 或状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 控制命令不符合契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    resume_unit_attempt_v1_unit_attempts__attemptId__resume_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestLiveControl"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveControlCommand"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色或 Environment 不能控制该 UnitAttempt */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description UnitAttempt LiveSession 不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Control Epoch、Lease、Safe Point 或状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 控制命令不符合契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    return_unit_attempt_control_v1_unit_attempts__attemptId__return_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestLiveControl"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveControlCommand"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色或 Environment 不能控制该 UnitAttempt */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description UnitAttempt LiveSession 不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Control Epoch、Lease、Safe Point 或状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 控制命令不符合契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_unit_attempt_live_snapshot_v1_unit_attempts__attemptId__snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitAttemptLiveSnapshot"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description UnitAttempt LiveSession 不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    takeover_unit_attempt_v1_unit_attempts__attemptId__takeover_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestLiveControl"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveControlCommand"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色或 Environment 不能控制该 UnitAttempt */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description UnitAttempt LiveSession 不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Control Epoch、Lease、Safe Point 或状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 控制命令不符合契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description 服务内部错误 */
             500: {

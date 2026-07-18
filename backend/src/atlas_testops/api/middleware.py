@@ -113,7 +113,9 @@ async def browser_runtime_body_limit_middleware(
 ) -> Response:
     """Reject unbounded/chunked Runtime commands before FastAPI buffers their body."""
 
-    if not request.url.path.startswith("/internal/v1/debug-runs/"):
+    if not request.url.path.startswith(
+        ("/internal/v1/debug-runs/", "/internal/v1/unit-attempts/")
+    ):
         return await call_next(request)
     content_length = request.headers.get("Content-Length")
     if not (request.method == "GET" and content_length in {None, "0"}):

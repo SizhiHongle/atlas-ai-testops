@@ -40,6 +40,7 @@ from atlas_testops.domain.runtime import (
     BrowserExecutionBundle,
     EvidenceManifest,
     ExecutionContract,
+    UnitAttemptLiveSnapshot,
 )
 from atlas_testops.domain.task import (
     BrowserProfileVersion,
@@ -119,6 +120,9 @@ FAILURE_CLASSIFICATION_REVISION_SCHEMA = (
 )
 TASK_GATE_DECISION_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-gate-decision.schema.json"
 INSIGHT_SNAPSHOT_SCHEMA = REPOSITORY_ROOT / "contracts" / "insight-snapshot.schema.json"
+UNIT_ATTEMPT_LIVE_SNAPSHOT_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "unit-attempt-live-snapshot.schema.json"
+)
 
 
 def render_schema(model: type[BaseModel], schema_id: str) -> str:
@@ -311,6 +315,10 @@ def main() -> None:
         INSIGHT_SNAPSHOT_SCHEMA: render_schema(
             InsightSnapshot,
             "https://atlas.test/contracts/insight-snapshot/0.1/schema.json",
+        ),
+        UNIT_ATTEMPT_LIVE_SNAPSHOT_SCHEMA: render_schema(
+            UnitAttemptLiveSnapshot,
+            "https://atlas.test/contracts/unit-attempt-live-snapshot/0.1/schema.json",
         ),
     }
 

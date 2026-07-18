@@ -73,6 +73,10 @@ TaskPlanVersion
 | `ExecutionUnit` | CaseVersion 与矩阵单元形成的逻辑测试槽位 | P5-00A 已落地；Manifest 身份创建后不可变，PostgreSQL |
 | `TaskRetryPolicy` | TaskRun Manifest 冻结的自动基础设施重试边界 | `atlas.task-retry-policy/0.1`；限制 per-Unit 次数、Run 总预算、指数退避 / jitter，并以 `infra-retry` policy digest 绑定；只作用于显式 `INFRA_ERROR` |
 | `UnitAttempt` | ExecutionUnit 的一次真实执行 | 自动基础设施重试创建确定性、gapless 新 Attempt；旧 Attempt 不覆盖，Activity retry 不创建新 Attempt，原始 deadline 不延长；Assertion / 产品失败与 `OUTCOME_UNKNOWN` 不自动重试 |
+| `LiveSession` | 一个正式 UnitAttempt 的现场控制会话 | P6-02B2 已落地；精确绑定 immutable Execution Ticket 与 BrowserSession，保存单调 Control Epoch / Fence、Page Revision、Controller 和会话状态 |
+| `ControlLease` | LiveSession 当前控制者的有界租约 | 同一 Session 只有一个 Current Lease；Agent Heartbeat 只能延长有效期，Takeover / Return 通过 Safe Point 和 Reconcile 切换 Agent / Human，过期回收进入 `NO_CONTROLLER` |
+| `LiveControlCommand` | 对 exact LiveSession 发出的追加式异步控制命令 | `PAUSE / RESUME / TAKEOVER / RETURN` 使用强 Epoch ETag 与独立 Idempotency Key；命令只能沿冻结状态机推进，不能靠 UI 自报完成 |
+| `LiveActionGrant` | exact Action 在指定 Epoch / Fence 下的一次性执行授权 | Worker 经内部 Permit + HMAC 获取并原子消费；未消费授权会在 Quiesce、Takeover 或 Lease 回收时撤销，唯一 Receipt 支持 exact replay |
 | `AttemptSeal` | 受信 Runtime 对一个正式 UnitAttempt 产生的 Ed25519 签名终态事实包 | P6-03A 已落地；精确绑定 Manifest、Unit、Execution Ticket、Evidence Policy、Runtime Digest 与事件链，永久不可变；只有已验证且已落库的 Seal 才允许 Task Workflow 表达 `PASSED` |
 | `ResultRef` | FinalizeResult 接受 AttemptSeal 后返回的稳定不透明引用 | 同一 Attempt + 同一 Seal digest 返回同一引用；同一 Attempt 的不同有效 digest 追加 Integrity Incident，不能覆盖既有 Fact |
 | `AttemptClosureNotice` | CLOSED UnitAttempt 未产生 AttemptSeal 时的不可变终态事实 | P6-03B 已落地；与 Seal 每 Attempt 互斥，只能表达 `INCONCLUSIVE / NOT_EVALUATED`，不能制造业务通过或失败 |

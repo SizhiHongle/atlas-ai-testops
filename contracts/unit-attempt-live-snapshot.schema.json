@@ -1,0 +1,553 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/unit-attempt-live-snapshot/0.1/schema.json",
+  "$defs": {
+    "ControlLease": {
+      "additionalProperties": false,
+      "description": "Exclusive, short-lived controller lease with a monotonic fence.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.control-lease/0.1",
+          "default": "atlas.control-lease/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "tenantId": {
+          "format": "uuid",
+          "title": "Tenantid",
+          "type": "string"
+        },
+        "projectId": {
+          "format": "uuid",
+          "title": "Projectid",
+          "type": "string"
+        },
+        "taskRunId": {
+          "format": "uuid",
+          "title": "Taskrunid",
+          "type": "string"
+        },
+        "executionUnitId": {
+          "format": "uuid",
+          "title": "Executionunitid",
+          "type": "string"
+        },
+        "unitAttemptId": {
+          "format": "uuid",
+          "title": "Unitattemptid",
+          "type": "string"
+        },
+        "liveSessionId": {
+          "format": "uuid",
+          "title": "Livesessionid",
+          "type": "string"
+        },
+        "ownerType": {
+          "$ref": "#/$defs/LiveControllerType"
+        },
+        "ownerId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{1,199}$",
+          "title": "Ownerid",
+          "type": "string"
+        },
+        "controlEpoch": {
+          "minimum": 1,
+          "title": "Controlepoch",
+          "type": "integer"
+        },
+        "fencingToken": {
+          "minimum": 1,
+          "title": "Fencingtoken",
+          "type": "integer"
+        },
+        "state": {
+          "$ref": "#/$defs/ControlLeaseState"
+        },
+        "expiresAt": {
+          "format": "date-time",
+          "title": "Expiresat",
+          "type": "string"
+        },
+        "reason": {
+          "pattern": "^[^\\x00-\\x1f\\x7f]{1,500}$",
+          "title": "Reason",
+          "type": "string"
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Createdby"
+        },
+        "createdAt": {
+          "format": "date-time",
+          "title": "Createdat",
+          "type": "string"
+        },
+        "updatedAt": {
+          "format": "date-time",
+          "title": "Updatedat",
+          "type": "string"
+        },
+        "releasedAt": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Releasedat"
+        }
+      },
+      "required": [
+        "id",
+        "tenantId",
+        "projectId",
+        "taskRunId",
+        "executionUnitId",
+        "unitAttemptId",
+        "liveSessionId",
+        "ownerType",
+        "ownerId",
+        "controlEpoch",
+        "fencingToken",
+        "state",
+        "expiresAt",
+        "reason",
+        "createdAt",
+        "updatedAt"
+      ],
+      "title": "ControlLease",
+      "type": "object"
+    },
+    "ControlLeaseState": {
+      "description": "Durable lifecycle for one exclusive controller lease.",
+      "enum": [
+        "ACTIVE",
+        "REVOKING",
+        "EXPIRED",
+        "RELEASED"
+      ],
+      "title": "ControlLeaseState",
+      "type": "string"
+    },
+    "LiveControlCommand": {
+      "additionalProperties": false,
+      "description": "Idempotent requested transition over one exact control epoch.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.live-control-command/0.1",
+          "default": "atlas.live-control-command/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "tenantId": {
+          "format": "uuid",
+          "title": "Tenantid",
+          "type": "string"
+        },
+        "projectId": {
+          "format": "uuid",
+          "title": "Projectid",
+          "type": "string"
+        },
+        "taskRunId": {
+          "format": "uuid",
+          "title": "Taskrunid",
+          "type": "string"
+        },
+        "executionUnitId": {
+          "format": "uuid",
+          "title": "Executionunitid",
+          "type": "string"
+        },
+        "unitAttemptId": {
+          "format": "uuid",
+          "title": "Unitattemptid",
+          "type": "string"
+        },
+        "liveSessionId": {
+          "format": "uuid",
+          "title": "Livesessionid",
+          "type": "string"
+        },
+        "commandType": {
+          "$ref": "#/$defs/LiveControlCommandType"
+        },
+        "clientMutationId": {
+          "maxLength": 200,
+          "minLength": 8,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+          "title": "Clientmutationid",
+          "type": "string"
+        },
+        "reason": {
+          "pattern": "^[^\\x00-\\x1f\\x7f]{1,500}$",
+          "title": "Reason",
+          "type": "string"
+        },
+        "requestedTtlSec": {
+          "anyOf": [
+            {
+              "maximum": 900,
+              "minimum": 30,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requestedttlsec"
+        },
+        "expectedControlEpoch": {
+          "minimum": 1,
+          "title": "Expectedcontrolepoch",
+          "type": "integer"
+        },
+        "acceptedSessionRevision": {
+          "minimum": 1,
+          "title": "Acceptedsessionrevision",
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/LiveControlCommandStatus"
+        },
+        "requestedBy": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requestedby"
+        },
+        "createdAt": {
+          "format": "date-time",
+          "title": "Createdat",
+          "type": "string"
+        },
+        "updatedAt": {
+          "format": "date-time",
+          "title": "Updatedat",
+          "type": "string"
+        },
+        "appliedAt": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Appliedat"
+        },
+        "resultingControlEpoch": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resultingcontrolepoch"
+        },
+        "resultingFencingToken": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resultingfencingtoken"
+        },
+        "checkpointDigest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checkpointdigest"
+        }
+      },
+      "required": [
+        "id",
+        "tenantId",
+        "projectId",
+        "taskRunId",
+        "executionUnitId",
+        "unitAttemptId",
+        "liveSessionId",
+        "commandType",
+        "clientMutationId",
+        "reason",
+        "expectedControlEpoch",
+        "acceptedSessionRevision",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "title": "LiveControlCommand",
+      "type": "object"
+    },
+    "LiveControlCommandStatus": {
+      "description": "Durable command status visible to callers and Workers.",
+      "enum": [
+        "PENDING",
+        "APPLIED",
+        "REJECTED"
+      ],
+      "title": "LiveControlCommandStatus",
+      "type": "string"
+    },
+    "LiveControlCommandType": {
+      "description": "Commands accepted by the asynchronous live-control REST lane.",
+      "enum": [
+        "PAUSE",
+        "RESUME",
+        "TAKEOVER",
+        "RETURN"
+      ],
+      "title": "LiveControlCommandType",
+      "type": "string"
+    },
+    "LiveControllerType": {
+      "description": "The exclusive controller kind for one BrowserSession.",
+      "enum": [
+        "AGENT",
+        "HUMAN"
+      ],
+      "title": "LiveControllerType",
+      "type": "string"
+    },
+    "LiveSession": {
+      "additionalProperties": false,
+      "description": "Rebuildable live projection rooted in one exact formal UnitAttempt.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.live-session/0.1",
+          "default": "atlas.live-session/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "tenantId": {
+          "format": "uuid",
+          "title": "Tenantid",
+          "type": "string"
+        },
+        "projectId": {
+          "format": "uuid",
+          "title": "Projectid",
+          "type": "string"
+        },
+        "taskRunId": {
+          "format": "uuid",
+          "title": "Taskrunid",
+          "type": "string"
+        },
+        "executionUnitId": {
+          "format": "uuid",
+          "title": "Executionunitid",
+          "type": "string"
+        },
+        "unitAttemptId": {
+          "format": "uuid",
+          "title": "Unitattemptid",
+          "type": "string"
+        },
+        "executionTicketId": {
+          "format": "uuid",
+          "title": "Executionticketid",
+          "type": "string"
+        },
+        "executionTicketDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Executionticketdigest",
+          "type": "string"
+        },
+        "browserSessionId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{1,199}$",
+          "title": "Browsersessionid",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/LiveSessionState"
+        },
+        "controlEpoch": {
+          "minimum": 1,
+          "title": "Controlepoch",
+          "type": "integer"
+        },
+        "fencingToken": {
+          "minimum": 1,
+          "title": "Fencingtoken",
+          "type": "integer"
+        },
+        "browserRevision": {
+          "minimum": 1,
+          "title": "Browserrevision",
+          "type": "integer"
+        },
+        "humanInfluenced": {
+          "default": false,
+          "title": "Humaninfluenced",
+          "type": "boolean"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "createdAt": {
+          "format": "date-time",
+          "title": "Createdat",
+          "type": "string"
+        },
+        "updatedAt": {
+          "format": "date-time",
+          "title": "Updatedat",
+          "type": "string"
+        },
+        "closedAt": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Closedat"
+        }
+      },
+      "required": [
+        "id",
+        "tenantId",
+        "projectId",
+        "taskRunId",
+        "executionUnitId",
+        "unitAttemptId",
+        "executionTicketId",
+        "executionTicketDigest",
+        "browserSessionId",
+        "state",
+        "controlEpoch",
+        "fencingToken",
+        "browserRevision",
+        "revision",
+        "createdAt",
+        "updatedAt"
+      ],
+      "title": "LiveSession",
+      "type": "object"
+    },
+    "LiveSessionState": {
+      "description": "Control-plane state independent from UnitAttempt lifecycle.",
+      "enum": [
+        "AGENT_CONTROLLED",
+        "QUIESCING",
+        "PAUSED",
+        "RESUME_REQUESTED",
+        "HUMAN_CONTROLLED",
+        "RECONCILING",
+        "NO_CONTROLLER",
+        "CLOSED"
+      ],
+      "title": "LiveSessionState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Consistent current control projection for one UnitAttempt.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.unit-attempt-live-snapshot/0.1",
+      "default": "atlas.unit-attempt-live-snapshot/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "session": {
+      "$ref": "#/$defs/LiveSession"
+    },
+    "lease": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ControlLease"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "pendingCommand": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LiveControlCommand"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "observedAt": {
+      "format": "date-time",
+      "title": "Observedat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session",
+    "observedAt"
+  ],
+  "title": "UnitAttemptLiveSnapshot",
+  "type": "object"
+}

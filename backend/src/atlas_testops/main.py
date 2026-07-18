@@ -252,6 +252,24 @@ def _install_openapi_security_contract(
             f"{api_v1_prefix}/debug-runs/{{runId}}/events/stream": {
                 "get": [{"PlatformSession": []}],
             },
+            f"{api_v1_prefix}/unit-attempts/{{attemptId}}/snapshot": {
+                "get": [{"PlatformSession": []}],
+            },
+            f"{api_v1_prefix}/unit-attempts/{{attemptId}}/pause": {
+                "post": [{"PlatformSession": []}],
+            },
+            f"{api_v1_prefix}/unit-attempts/{{attemptId}}/resume": {
+                "post": [{"PlatformSession": []}],
+            },
+            f"{api_v1_prefix}/unit-attempts/{{attemptId}}/takeover": {
+                "post": [{"PlatformSession": []}],
+            },
+            f"{api_v1_prefix}/unit-attempts/{{attemptId}}/return": {
+                "post": [{"PlatformSession": []}],
+            },
+            f"{api_v1_prefix}/unit-attempts/{{attemptId}}/commands/{{commandId}}": {
+                "get": [{"PlatformSession": []}],
+            },
         }
         paths = document.get("paths", {})
         for path, methods in secured_paths.items():

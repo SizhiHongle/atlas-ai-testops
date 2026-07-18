@@ -39,6 +39,7 @@
 - `task-run.schema.json`：正式批次的三轴状态、稳定 request digest、`MATERIALIZING → SEALED` 完整性门禁、namespace-scoped Temporal identity，以及 P5-00D3B 的不可变 `rerunOfTaskRunId + INFRA_FAILURES` child lineage。
 - `execution-unit.schema.json`：Manifest 中一个 exact CaseVersion × Matrix Cell 的逻辑执行槽位，绑定 `executionProfileVersionId`，不复用 DebugRun-scoped ExecutionContract。
 - `unit-attempt.schema.json`：ExecutionUnit 的追加式物理尝试及确定性 Temporal identity；业务重试创建新 Attempt，Activity retry 不创建新 Attempt。
+- `unit-attempt-live-snapshot.schema.json`：`atlas.unit-attempt-live-snapshot/0.1` 的正式现场控制投影；精确绑定 UnitAttempt / Execution Ticket，并携带排他 `ControlLease`、单调 Epoch/Fence 与待处理 Safe Point 命令。
 - `task-execution-event.schema.json`：`atlas.execution-event/0.1` 的追加式、单调 Task 执行事件投影。
 - `attempt-seal.schema.json`：`attempt-seal/1.0` 的 Ed25519 签名终态事实；精确绑定正式 UnitAttempt、Execution Ticket、证据策略、Runtime Digest 与事件链。
 - `result-ref.schema.json`：`atlas.result-ref/0.1` 的稳定不透明引用；同一 Attempt 的 exact Seal replay 返回同一引用。
@@ -64,6 +65,6 @@ uv run python scripts/export_openapi.py --check
 
 生成文件使用对外 `camelCase` 字段。Python 代码继续使用 `snake_case`，Pydantic 同时接受两种输入形式。
 
-`AttemptSeal` 只能绑定正式 `UnitAttempt`；P6-03A 已建立签名、canonical hash、不可变 Result Fact、稳定 ResultRef 与 Integrity Incident。P6-03B 使用 ClosureNotice 覆盖无 Seal 终态，并以追加式 UnitResolutionRevision 保留重试历史；P7-01A 已用 TaskResultSnapshot 冻结确定 Resolution 集合与 Snapshot Policy；P7-01B0 已用 AttemptFixtureBinding 和 UnitHygieneResolutionRevision 建立 cleanup truth bridge；P7-01B1 已在 terminal Hygiene 全覆盖后追加 `FULLY_RESOLVED` Snapshot；P7-01B2 已通过显式 TaskResultReevaluationCommand 追加 `REEVALUATED` Snapshot，策略发布不会自动重评；P7-02A 已通过 FailureClusterRevision 与 FailureClassificationRevision 建立 exact Snapshot-bound、证据化且可人工复核的失败归因。Gate 和 Insight 协议仍会在对应领域代码落地时按独立 `schemaVersion` 增加。LiveSession、ControlLease 和持久化 ActionGrant 继续按后续切片独立落地。
+`AttemptSeal` 只能绑定正式 `UnitAttempt`；P6-03A 已建立签名、canonical hash、不可变 Result Fact、稳定 ResultRef 与 Integrity Incident。P6-03B 使用 ClosureNotice 覆盖无 Seal 终态，并以追加式 UnitResolutionRevision 保留重试历史；P7-01A 已用 TaskResultSnapshot 冻结确定 Resolution 集合与 Snapshot Policy；P7-01B0 已用 AttemptFixtureBinding 和 UnitHygieneResolutionRevision 建立 cleanup truth bridge；P7-01B1 已在 terminal Hygiene 全覆盖后追加 `FULLY_RESOLVED` Snapshot；P7-01B2 已通过显式 TaskResultReevaluationCommand 追加 `REEVALUATED` Snapshot；P7-02A、P7-03 与 P8 已分别建立失败归因、Gate 和 Insight 协议。P6-02B2 现已把 `LiveSession / ControlLease / Safe Point / Human Takeover / ActionGrant` 绑定到正式 UnitAttempt；人工影响事实会阻止 `AUTONOMOUS` Seal。
 
 Browser Runtime 的内部 HTTP 端点还要求短期 Tenant / Run / Worker-scoped Execution Permit 和 HMAC Request Signature，且 Staging / Production Runtime API Origin 必须使用 HTTPS；JSON Schema 只约束消息形状，不替代传输层授权、Report Hash-chain State Machine 或数据库不可变约束。Evidence Finalization 会对完整 `AssertionResultInput` / `EvidenceArtifactInput` 重算 Canonical Digest 并与 Report Chain 的 exact 集合匹配；Artifact 还必须来自可信 `BrowserArtifactWriter`，不能由 Operation 自报。

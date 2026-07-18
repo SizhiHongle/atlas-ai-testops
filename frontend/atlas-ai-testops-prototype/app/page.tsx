@@ -69,6 +69,13 @@ import {
 import { useIdentityWallet } from "../lib/api/identity";
 import { useInsightBrief } from "../lib/api/insights";
 import {
+  requestLiveReturn,
+  requestLiveTakeover,
+  useExecutionUnits,
+  useUnitAttemptLiveSnapshot,
+  useUnitAttempts
+} from "../lib/api/live-control";
+import {
   useFailureClusters,
   useTaskResult,
   useTaskRuns,
@@ -894,6 +901,27 @@ export default function Home() {
     : selectedTaskRecord?.status === "running"
       ? selectedTaskRecord
       : baseTaskRuns.find((task) => task.status === "running") ?? baseTaskRuns[0];
+  const liveBackendEnabled = view === "live"
+    && liveMode === "task"
+    && Boolean(selectedTaskRecord?.backendId);
+  const { data: backendExecutionUnits } = useExecutionUnits(
+    selectedTaskRecord?.backendId ?? null,
+    liveBackendEnabled
+  );
+  const selectedBackendUnit = backendExecutionUnits?.[selectedExecution] ?? null;
+  const { data: backendUnitAttempts } = useUnitAttempts(
+    selectedTaskRecord?.backendId ?? null,
+    selectedBackendUnit?.id ?? null,
+    liveBackendEnabled
+  );
+  const selectedBackendAttempt = backendUnitAttempts?.at(-1) ?? null;
+  const {
+    data: backendLiveSnapshot,
+    mutate: refreshBackendLiveSnapshot
+  } = useUnitAttemptLiveSnapshot(
+    selectedBackendAttempt?.id ?? null,
+    liveBackendEnabled
+  );
   const { data: backendTaskResult } = useTaskResult(
     view === "results" ? selectedTaskRecord?.backendId ?? null : null
   );
@@ -1041,6 +1069,24 @@ export default function Home() {
   const selectedRoleLabel = selectedDescriptor?.role ?? "按用例身份";
   const selectedBrowserLabel = selectedDescriptor?.browser ?? "Chromium";
   const selectedCaseLabel = selectedDescriptor?.caseId ?? "TC-1042";
+  const selectedLiveControlState = backendLiveSnapshot?.session.state;
+  const liveControlIntent = selectedLiveControlState === "HUMAN_CONTROLLED"
+    ? "人工已取得排他控制权；所有动作继续走 Policy、Grant 与 Evidence 链"
+    : selectedLiveControlState === "QUIESCING"
+      ? "正在等待当前动作完成并进入 Safe Point，旧 Grant 已停止签发"
+      : selectedLiveControlState === "RECONCILING"
+        ? "正在重建页面事实快照并准备交还 Agent controller"
+        : selectedLiveControlState === "PAUSED"
+          ? "当前执行已在 Action Safe Point 暂停"
+          : selectedLiveControlState === "RESUME_REQUESTED"
+            ? "正在校验 Context、Lease 与 Environment Permit"
+            : selectedLiveControlState === "NO_CONTROLLER"
+              ? "当前没有有效 controller，等待恢复"
+              : null;
+  const liveControlButtonLabel = selectedLiveControlState === "HUMAN_CONTROLLED"
+    || selectedLiveControlState === "RECONCILING"
+    ? "交还当前执行"
+    : "接管当前执行";
   const workerLanes = activeTaskVersions.length ? activeTaskVersions.map((version) => `${version.caseName} · ${version.role}`) : ["客户筛选 · 销售", "客户筛选 · 主管", "权限边界 · 客服", "来访绑定 · 销售", "空结果 · 主管", "账号租约 · 客服"];
   const clusterSignal = selectedClusterFact
     ? `${selectedClusterFact.cluster.signal.signalCode} · ${selectedClusterFact.cluster.signal.closureReason}`
@@ -1376,6 +1422,33 @@ export default function Home() {
     setToast(`${total} 个 Execution 已按“${taskTrigger}”创建调度`);
   }
 
+  async function controlCurrentExecution() {
+    if (!backendLiveSnapshot) {
+      setToast("当前 Execution 尚未建立正式 LiveSession");
+      return;
+    }
+    try {
+      if (backendLiveSnapshot.session.state === "HUMAN_CONTROLLED") {
+        await requestLiveReturn(
+          backendLiveSnapshot,
+          "从任务现场交还当前执行"
+        );
+        setToast("交还请求已记录，正在 reconcile 页面事实");
+      } else if (backendLiveSnapshot.session.state === "AGENT_CONTROLLED") {
+        await requestLiveTakeover(
+          backendLiveSnapshot,
+          "从任务现场检查当前执行"
+        );
+        setToast("接管请求已记录，正在等待 Action Safe Point");
+      } else {
+        setToast(`当前控制状态为 ${backendLiveSnapshot.session.state}，请等待状态收敛`);
+      }
+      await refreshBackendLiveSnapshot();
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Live Control 请求失败");
+    }
+  }
+
   function launchSingleRun() {
     if (!graphValidation.valid) {
       setToast(`无法调试：${graphValidation.issues[0]}`);
@@ -1671,10 +1744,10 @@ export default function Home() {
           {selectedExecutionState === "queued" ? <div className="execution-state-card waiting"><Clock3 size={22} /><span>WAITING FOR DISPATCH</span><strong>等待 Worker 与身份租约</strong><small>队列位置 {selectedExecution - completedExecutions + 1}</small></div> : selectedExecutionState === "infra" ? <div className="execution-state-card failed"><Globe2 size={22} /><span>ENVIRONMENT FAILED</span><strong>浏览器上下文创建超时</strong><small>将使用新身份租约自动重试</small></div> : <div className="execution-mini-browser"><header><i /><i /><i /><span>客户空间</span></header><main><div><Search size={13} /><span>TRK-{String(100 + selectedExecution)}</span><button>查询</button></div><p><strong>AI 测试客户 {selectedExecution + 1}</strong><code>{selectedExecutionState === "product" ? "502 ERROR" : `VIS-${2048 + selectedExecution}`}</code></p><em><MousePointer2 size={14} />{selectedExecutionState === "passed" ? "断言与证据已完成" : selectedExecutionState === "flaky" ? "正在进行 Flaky 复验" : selectedExecutionState === "product" ? "Agent 已捕获接口失败" : "Agent 正在验证结果行"}</em></main></div>}
           <div className="execution-path">{(activeExecutionWorkflow.length ? activeExecutionWorkflow.slice(0, 5).map((step) => step.name) : ["数据", "身份", "页面", "Agent", "断言"]).map((step, index, all) => <span className={index < all.length - 1 ? "done" : "current"} key={`${step}-${index}`}><i>{index < all.length - 1 ? <Check size={9} /> : index + 1}</i>{step}</span>)}</div>
           <div className="execution-evidence"><button><Camera size={14} /><span>截图</span><b>12</b></button><button><Network size={14} /><span>网络</span><b>36</b></button><button><Terminal size={14} /><span>日志</span><b>24</b></button></div>
-          <div className="execution-agent-note"><BrainCircuit size={16} /><div><span>AGENT INTENT</span><strong>{selectedExecutionState === "queued" ? "等待执行上下文，不提前消耗 Agent 预算" : selectedExecutionState === "infra" ? "申请新的浏览器与身份租约后重试" : selectedExecutionState === "product" ? "保全接口、页面和数据证据并停止自动重试" : "确认筛选结果与预加载客户关系一致"}</strong></div></div>
+          <div className="execution-agent-note"><BrainCircuit size={16} /><div><span>AGENT INTENT</span><strong>{liveControlIntent ?? (selectedExecutionState === "queued" ? "等待执行上下文，不提前消耗 Agent 预算" : selectedExecutionState === "infra" ? "申请新的浏览器与身份租约后重试" : selectedExecutionState === "product" ? "保全接口、页面和数据证据并停止自动重试" : "确认筛选结果与预加载客户关系一致")}</strong></div></div>
         </aside>
 
-        <div className="batch-controls"><button onClick={() => setToast(`已重新调度环境失败的 ${executionCounts.infra} 个 Execution`)}><RefreshCw size={15} />仅重跑环境失败</button><button className="control-main" onClick={() => setRunning((value) => !value)}>{running ? <Pause size={15} /> : <Play size={15} />}{running ? "暂停派发" : "继续派发"}</button><button onClick={() => setToast("已进入人工接管模式")}><Eye size={15} />接管当前执行</button><i /><span>{completedExecutions} / {selectedTaskTotal}</span><button onClick={() => navigate("results")}>查看阶段结果 <ArrowUpRight size={15} /></button></div>
+        <div className="batch-controls"><button onClick={() => setToast(`已重新调度环境失败的 ${executionCounts.infra} 个 Execution`)}><RefreshCw size={15} />仅重跑环境失败</button><button className="control-main" onClick={() => setRunning((value) => !value)}>{running ? <Pause size={15} /> : <Play size={15} />}{running ? "暂停派发" : "继续派发"}</button><button onClick={controlCurrentExecution}><Eye size={15} />{liveControlButtonLabel}</button><i /><span>{completedExecutions} / {selectedTaskTotal}</span><button onClick={() => navigate("results")}>查看阶段结果 <ArrowUpRight size={15} /></button></div>
       </div>
     </section>
   );

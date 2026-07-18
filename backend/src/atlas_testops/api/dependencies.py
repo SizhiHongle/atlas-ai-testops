@@ -21,6 +21,7 @@ from atlas_testops.application.identity import IdentityService
 from atlas_testops.application.insights import InsightService
 from atlas_testops.application.leases import LeaseService
 from atlas_testops.application.live import DebugLiveService, DebugLiveStreamLimiter
+from atlas_testops.application.live_control import LiveControlService
 from atlas_testops.application.platform import PlatformService
 from atlas_testops.application.ports.evidence import EvidenceObjectReader
 from atlas_testops.application.ports.secrets import SecretProvider
@@ -361,6 +362,18 @@ def get_debug_live_service(
 DebugLiveServiceDependency = Annotated[
     DebugLiveService,
     Depends(get_debug_live_service),
+]
+
+
+def get_live_control_service(database: DatabaseDependency) -> LiveControlService:
+    """Create the fenced UnitAttempt live-control service."""
+
+    return LiveControlService(database)
+
+
+LiveControlServiceDependency = Annotated[
+    LiveControlService,
+    Depends(get_live_control_service),
 ]
 
 

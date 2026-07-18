@@ -825,6 +825,52 @@
         "title": "AccountSyncStatus",
         "type": "string"
       },
+      "AcknowledgeLiveControl": {
+        "additionalProperties": false,
+        "description": "Worker safe-point or reconcile acknowledgement.",
+        "properties": {
+          "agentOwnerId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{1,199}$",
+            "title": "Agentownerid",
+            "type": "string"
+          },
+          "browserRevision": {
+            "minimum": 1.0,
+            "title": "Browserrevision",
+            "type": "integer"
+          },
+          "checkpointDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Checkpointdigest",
+            "type": "string"
+          },
+          "commandId": {
+            "format": "uuid",
+            "title": "Commandid",
+            "type": "string"
+          },
+          "expectedControlEpoch": {
+            "minimum": 1.0,
+            "title": "Expectedcontrolepoch",
+            "type": "integer"
+          },
+          "expectedFencingToken": {
+            "minimum": 1.0,
+            "title": "Expectedfencingtoken",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "commandId",
+          "expectedControlEpoch",
+          "expectedFencingToken",
+          "browserRevision",
+          "checkpointDigest",
+          "agentOwnerId"
+        ],
+        "title": "AcknowledgeLiveControl",
+        "type": "object"
+      },
       "AcquireAccountLease": {
         "additionalProperties": false,
         "description": "为一个 Execution 申请单个独占账号租约。",
@@ -2472,6 +2518,44 @@
         "title": "CompiledNode",
         "type": "object"
       },
+      "CompleteLiveActionGrant": {
+        "additionalProperties": false,
+        "description": "Worker receipt attached after the adapter returns or becomes unknown.",
+        "properties": {
+          "controlEpoch": {
+            "minimum": 1.0,
+            "title": "Controlepoch",
+            "type": "integer"
+          },
+          "executionStatus": {
+            "$ref": "#/components/schemas/LiveActionExecutionStatus"
+          },
+          "fencingToken": {
+            "minimum": 1.0,
+            "title": "Fencingtoken",
+            "type": "integer"
+          },
+          "receiptId": {
+            "format": "uuid",
+            "title": "Receiptid",
+            "type": "string"
+          },
+          "resultingPageRevision": {
+            "minimum": 1.0,
+            "title": "Resultingpagerevision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "controlEpoch",
+          "fencingToken",
+          "receiptId",
+          "executionStatus",
+          "resultingPageRevision"
+        ],
+        "title": "CompleteLiveActionGrant",
+        "type": "object"
+      },
       "ConnectorInstallation": {
         "additionalProperties": false,
         "description": "不暴露配置引用的 Connector 管理投影。",
@@ -2732,6 +2816,177 @@
           "DISABLED"
         ],
         "title": "ConnectorStatus",
+        "type": "string"
+      },
+      "ConsumeLiveActionGrant": {
+        "additionalProperties": false,
+        "description": "Worker-side compare-and-consume request before Playwright side effects.",
+        "properties": {
+          "controlEpoch": {
+            "minimum": 1.0,
+            "title": "Controlepoch",
+            "type": "integer"
+          },
+          "fencingToken": {
+            "minimum": 1.0,
+            "title": "Fencingtoken",
+            "type": "integer"
+          },
+          "proposalDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Proposaldigest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "controlEpoch",
+          "fencingToken",
+          "proposalDigest"
+        ],
+        "title": "ConsumeLiveActionGrant",
+        "type": "object"
+      },
+      "ControlLease": {
+        "additionalProperties": false,
+        "description": "Exclusive, short-lived controller lease with a monotonic fence.",
+        "properties": {
+          "controlEpoch": {
+            "minimum": 1.0,
+            "title": "Controlepoch",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "createdBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdby"
+          },
+          "executionUnitId": {
+            "format": "uuid",
+            "title": "Executionunitid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "title": "Expiresat",
+            "type": "string"
+          },
+          "fencingToken": {
+            "minimum": 1.0,
+            "title": "Fencingtoken",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "liveSessionId": {
+            "format": "uuid",
+            "title": "Livesessionid",
+            "type": "string"
+          },
+          "ownerId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{1,199}$",
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "ownerType": {
+            "$ref": "#/components/schemas/LiveControllerType"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "reason": {
+            "pattern": "^[^\\x00-\\x1f\\x7f]{1,500}$",
+            "title": "Reason",
+            "type": "string"
+          },
+          "releasedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Releasedat"
+          },
+          "schemaVersion": {
+            "const": "atlas.control-lease/0.1",
+            "default": "atlas.control-lease/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ControlLeaseState"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "unitAttemptId": {
+            "format": "uuid",
+            "title": "Unitattemptid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "executionUnitId",
+          "unitAttemptId",
+          "liveSessionId",
+          "ownerType",
+          "ownerId",
+          "controlEpoch",
+          "fencingToken",
+          "state",
+          "expiresAt",
+          "reason",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "ControlLease",
+        "type": "object"
+      },
+      "ControlLeaseState": {
+        "description": "Durable lifecycle for one exclusive controller lease.",
+        "enum": [
+          "ACTIVE",
+          "REVOKING",
+          "EXPIRED",
+          "RELEASED"
+        ],
+        "title": "ControlLeaseState",
         "type": "string"
       },
       "CreateAccountPool": {
@@ -8061,6 +8316,35 @@
         "title": "HeartbeatAccountLease",
         "type": "object"
       },
+      "HeartbeatLiveControl": {
+        "additionalProperties": false,
+        "description": "Renew the current Agent lease without changing its epoch or fence.",
+        "properties": {
+          "controlEpoch": {
+            "minimum": 1.0,
+            "title": "Controlepoch",
+            "type": "integer"
+          },
+          "fencingToken": {
+            "minimum": 1.0,
+            "title": "Fencingtoken",
+            "type": "integer"
+          },
+          "requestedTtlSec": {
+            "default": 120,
+            "maximum": 900.0,
+            "minimum": 30.0,
+            "title": "Requestedttlsec",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "controlEpoch",
+          "fencingToken"
+        ],
+        "title": "HeartbeatLiveControl",
+        "type": "object"
+      },
       "IdempotencyMode": {
         "description": "Supported provider idempotency and reconciliation strategies.",
         "enum": [
@@ -8097,6 +8381,41 @@
           "mode"
         ],
         "title": "IdempotencyPolicy",
+        "type": "object"
+      },
+      "InitializeLiveSession": {
+        "additionalProperties": false,
+        "description": "Worker request that establishes the initial Agent controller.",
+        "properties": {
+          "browserRevision": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Browserrevision",
+            "type": "integer"
+          },
+          "browserSessionId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{1,199}$",
+            "title": "Browsersessionid",
+            "type": "string"
+          },
+          "ownerId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{1,199}$",
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "requestedTtlSec": {
+            "default": 120,
+            "maximum": 900.0,
+            "minimum": 30.0,
+            "title": "Requestedttlsec",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "browserSessionId",
+          "ownerId"
+        ],
+        "title": "InitializeLiveSession",
         "type": "object"
       },
       "InsightBrief": {
@@ -8915,6 +9234,596 @@
         ],
         "title": "LiteralBinding",
         "type": "object"
+      },
+      "LiveActionExecutionStatus": {
+        "description": "Adapter outcome attached after a consumed Grant.",
+        "enum": [
+          "SUCCEEDED",
+          "FAILED",
+          "OUTCOME_UNKNOWN"
+        ],
+        "title": "LiveActionExecutionStatus",
+        "type": "string"
+      },
+      "LiveActionGrant": {
+        "additionalProperties": false,
+        "description": "Persistent, single-use, epoch/fence-bound action capability.",
+        "properties": {
+          "actionId": {
+            "format": "uuid",
+            "title": "Actionid",
+            "type": "string"
+          },
+          "allowedAdapter": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{1,199}$",
+            "title": "Allowedadapter",
+            "type": "string"
+          },
+          "browserSessionId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{1,199}$",
+            "title": "Browsersessionid",
+            "type": "string"
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completedat"
+          },
+          "consumedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumedat"
+          },
+          "controlEpoch": {
+            "minimum": 1.0,
+            "title": "Controlepoch",
+            "type": "integer"
+          },
+          "controlLeaseId": {
+            "format": "uuid",
+            "title": "Controlleaseid",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "executionStatus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiveActionExecutionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "executionUnitId": {
+            "format": "uuid",
+            "title": "Executionunitid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "title": "Expiresat",
+            "type": "string"
+          },
+          "fencingToken": {
+            "minimum": 1.0,
+            "title": "Fencingtoken",
+            "type": "integer"
+          },
+          "grantId": {
+            "format": "uuid",
+            "title": "Grantid",
+            "type": "string"
+          },
+          "liveSessionId": {
+            "format": "uuid",
+            "title": "Livesessionid",
+            "type": "string"
+          },
+          "maxExecutions": {
+            "const": 1,
+            "default": 1,
+            "title": "Maxexecutions",
+            "type": "integer"
+          },
+          "ownerId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{1,199}$",
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "ownerType": {
+            "$ref": "#/components/schemas/LiveControllerType"
+          },
+          "pageId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{1,199}$",
+            "title": "Pageid",
+            "type": "string"
+          },
+          "pageRevision": {
+            "minimum": 1.0,
+            "title": "Pagerevision",
+            "type": "integer"
+          },
+          "policyDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Policydigest",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "proposalDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Proposaldigest",
+            "type": "string"
+          },
+          "receiptId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receiptid"
+          },
+          "resultingPageRevision": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultingpagerevision"
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revokedat"
+          },
+          "schemaVersion": {
+            "const": "atlas.live-action-grant/0.1",
+            "default": "atlas.live-action-grant/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/LiveActionGrantState"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "unitAttemptId": {
+            "format": "uuid",
+            "title": "Unitattemptid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "grantId",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "executionUnitId",
+          "unitAttemptId",
+          "liveSessionId",
+          "controlLeaseId",
+          "actionId",
+          "proposalDigest",
+          "browserSessionId",
+          "pageId",
+          "pageRevision",
+          "controlEpoch",
+          "fencingToken",
+          "ownerType",
+          "ownerId",
+          "allowedAdapter",
+          "expiresAt",
+          "policyDigest",
+          "state",
+          "createdAt"
+        ],
+        "title": "LiveActionGrant",
+        "type": "object"
+      },
+      "LiveActionGrantState": {
+        "description": "Single-use action capability lifecycle.",
+        "enum": [
+          "ISSUED",
+          "CONSUMED",
+          "COMPLETED",
+          "REVOKED"
+        ],
+        "title": "LiveActionGrantState",
+        "type": "string"
+      },
+      "LiveControlCommand": {
+        "additionalProperties": false,
+        "description": "Idempotent requested transition over one exact control epoch.",
+        "properties": {
+          "acceptedSessionRevision": {
+            "minimum": 1.0,
+            "title": "Acceptedsessionrevision",
+            "type": "integer"
+          },
+          "appliedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appliedat"
+          },
+          "checkpointDigest": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpointdigest"
+          },
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "commandType": {
+            "$ref": "#/components/schemas/LiveControlCommandType"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "executionUnitId": {
+            "format": "uuid",
+            "title": "Executionunitid",
+            "type": "string"
+          },
+          "expectedControlEpoch": {
+            "minimum": 1.0,
+            "title": "Expectedcontrolepoch",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "liveSessionId": {
+            "format": "uuid",
+            "title": "Livesessionid",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "reason": {
+            "pattern": "^[^\\x00-\\x1f\\x7f]{1,500}$",
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestedby"
+          },
+          "requestedTtlSec": {
+            "anyOf": [
+              {
+                "maximum": 900.0,
+                "minimum": 30.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestedttlsec"
+          },
+          "resultingControlEpoch": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultingcontrolepoch"
+          },
+          "resultingFencingToken": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultingfencingtoken"
+          },
+          "schemaVersion": {
+            "const": "atlas.live-control-command/0.1",
+            "default": "atlas.live-control-command/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LiveControlCommandStatus"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "unitAttemptId": {
+            "format": "uuid",
+            "title": "Unitattemptid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "executionUnitId",
+          "unitAttemptId",
+          "liveSessionId",
+          "commandType",
+          "clientMutationId",
+          "reason",
+          "expectedControlEpoch",
+          "acceptedSessionRevision",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "LiveControlCommand",
+        "type": "object"
+      },
+      "LiveControlCommandStatus": {
+        "description": "Durable command status visible to callers and Workers.",
+        "enum": [
+          "PENDING",
+          "APPLIED",
+          "REJECTED"
+        ],
+        "title": "LiveControlCommandStatus",
+        "type": "string"
+      },
+      "LiveControlCommandType": {
+        "description": "Commands accepted by the asynchronous live-control REST lane.",
+        "enum": [
+          "PAUSE",
+          "RESUME",
+          "TAKEOVER",
+          "RETURN"
+        ],
+        "title": "LiveControlCommandType",
+        "type": "string"
+      },
+      "LiveControllerType": {
+        "description": "The exclusive controller kind for one BrowserSession.",
+        "enum": [
+          "AGENT",
+          "HUMAN"
+        ],
+        "title": "LiveControllerType",
+        "type": "string"
+      },
+      "LiveSession": {
+        "additionalProperties": false,
+        "description": "Rebuildable live projection rooted in one exact formal UnitAttempt.",
+        "properties": {
+          "browserRevision": {
+            "minimum": 1.0,
+            "title": "Browserrevision",
+            "type": "integer"
+          },
+          "browserSessionId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{1,199}$",
+            "title": "Browsersessionid",
+            "type": "string"
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closedat"
+          },
+          "controlEpoch": {
+            "minimum": 1.0,
+            "title": "Controlepoch",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "executionTicketDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Executionticketdigest",
+            "type": "string"
+          },
+          "executionTicketId": {
+            "format": "uuid",
+            "title": "Executionticketid",
+            "type": "string"
+          },
+          "executionUnitId": {
+            "format": "uuid",
+            "title": "Executionunitid",
+            "type": "string"
+          },
+          "fencingToken": {
+            "minimum": 1.0,
+            "title": "Fencingtoken",
+            "type": "integer"
+          },
+          "humanInfluenced": {
+            "default": false,
+            "title": "Humaninfluenced",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schemaVersion": {
+            "const": "atlas.live-session/0.1",
+            "default": "atlas.live-session/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/LiveSessionState"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "unitAttemptId": {
+            "format": "uuid",
+            "title": "Unitattemptid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "executionUnitId",
+          "unitAttemptId",
+          "executionTicketId",
+          "executionTicketDigest",
+          "browserSessionId",
+          "state",
+          "controlEpoch",
+          "fencingToken",
+          "browserRevision",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "LiveSession",
+        "type": "object"
+      },
+      "LiveSessionState": {
+        "description": "Control-plane state independent from UnitAttempt lifecycle.",
+        "enum": [
+          "AGENT_CONTROLLED",
+          "QUIESCING",
+          "PAUSED",
+          "RESUME_REQUESTED",
+          "HUMAN_CONTROLLED",
+          "RECONCILING",
+          "NO_CONTROLLER",
+          "CLOSED"
+        ],
+        "title": "LiveSessionState",
+        "type": "string"
       },
       "LoginCommand": {
         "additionalProperties": false,
@@ -9926,6 +10835,28 @@
         "title": "ReapedLeaseBatch",
         "type": "object"
       },
+      "ReapedLiveControlBatch": {
+        "additionalProperties": false,
+        "description": "Bounded tenant-scoped expired controller reconciliation result.",
+        "properties": {
+          "observedAt": {
+            "format": "date-time",
+            "title": "Observedat",
+            "type": "string"
+          },
+          "reaped": {
+            "minimum": 0.0,
+            "title": "Reaped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reaped",
+          "observedAt"
+        ],
+        "title": "ReapedLiveControlBatch",
+        "type": "object"
+      },
       "ReconcileContract": {
         "additionalProperties": false,
         "description": "A reviewed lookup used after an uncertain provider outcome.",
@@ -10235,6 +11166,100 @@
           "clientMutationId"
         ],
         "title": "RequestInsightSnapshot",
+        "type": "object"
+      },
+      "RequestLiveActionGrant": {
+        "additionalProperties": false,
+        "description": "One exact structured action approved by a trusted policy boundary.",
+        "properties": {
+          "actionId": {
+            "format": "uuid",
+            "title": "Actionid",
+            "type": "string"
+          },
+          "allowedAdapter": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{1,199}$",
+            "title": "Allowedadapter",
+            "type": "string"
+          },
+          "controlEpoch": {
+            "minimum": 1.0,
+            "title": "Controlepoch",
+            "type": "integer"
+          },
+          "fencingToken": {
+            "minimum": 1.0,
+            "title": "Fencingtoken",
+            "type": "integer"
+          },
+          "pageId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{1,199}$",
+            "title": "Pageid",
+            "type": "string"
+          },
+          "pageRevision": {
+            "minimum": 1.0,
+            "title": "Pagerevision",
+            "type": "integer"
+          },
+          "policyDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Policydigest",
+            "type": "string"
+          },
+          "proposalDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Proposaldigest",
+            "type": "string"
+          },
+          "requestedTtlSec": {
+            "default": 15,
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Requestedttlsec",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "actionId",
+          "proposalDigest",
+          "pageId",
+          "pageRevision",
+          "controlEpoch",
+          "fencingToken",
+          "allowedAdapter",
+          "policyDigest"
+        ],
+        "title": "RequestLiveActionGrant",
+        "type": "object"
+      },
+      "RequestLiveControl": {
+        "additionalProperties": false,
+        "description": "Safe public reason and bounded Human lease duration.",
+        "properties": {
+          "reason": {
+            "pattern": "^[^\\x00-\\x1f\\x7f]{1,500}$",
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedTtlSec": {
+            "anyOf": [
+              {
+                "maximum": 900.0,
+                "minimum": 30.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestedttlsec"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "RequestLiveControl",
         "type": "object"
       },
       "RequestTaskGateEvaluation": {
@@ -14254,6 +15279,52 @@
           "When present, temporalWorkflowId is deterministically derived from tenantId and id."
         ]
       },
+      "UnitAttemptLiveSnapshot": {
+        "additionalProperties": false,
+        "description": "Consistent current control projection for one UnitAttempt.",
+        "properties": {
+          "lease": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ControlLease"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observedAt": {
+            "format": "date-time",
+            "title": "Observedat",
+            "type": "string"
+          },
+          "pendingCommand": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiveControlCommand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schemaVersion": {
+            "const": "atlas.unit-attempt-live-snapshot/0.1",
+            "default": "atlas.unit-attempt-live-snapshot/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "session": {
+            "$ref": "#/components/schemas/LiveSession"
+          }
+        },
+        "required": [
+          "session",
+          "observedAt"
+        ],
+        "title": "UnitAttemptLiveSnapshot",
+        "type": "object"
+      },
       "UnitAttemptPage": {
         "additionalProperties": false,
         "description": "Attempt-number page for one ExecutionUnit.",
@@ -17093,6 +18164,874 @@
         "summary": "执行一批 Fixture Cleanup Reconcile 与孤儿扫描",
         "tags": [
           "fixture-runtime"
+        ]
+      }
+    },
+    "/internal/v1/live-control:reap-expired": {
+      "post": {
+        "operationId": "reap_expired_live_control_internal_v1_live_control_reap_expired_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReapedLiveControlBatch"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Worker request 或 execution permit 无效"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "LiveSession 或 ActionGrant 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Epoch/Fence、Safe Point 或单次消费冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合内部接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Browser Runtime 安全依赖未配置"
+          }
+        },
+        "summary": "回收当前 Tenant 的过期 Live controller",
+        "tags": [
+          "browser-live-control"
+        ]
+      }
+    },
+    "/internal/v1/unit-attempts/{attemptId}/action-grants": {
+      "post": {
+        "operationId": "issue_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestLiveActionGrant"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionGrant"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Worker request 或 execution permit 无效"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "LiveSession 或 ActionGrant 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Epoch/Fence、Safe Point 或单次消费冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合内部接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Browser Runtime 安全依赖未配置"
+          }
+        },
+        "summary": "签发持久化、单次、Epoch/Fence 绑定的 ActionGrant",
+        "tags": [
+          "browser-live-control"
+        ]
+      }
+    },
+    "/internal/v1/unit-attempts/{attemptId}/action-grants/{grantId}": {
+      "get": {
+        "operationId": "get_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants__grantId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "grantId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Grantid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionGrant"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Worker request 或 execution permit 无效"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "LiveSession 或 ActionGrant 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Epoch/Fence、Safe Point 或单次消费冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合内部接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Browser Runtime 安全依赖未配置"
+          }
+        },
+        "summary": "恢复 ActionGrant 的单次消费与回执状态",
+        "tags": [
+          "browser-live-control"
+        ]
+      }
+    },
+    "/internal/v1/unit-attempts/{attemptId}/action-grants/{grantId}:complete": {
+      "post": {
+        "operationId": "complete_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants__grantId__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "grantId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Grantid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteLiveActionGrant"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionGrant"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Worker request 或 execution permit 无效"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "LiveSession 或 ActionGrant 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Epoch/Fence、Safe Point 或单次消费冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合内部接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Browser Runtime 安全依赖未配置"
+          }
+        },
+        "summary": "写入 ExecutionReceipt 并推进 Browser Revision",
+        "tags": [
+          "browser-live-control"
+        ]
+      }
+    },
+    "/internal/v1/unit-attempts/{attemptId}/action-grants/{grantId}:consume": {
+      "post": {
+        "operationId": "consume_live_action_grant_internal_v1_unit_attempts__attemptId__action_grants__grantId__consume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "grantId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Grantid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumeLiveActionGrant"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionGrant"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Worker request 或 execution permit 无效"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "LiveSession 或 ActionGrant 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Epoch/Fence、Safe Point 或单次消费冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合内部接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Browser Runtime 安全依赖未配置"
+          }
+        },
+        "summary": "在 Playwright 副作用前原子消费 ActionGrant",
+        "tags": [
+          "browser-live-control"
+        ]
+      }
+    },
+    "/internal/v1/unit-attempts/{attemptId}/live-control:acknowledge": {
+      "post": {
+        "operationId": "acknowledge_live_control_internal_v1_unit_attempts__attemptId__live_control_acknowledge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcknowledgeLiveControl"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitAttemptLiveSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Worker request 或 execution permit 无效"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "LiveSession 或 ActionGrant 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Epoch/Fence、Safe Point 或单次消费冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合内部接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Browser Runtime 安全依赖未配置"
+          }
+        },
+        "summary": "确认 Safe Point 或 reconcile 并原子交换 Epoch/Fence",
+        "tags": [
+          "browser-live-control"
+        ]
+      }
+    },
+    "/internal/v1/unit-attempts/{attemptId}/live-control:heartbeat": {
+      "post": {
+        "operationId": "heartbeat_live_control_internal_v1_unit_attempts__attemptId__live_control_heartbeat_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartbeatLiveControl"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitAttemptLiveSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Worker request 或 execution permit 无效"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "LiveSession 或 ActionGrant 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Epoch/Fence、Safe Point 或单次消费冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合内部接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Browser Runtime 安全依赖未配置"
+          }
+        },
+        "summary": "续租当前 Agent controller 且不改变 Epoch/Fence",
+        "tags": [
+          "browser-live-control"
+        ]
+      }
+    },
+    "/internal/v1/unit-attempts/{attemptId}/live-session": {
+      "put": {
+        "operationId": "initialize_live_session_internal_v1_unit_attempts__attemptId__live_session_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitializeLiveSession"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitAttemptLiveSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Worker request 或 execution permit 无效"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "LiveSession 或 ActionGrant 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Epoch/Fence、Safe Point 或单次消费冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合内部接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Browser Runtime 安全依赖未配置"
+          }
+        },
+        "summary": "建立或精确重放 UnitAttempt LiveSession",
+        "tags": [
+          "browser-live-control"
         ]
       }
     },
@@ -34346,6 +36285,800 @@
         "summary": "更新 TestRole",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/v1/unit-attempts/{attemptId}/commands/{commandId}": {
+      "get": {
+        "operationId": "get_unit_attempt_live_command_v1_unit_attempts__attemptId__commands__commandId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commandId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Commandid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveControlCommand"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "UnitAttempt LiveSession 不存在或不可见"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "读取 LiveControlCommand 状态",
+        "tags": [
+          "unit-attempt-live-control"
+        ]
+      }
+    },
+    "/v1/unit-attempts/{attemptId}/pause": {
+      "post": {
+        "operationId": "pause_unit_attempt_v1_unit_attempts__attemptId__pause_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestLiveControl"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveControlCommand"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "description": "当前角色或 Environment 不能控制该 UnitAttempt"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "UnitAttempt LiveSession 不存在或不可见"
+          },
+          "409": {
+            "description": "Control Epoch、Lease、Safe Point 或状态冲突"
+          },
+          "422": {
+            "description": "控制命令不符合契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "请求 UnitAttempt 在 Action Safe Point 暂停",
+        "tags": [
+          "unit-attempt-live-control"
+        ]
+      }
+    },
+    "/v1/unit-attempts/{attemptId}/resume": {
+      "post": {
+        "operationId": "resume_unit_attempt_v1_unit_attempts__attemptId__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestLiveControl"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveControlCommand"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "description": "当前角色或 Environment 不能控制该 UnitAttempt"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "UnitAttempt LiveSession 不存在或不可见"
+          },
+          "409": {
+            "description": "Control Epoch、Lease、Safe Point 或状态冲突"
+          },
+          "422": {
+            "description": "控制命令不符合契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "请求恢复 Agent controller",
+        "tags": [
+          "unit-attempt-live-control"
+        ]
+      }
+    },
+    "/v1/unit-attempts/{attemptId}/return": {
+      "post": {
+        "operationId": "return_unit_attempt_control_v1_unit_attempts__attemptId__return_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestLiveControl"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveControlCommand"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "description": "当前角色或 Environment 不能控制该 UnitAttempt"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "UnitAttempt LiveSession 不存在或不可见"
+          },
+          "409": {
+            "description": "Control Epoch、Lease、Safe Point 或状态冲突"
+          },
+          "422": {
+            "description": "控制命令不符合契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "请求 reconcile 后交还 Agent controller",
+        "tags": [
+          "unit-attempt-live-control"
+        ]
+      }
+    },
+    "/v1/unit-attempts/{attemptId}/snapshot": {
+      "get": {
+        "operationId": "get_unit_attempt_live_snapshot_v1_unit_attempts__attemptId__snapshot_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitAttemptLiveSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "UnitAttempt LiveSession 不存在或不可见"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "读取正式 UnitAttempt LiveSnapshot",
+        "tags": [
+          "unit-attempt-live-control"
+        ]
+      }
+    },
+    "/v1/unit-attempts/{attemptId}/takeover": {
+      "post": {
+        "operationId": "takeover_unit_attempt_v1_unit_attempts__attemptId__takeover_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attemptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attemptid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestLiveControl"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveControlCommand"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "description": "当前角色或 Environment 不能控制该 UnitAttempt"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "UnitAttempt LiveSession 不存在或不可见"
+          },
+          "409": {
+            "description": "Control Epoch、Lease、Safe Point 或状态冲突"
+          },
+          "422": {
+            "description": "控制命令不符合契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "请求 quiesce 后安全交接给 Human controller",
+        "tags": [
+          "unit-attempt-live-control"
         ]
       }
     }
