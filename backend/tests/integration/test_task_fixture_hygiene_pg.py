@@ -24,8 +24,10 @@ from tests.integration.test_task_orchestration_pg import _persist_sealed_aggrega
 from atlas_testops.application.access import ActorContext
 from atlas_testops.application.fixture_runs import FixtureWorkerService
 from atlas_testops.application.result_classification import ResultClassificationService
+from atlas_testops.application.result_gate import ResultGateService
 from atlas_testops.application.result_hygiene import ResultHygieneProjectionService
 from atlas_testops.application.result_projection import ResultProjectionService
+from atlas_testops.application.result_queries import ResultQueryService
 from atlas_testops.application.result_reevaluation import ResultReevaluationService
 from atlas_testops.application.task_orchestration import TaskWorkerService
 from atlas_testops.core.config import Settings
@@ -34,7 +36,9 @@ from atlas_testops.domain.result import (
     ClassificationJudgmentState,
     DataHygiene,
     RequestFailureClassificationRevision,
+    RequestTaskGateEvaluation,
     RequestTaskResultReevaluation,
+    TaskGateVerdict,
     TaskResultSnapshotFinality,
     UnitHygieneInputSource,
     result_projection_digest,
@@ -394,6 +398,81 @@ async def _exercise_cleanup_truth(
         assert classification_privileges is not None
         assert classification_privileges["cluster_mutation"] is False
         assert classification_privileges["classification_mutation"] is False
+
+        gate_request = RequestTaskGateEvaluation(
+            result_snapshot_id=reevaluated.value.id,
+            client_mutation_id="task-fixture-hygiene-gate-evaluation-001",
+        )
+        gate_service = ResultGateService(database)
+        gate = await gate_service.evaluate(
+            actor,
+            gate_request,
+            idempotency_key=gate_request.client_mutation_id,
+        )
+        gate_replay = await gate_service.evaluate(
+            actor,
+            gate_request,
+            idempotency_key=gate_request.client_mutation_id,
+        )
+        async with database.transaction(context) as connection:
+            gate_rows = await (
+                await connection.execute(
+                    """
+                    select count(*) as decision_count
+                    from atlas.task_gate_decision
+                    where task_run_id = %s
+                    """,
+                    (aggregate.run.id,),
+                )
+            ).fetchone()
+            gate_privileges = await (
+                await connection.execute(
+                    """
+                    select has_table_privilege(
+                      current_user,
+                      'atlas.task_gate_decision',
+                      'UPDATE, DELETE'
+                    ) as gate_mutation
+                    """
+                )
+            ).fetchone()
+
+        assert gate.status_code == 201
+        assert gate.replayed is False
+        assert gate.value.decision is TaskGateVerdict.INCONCLUSIVE
+        assert gate.value.result_snapshot_id == reevaluated.value.id
+        assert gate.value.failure_classification_revision_ids == (reviewed.value.id,)
+        assert gate_replay.replayed is True
+        assert gate_replay.value == gate.value
+        assert gate_rows is not None
+        assert gate_rows["decision_count"] == 1
+        assert gate_privileges is not None
+        assert gate_privileges["gate_mutation"] is False
+
+        query_service = ResultQueryService(database)
+        task_result = await query_service.get_task_result(
+            actor,
+            aggregate.run.id,
+            snapshot_id=reevaluated.value.id,
+        )
+        unit_result = await query_service.get_unit_resolution(
+            actor,
+            aggregate.unit.id,
+            revision=None,
+        )
+        cluster_page = await query_service.list_snapshot_clusters(
+            actor,
+            reevaluated.value.id,
+            cursor=None,
+            limit=50,
+        )
+
+        assert task_result.result_snapshot == reevaluated.value
+        assert task_result.task_gate_decision == gate.value
+        assert unit_result.execution_unit_id == aggregate.unit.id
+        assert len(cluster_page.items) == 1
+        assert cluster_page.items[0].classification == reviewed.value
+        assert cluster_page.next_cursor is None
     finally:
         await database.close()
 

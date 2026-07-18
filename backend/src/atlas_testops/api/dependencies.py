@@ -23,7 +23,10 @@ from atlas_testops.application.live import DebugLiveService, DebugLiveStreamLimi
 from atlas_testops.application.platform import PlatformService
 from atlas_testops.application.ports.evidence import EvidenceObjectReader
 from atlas_testops.application.ports.secrets import SecretProvider
+from atlas_testops.application.result_classification import ResultClassificationService
+from atlas_testops.application.result_gate import ResultGateService
 from atlas_testops.application.result_hygiene import ResultHygieneProjectionService
+from atlas_testops.application.result_queries import ResultQueryService
 from atlas_testops.application.session_dispatcher import AuthSessionDispatcher
 from atlas_testops.application.task_commands import TaskRunCommandService
 from atlas_testops.application.task_launches import TaskPlanLaunchService
@@ -268,6 +271,44 @@ def get_task_run_rerun_service(database: DatabaseDependency) -> TaskRunRerunServ
 TaskRunRerunServiceDependency = Annotated[
     TaskRunRerunService,
     Depends(get_task_run_rerun_service),
+]
+
+
+def get_result_query_service(database: DatabaseDependency) -> ResultQueryService:
+    """Create a stateless, snapshot-explicit Result query service."""
+
+    return ResultQueryService(database)
+
+
+ResultQueryServiceDependency = Annotated[
+    ResultQueryService,
+    Depends(get_result_query_service),
+]
+
+
+def get_result_classification_service(
+    database: DatabaseDependency,
+) -> ResultClassificationService:
+    """Create the deterministic clustering and append-only review service."""
+
+    return ResultClassificationService(database)
+
+
+ResultClassificationServiceDependency = Annotated[
+    ResultClassificationService,
+    Depends(get_result_classification_service),
+]
+
+
+def get_result_gate_service(database: DatabaseDependency) -> ResultGateService:
+    """Create the snapshot-bound, three-valued Task Gate service."""
+
+    return ResultGateService(database)
+
+
+ResultGateServiceDependency = Annotated[
+    ResultGateService,
+    Depends(get_result_gate_service),
 ]
 
 

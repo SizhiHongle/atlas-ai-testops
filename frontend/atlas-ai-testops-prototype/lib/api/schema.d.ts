@@ -823,6 +823,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/execution-units/{unitId}/resolution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 ExecutionUnit 的 latest 或 exact Resolution Revision */
+        get: operations["get_unit_resolution_v1_execution_units__unitId__resolution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/failure-classifications/{classificationId}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 追加人工 FailureClassification Revision */
+        post: operations["revise_failure_classification_v1_failure_classifications__classificationId__revisions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/fixture-runs/{runId}": {
         parameters: {
             query?: never;
@@ -1167,6 +1201,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/result-snapshots/{snapshotId}/clusters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 按稳定 as-of Cursor 列出 Result Snapshot 的 FailureCluster */
+        get: operations["list_failure_clusters_v1_result_snapshots__snapshotId__clusters_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/session": {
         parameters: {
             query?: never;
@@ -1181,6 +1232,23 @@ export interface paths {
         get: operations["current_session_v1_session_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-gates/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 对 exact Result Snapshot 追加三值 Task Gate 决策 */
+        post: operations["evaluate_task_gate_v1_task_gates_evaluations_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1316,6 +1384,23 @@ export interface paths {
         };
         /** 读取 TaskRun 的不可变 Run Manifest */
         get: operations["get_task_run_manifest_v1_task_runs__runId__manifest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 TaskRun 的 latest 或 exact Result Snapshot */
+        get: operations["get_task_result_v1_task_runs__runId__result_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2747,6 +2832,32 @@ export interface components {
          */
         CaseVersionStatus: "PUBLISHED" | "RETIRED";
         /**
+         * ClassificationAuthorKind
+         * @description Bounded author authority without persisting hidden model reasoning.
+         * @enum {string}
+         */
+        ClassificationAuthorKind: "SYSTEM_RULE" | "AI_MODEL" | "HUMAN";
+        /**
+         * ClassificationConfidence
+         * @description Exact confidence fraction with a fixed basis-point denominator.
+         */
+        ClassificationConfidence: {
+            /**
+             * Denominator
+             * @default 10000
+             * @constant
+             */
+            denominator: 10000;
+            /** Numerator */
+            numerator: number;
+        };
+        /**
+         * ClassificationJudgmentState
+         * @description How one immutable classification judgment was produced or reviewed.
+         * @enum {string}
+         */
+        ClassificationJudgmentState: "RULE_PROPOSED" | "AI_PROPOSED" | "HUMAN_CONFIRMED" | "HUMAN_REJECTED" | "HUMAN_REVISED";
+        /**
          * CleanupContract
          * @description A reviewed operation that cleans one ledger-owned resource.
          */
@@ -3618,6 +3729,12 @@ export interface components {
          */
         DataClassification: "PUBLIC" | "INTERNAL" | "CONFIDENTIAL" | "SENSITIVE";
         /**
+         * DataHygiene
+         * @description Side-effect cleanup state captured when the Attempt is sealed.
+         * @enum {string}
+         */
+        DataHygiene: "PENDING" | "CLEANED" | "CLEANUP_FAILED" | "LEAKED" | "NOT_APPLICABLE";
+        /**
          * DataNodeAttempt
          * @description Append-oriented safe summary of one provider call.
          */
@@ -4198,7 +4315,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            integrity: components["schemas"]["EvidenceIntegrity"];
+            integrity: components["schemas"]["atlas_testops__domain__runtime__models__EvidenceIntegrity"];
             kind: components["schemas"]["EvidenceArtifactKind"];
             /** Mimetype */
             mimeType: string;
@@ -4226,7 +4343,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            integrity: components["schemas"]["EvidenceIntegrity"];
+            integrity: components["schemas"]["EvidenceIntegrity-Input"];
             kind: components["schemas"]["EvidenceArtifactKind"];
             /** Mimetype */
             mimeType: string;
@@ -4249,17 +4366,11 @@ export interface components {
          */
         EvidenceArtifactKind: "SCREENSHOT" | "TRACE" | "DOM_SUMMARY" | "ARIA_SNAPSHOT" | "NETWORK_SUMMARY" | "CONSOLE_SUMMARY" | "TOOL_INVOCATION";
         /**
-         * EvidenceCompleteness
-         * @description Whether every frozen Oracle has its required evidence.
-         * @enum {string}
-         */
-        EvidenceCompleteness: "COMPLETE" | "PARTIAL" | "MISSING";
-        /**
          * EvidenceIntegrity
          * @description Independent verification state for referenced artifact bytes.
          * @enum {string}
          */
-        EvidenceIntegrity: "VERIFIED" | "INVALID";
+        "EvidenceIntegrity-Input": "VERIFIED" | "INVALID";
         /**
          * EvidenceManifest
          * @description Immutable evidence root used to authorize a DebugRun result.
@@ -4271,7 +4382,7 @@ export interface components {
             artifacts: components["schemas"]["EvidenceArtifact"][];
             /** Assertionresults */
             assertionResults: components["schemas"]["AssertionResult"][];
-            completeness: components["schemas"]["EvidenceCompleteness"];
+            completeness: components["schemas"]["atlas_testops__domain__runtime__models__EvidenceCompleteness"];
             /** Contentdigest */
             contentDigest: string;
             /**
@@ -4316,7 +4427,7 @@ export interface components {
             id: string;
             /** Inconclusiveassertions */
             inconclusiveAssertions: number;
-            integrity: components["schemas"]["EvidenceIntegrity"];
+            integrity: components["schemas"]["atlas_testops__domain__runtime__models__EvidenceIntegrity"];
             /** Missingassertionids */
             missingAssertionIds: string[];
             /** Oracleresultsdigest */
@@ -4530,6 +4641,12 @@ export interface components {
          */
         ExecutionHygiene: "NOT_REQUIRED" | "PENDING" | "RUNNING" | "CLEANED" | "CLEANUP_FAILED" | "LEAKED";
         /**
+         * ExecutionInfluence
+         * @description Who influenced the execution actions.
+         * @enum {string}
+         */
+        ExecutionInfluence: "AUTONOMOUS" | "MANUAL_ASSISTED" | "MANUAL_ONLY";
+        /**
          * ExecutionLifecycle
          * @description Shared TaskRun, ExecutionUnit, and UnitAttempt lifecycle axis.
          * @enum {string}
@@ -4693,6 +4810,258 @@ export interface components {
             items: components["schemas"]["ExecutionUnit"][];
             /** Nextafterordinal */
             nextAfterOrdinal?: number | null;
+        };
+        /**
+         * FailureClassificationRevision
+         * @description Hashed immutable classification judgment.
+         */
+        FailureClassificationRevision: {
+            authorKind: components["schemas"]["ClassificationAuthorKind"];
+            /** Authoredby */
+            authoredBy?: string | null;
+            /** Classificationhash */
+            classificationHash: string;
+            /** Classificationpolicydigest */
+            classificationPolicyDigest: string;
+            /**
+             * Classificationpolicyversion
+             * @default 0.1.0
+             * @constant
+             */
+            classificationPolicyVersion: "0.1.0";
+            /** Clientmutationid */
+            clientMutationId: string;
+            confidence: components["schemas"]["ClassificationConfidence"];
+            /**
+             * Contradictingevidencerefs
+             * @default []
+             */
+            contradictingEvidenceRefs: components["schemas"]["FailureEvidenceRef"][];
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Evidencegapcodes
+             * @default []
+             */
+            evidenceGapCodes: string[];
+            /**
+             * Failureclassificationid
+             * Format: uuid
+             */
+            failureClassificationId: string;
+            /**
+             * Failureclusterrevisionid
+             * Format: uuid
+             */
+            failureClusterRevisionId: string;
+            failureDomain: components["schemas"]["FailureDomain"];
+            /** Hypothesis */
+            hypothesis: string;
+            /** Hypothesiscode */
+            hypothesisCode: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            judgmentState: components["schemas"]["ClassificationJudgmentState"];
+            /** Modelversionref */
+            modelVersionRef?: string | null;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Resultsnapshotid
+             * Format: uuid
+             */
+            resultSnapshotId: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Schemaversion
+             * @default atlas.failure-classification-revision/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.failure-classification-revision/0.1";
+            /** Supersedesrevisionid */
+            supersedesRevisionId?: string | null;
+            /** Supportingevidencerefs */
+            supportingEvidenceRefs: components["schemas"]["FailureEvidenceRef"][];
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+        };
+        /**
+         * FailureClusterItem
+         * @description One current Cluster revision and its latest judgment as of the page fence.
+         */
+        FailureClusterItem: {
+            classification?: components["schemas"]["FailureClassificationRevision"] | null;
+            cluster: components["schemas"]["FailureClusterRevision"];
+        };
+        /**
+         * FailureClusterPage
+         * @description Stable as-of page of current failure clusters for one immutable Snapshot.
+         */
+        FailureClusterPage: {
+            /**
+             * Asof
+             * Format: date-time
+             */
+            asOf: string;
+            /** Items */
+            items: components["schemas"]["FailureClusterItem"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+            /**
+             * Projectionwatermark
+             * Format: date-time
+             */
+            projectionWatermark: string;
+            /**
+             * Resultsnapshotid
+             * Format: uuid
+             */
+            resultSnapshotId: string;
+        };
+        /**
+         * FailureClusterRevision
+         * @description Hashed immutable cluster projection over exact Snapshot inputs.
+         */
+        FailureClusterRevision: {
+            /** Affectedcount */
+            affectedCount: number;
+            /** Affectedunitresolutionrevisionids */
+            affectedUnitResolutionRevisionIds: string[];
+            /** Clusterhash */
+            clusterHash: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Failureclusterid
+             * Format: uuid
+             */
+            failureClusterId: string;
+            /** Fingerprint */
+            fingerprint: string;
+            /** Fingerprintpolicydigest */
+            fingerprintPolicyDigest: string;
+            /**
+             * Fingerprintversion
+             * @default 0.1.0
+             * @constant
+             */
+            fingerprintVersion: "0.1.0";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Projectionwatermark
+             * Format: date-time
+             */
+            projectionWatermark: string;
+            /**
+             * Representativeunitresolutionrevisionid
+             * Format: uuid
+             */
+            representativeUnitResolutionRevisionId: string;
+            /**
+             * Resultsnapshotid
+             * Format: uuid
+             */
+            resultSnapshotId: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Schemaversion
+             * @default atlas.failure-cluster-revision/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.failure-cluster-revision/0.1";
+            signal: components["schemas"]["FailureSignal"];
+            /** Supersedesclusterrevisionid */
+            supersedesClusterRevisionId?: string | null;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+        };
+        /**
+         * FailureDomain
+         * @description Stable bounded taxonomy used for triage and later Gate policy.
+         * @enum {string}
+         */
+        FailureDomain: "PRODUCT" | "TEST_SPEC" | "TEST_DATA" | "IDENTITY" | "ENVIRONMENT" | "INFRASTRUCTURE" | "EXTERNAL_DEPENDENCY" | "AGENT_AUTOMATION" | "POLICY_SECURITY" | "EVIDENCE" | "CLEANUP" | "UNKNOWN";
+        /**
+         * FailureEvidenceKind
+         * @description Immutable Result facts accepted as classification evidence.
+         * @enum {string}
+         */
+        FailureEvidenceKind: "UNIT_RESOLUTION" | "UNIT_HYGIENE_RESOLUTION" | "ATTEMPT_SEAL" | "ATTEMPT_CLOSURE_NOTICE";
+        /**
+         * FailureEvidenceRef
+         * @description Typed immutable source reference used to support or contradict a judgment.
+         */
+        FailureEvidenceRef: {
+            /** Contentdigest */
+            contentDigest: string;
+            kind: components["schemas"]["FailureEvidenceKind"];
+            /**
+             * Refid
+             * Format: uuid
+             */
+            refId: string;
+        };
+        /**
+         * FailureSignal
+         * @description Deterministic bounded signal used by the first clustering policy.
+         */
+        FailureSignal: {
+            /** Closurereason */
+            closureReason: string;
+            dataHygiene: components["schemas"]["DataHygiene"];
+            effectiveVerdict: components["schemas"]["Verdict"];
+            evidenceCompleteness: components["schemas"]["atlas_testops__domain__result__models__EvidenceCompleteness"];
+            evidenceIntegrity: components["schemas"]["atlas_testops__domain__result__models__EvidenceIntegrity"];
+            failureDomain: components["schemas"]["FailureDomain"];
+            outcomeClass: components["schemas"]["OutcomeClass"];
+            /**
+             * Schemaversion
+             * @default atlas.failure-signal/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.failure-signal/0.1";
+            /** Signalcode */
+            signalCode: string;
+            stability: components["schemas"]["Stability"];
         };
         /**
          * FieldViolation
@@ -5322,6 +5691,12 @@ export interface components {
          */
         OracleStrength: "hard" | "soft" | "diagnostic";
         /**
+         * OutcomeClass
+         * @description Stable high-level cause family independent of Verdict.
+         * @enum {string}
+         */
+        OutcomeClass: "BUSINESS" | "DEPENDENCY" | "PLATFORM" | "USER" | "AUTOMATION" | "POLICY" | "UNKNOWN";
+        /**
          * OutcomePolicy
          * @description Independent Oracle authority requirements.
          */
@@ -5772,6 +6147,58 @@ export interface components {
             reason: string;
         };
         /**
+         * RequestFailureClassificationRevision
+         * @description Idempotent human review request over one exact Classification revision.
+         */
+        RequestFailureClassificationRevision: {
+            /** Clientmutationid */
+            clientMutationId: string;
+            confidence: components["schemas"]["ClassificationConfidence"];
+            /**
+             * Contradictingevidencerefs
+             * @default []
+             */
+            contradictingEvidenceRefs: components["schemas"]["FailureEvidenceRef"][];
+            /**
+             * Evidencegapcodes
+             * @default []
+             */
+            evidenceGapCodes: string[];
+            /** Expectedrevision */
+            expectedRevision: number;
+            failureDomain: components["schemas"]["FailureDomain"];
+            /** Hypothesis */
+            hypothesis: string;
+            /** Hypothesiscode */
+            hypothesisCode: string;
+            /**
+             * Judgmentstate
+             * @enum {string}
+             */
+            judgmentState: "HUMAN_CONFIRMED" | "HUMAN_REJECTED" | "HUMAN_REVISED";
+            /** Supportingevidencerefs */
+            supportingEvidenceRefs: components["schemas"]["FailureEvidenceRef"][];
+        };
+        /**
+         * RequestTaskGateEvaluation
+         * @description Idempotent request to evaluate one exact immutable Result Snapshot.
+         */
+        RequestTaskGateEvaluation: {
+            /** Clientmutationid */
+            clientMutationId: string;
+            /**
+             * Gatepolicyversion
+             * @default 0.1.0
+             * @constant
+             */
+            gatePolicyVersion: "0.1.0";
+            /**
+             * Resultsnapshotid
+             * Format: uuid
+             */
+            resultSnapshotId: string;
+        };
+        /**
          * RequestTaskRunCancel
          * @description Idempotent public request to cancel one exact TaskRun revision.
          */
@@ -5944,6 +6371,22 @@ export interface components {
          */
         ResourceRecordStatus: "ACTIVE" | "CLEANUP_PENDING" | "CLEANING" | "CLEANED" | "LEAKED" | "BLOCKED_BY_CHILD" | "ORPHAN_SUSPECTED";
         /**
+         * ResultPassRate
+         * @description Exact rational pass rate without floating-point or rounding ambiguity.
+         */
+        ResultPassRate: {
+            /** Denominator */
+            denominator: number;
+            /** Numerator */
+            numerator: number;
+        };
+        /**
+         * ResultSnapshotSelection
+         * @description Whether the caller selected the latest or one exact Snapshot.
+         * @enum {string}
+         */
+        ResultSnapshotSelection: "LATEST" | "EXACT";
+        /**
          * RetryPolicy
          * @description Bounded retry budget for transient connector outcomes.
          */
@@ -6020,6 +6463,12 @@ export interface components {
             excerptDigest: string;
         };
         /**
+         * Stability
+         * @description Attempt-level placeholder for the later Unit resolution axis.
+         * @enum {string}
+         */
+        Stability: "UNKNOWN" | "STABLE" | "INFRA_RECOVERED" | "FLAKY_SUSPECT" | "FLAKY_CONFIRMED";
+        /**
          * StartDebugRun
          * @description Request one bounded run of an exact WorkflowDraft semantic revision.
          */
@@ -6092,6 +6541,50 @@ export interface components {
             versionRef: string;
         };
         /**
+         * TaskDataHygieneCounts
+         * @description Task-level distribution of the DataHygiene axis.
+         */
+        TaskDataHygieneCounts: {
+            /** Cleaned */
+            cleaned: number;
+            /** Cleanupfailed */
+            cleanupFailed: number;
+            /** Leaked */
+            leaked: number;
+            /** Notapplicable */
+            notApplicable: number;
+            /** Pending */
+            pending: number;
+        };
+        /**
+         * TaskEvidenceCompletenessCounts
+         * @description Task-level distribution of the EvidenceCompleteness axis.
+         */
+        TaskEvidenceCompletenessCounts: {
+            /** Complete */
+            complete: number;
+            /** Missing */
+            missing: number;
+            /** Notapplicable */
+            notApplicable: number;
+            /** Partial */
+            partial: number;
+            /** Pending */
+            pending: number;
+        };
+        /**
+         * TaskEvidenceIntegrityCounts
+         * @description Task-level distribution of the EvidenceIntegrity axis.
+         */
+        TaskEvidenceIntegrityCounts: {
+            /** Invalid */
+            invalid: number;
+            /** Unverified */
+            unverified: number;
+            /** Verified */
+            verified: number;
+        };
+        /**
          * TaskExecutionEvent
          * @description Append-only monotonic event projection for Task execution replay.
          */
@@ -6154,6 +6647,116 @@ export interface components {
             nextAfterSeq?: number | null;
         };
         /**
+         * TaskExecutionInfluenceCounts
+         * @description Task-level distribution of the ExecutionInfluence axis.
+         */
+        TaskExecutionInfluenceCounts: {
+            /** Autonomous */
+            autonomous: number;
+            /** Manualassisted */
+            manualAssisted: number;
+            /** Manualonly */
+            manualOnly: number;
+        };
+        /**
+         * TaskGateDecision
+         * @description Hashed immutable Gate fact.
+         */
+        TaskGateDecision: {
+            /** Classificationsethash */
+            classificationSetHash: string;
+            /** Clientmutationid */
+            clientMutationId: string;
+            decision: components["schemas"]["TaskGateVerdict"];
+            /** Decisionhash */
+            decisionHash: string;
+            /**
+             * Evaluatedat
+             * Format: date-time
+             */
+            evaluatedAt: string;
+            /**
+             * Evaluatedby
+             * Format: uuid
+             */
+            evaluatedBy: string;
+            /** Failureclassificationrevisionids */
+            failureClassificationRevisionIds: string[];
+            /** Gatepolicydigest */
+            gatePolicyDigest: string;
+            /**
+             * Gatepolicyversion
+             * @default 0.1.0
+             * @constant
+             */
+            gatePolicyVersion: "0.1.0";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Reasons */
+            reasons: components["schemas"]["TaskGateReason"][];
+            /** Resultsnapshothash */
+            resultSnapshotHash: string;
+            /**
+             * Resultsnapshotid
+             * Format: uuid
+             */
+            resultSnapshotId: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Schemaversion
+             * @default atlas.task-gate-decision/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.task-gate-decision/0.1";
+            /** Supersedesgatedecisionid */
+            supersedesGateDecisionId?: string | null;
+            /**
+             * Taskgateid
+             * Format: uuid
+             */
+            taskGateId: string;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+        };
+        /**
+         * TaskGateReason
+         * @description One machine-readable reason and the exact affected count.
+         */
+        TaskGateReason: {
+            code: components["schemas"]["TaskGateReasonCode"];
+            /** Count */
+            count: number;
+        };
+        /**
+         * TaskGateReasonCode
+         * @description Bounded, stable reasons emitted by the frozen strict Gate policy.
+         * @enum {string}
+         */
+        TaskGateReasonCode: "CLASSIFICATION_NOT_GATE_READY" | "DATA_HYGIENE_UNRESOLVED" | "DATA_LEAK" | "EVIDENCE_INCOMPLETE" | "EVIDENCE_INVALID_OR_UNVERIFIED" | "FAILED_UNITS" | "INCONCLUSIVE_UNITS" | "MANUAL_INFLUENCE" | "NOT_EVALUATED_UNITS" | "SNAPSHOT_NOT_FULLY_RESOLVED" | "UNSTABLE_EXECUTION";
+        /**
+         * TaskGateVerdict
+         * @description Three-valued release decision; uncertainty never becomes acceptance.
+         * @enum {string}
+         */
+        TaskGateVerdict: "ACCEPTED" | "REJECTED" | "INCONCLUSIVE";
+        /**
          * TaskMaterializationState
          * @description Completeness gate for a TaskRun aggregate before dispatch.
          * @enum {string}
@@ -6172,6 +6775,26 @@ export interface components {
             environmentIds: string[];
             /** Identityprofileversionids */
             identityProfileVersionIds: string[];
+        };
+        /**
+         * TaskOutcomeClassCounts
+         * @description Task-level distribution of the OutcomeClass axis.
+         */
+        TaskOutcomeClassCounts: {
+            /** Automation */
+            automation: number;
+            /** Business */
+            business: number;
+            /** Dependency */
+            dependency: number;
+            /** Platform */
+            platform: number;
+            /** Policy */
+            policy: number;
+            /** Unknown */
+            unknown: number;
+            /** User */
+            user: number;
         };
         /**
          * TaskPlan
@@ -6320,6 +6943,121 @@ export interface components {
         TaskProfileRefs: {
             /** Caseprofiles */
             caseProfiles: components["schemas"]["CaseExecutionProfileRef"][];
+        };
+        /**
+         * TaskResultAxisDistributions
+         * @description Complete fixed-cardinality axis distributions for one Task snapshot.
+         */
+        TaskResultAxisDistributions: {
+            dataHygiene: components["schemas"]["TaskDataHygieneCounts"];
+            evidenceCompleteness: components["schemas"]["TaskEvidenceCompletenessCounts"];
+            evidenceIntegrity: components["schemas"]["TaskEvidenceIntegrityCounts"];
+            executionInfluence: components["schemas"]["TaskExecutionInfluenceCounts"];
+            outcomeClass: components["schemas"]["TaskOutcomeClassCounts"];
+            stability: components["schemas"]["TaskStabilityCounts"];
+        };
+        /**
+         * TaskResultSnapshot
+         * @description Immutable hashed Task-level projection over exact UnitResolution revisions.
+         */
+        TaskResultSnapshot: {
+            /** Aggregationpolicydigest */
+            aggregationPolicyDigest: string;
+            /**
+             * Aggregationpolicyversion
+             * @default 0.1.0
+             * @enum {string}
+             */
+            aggregationPolicyVersion: "0.1.0" | "0.2.0" | "0.3.0";
+            autonomousPassRate: components["schemas"]["ResultPassRate"];
+            axisDistributions: components["schemas"]["TaskResultAxisDistributions"];
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            decisivePassRate: components["schemas"]["ResultPassRate"];
+            /**
+             * Finality
+             * @default QUALITY_FINAL
+             * @enum {string}
+             */
+            finality: "QUALITY_FINAL" | "FULLY_RESOLVED" | "REEVALUATED";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Inputhygieneresolutionsethash */
+            inputHygieneResolutionSetHash?: string | null;
+            /** Inputresolutionsethash */
+            inputResolutionSetHash: string;
+            /** Manifestcount */
+            manifestCount: number;
+            /** Manifesthash */
+            manifestHash: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Projectionwatermark
+             * Format: date-time
+             */
+            projectionWatermark: string;
+            rawPassRate: components["schemas"]["ResultPassRate"];
+            /** Reevaluationcommandid */
+            reevaluationCommandId?: string | null;
+            /** Reevaluationsourcesnapshotid */
+            reevaluationSourceSnapshotId?: string | null;
+            /** Revision */
+            revision: number;
+            /**
+             * Schemaversion
+             * @default atlas.task-result-snapshot/0.1
+             * @enum {string}
+             */
+            schemaVersion: "atlas.task-result-snapshot/0.1" | "atlas.task-result-snapshot/0.2" | "atlas.task-result-snapshot/0.3";
+            /** Snapshothash */
+            snapshotHash: string;
+            /** Supersedessnapshotid */
+            supersedesSnapshotId?: string | null;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            trustedPassRate: components["schemas"]["ResultPassRate"];
+            /** Unithygieneresolutionrevisionids */
+            unitHygieneResolutionRevisionIds?: string[] | null;
+            /** Unitresolutionrevisionids */
+            unitResolutionRevisionIds: string[];
+            verdictCounts: components["schemas"]["TaskVerdictCounts"];
+        } & (unknown & unknown & unknown);
+        /**
+         * TaskResultView
+         * @description One explicit Task Result Snapshot and its latest bound Gate decision.
+         */
+        TaskResultView: {
+            /**
+             * Projectionwatermark
+             * Format: date-time
+             */
+            projectionWatermark: string;
+            resultSnapshot: components["schemas"]["TaskResultSnapshot"];
+            selection: components["schemas"]["ResultSnapshotSelection"];
+            taskGateDecision?: components["schemas"]["TaskGateDecision"] | null;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
         };
         /**
          * TaskRetryPolicy
@@ -6587,11 +7325,41 @@ export interface components {
          */
         TaskRunRerunSelectionMode: "INFRA_FAILURES";
         /**
+         * TaskStabilityCounts
+         * @description Task-level distribution of the Stability axis.
+         */
+        TaskStabilityCounts: {
+            /** Flakyconfirmed */
+            flakyConfirmed: number;
+            /** Flakysuspect */
+            flakySuspect: number;
+            /** Infrarecovered */
+            infraRecovered: number;
+            /** Stable */
+            stable: number;
+            /** Unknown */
+            unknown: number;
+        };
+        /**
          * TaskTriggerSource
          * @description Bounded trigger origins used in TaskRun idempotency scope.
          * @enum {string}
          */
         TaskTriggerSource: "MANUAL" | "SCHEDULE" | "CI" | "WEBHOOK" | "API";
+        /**
+         * TaskVerdictCounts
+         * @description Manifest-conserving final Verdict counts.
+         */
+        TaskVerdictCounts: {
+            /** Failed */
+            failed: number;
+            /** Inconclusive */
+            inconclusive: number;
+            /** Notevaluated */
+            notEvaluated: number;
+            /** Passed */
+            passed: number;
+        };
         /**
          * Tenant
          * @description 多租户隔离根。
@@ -7111,6 +7879,91 @@ export interface components {
             nextAfterAttemptNumber?: number | null;
         };
         /**
+         * UnitResolutionRevision
+         * @description One append-only interpretation of every terminal Attempt for a Unit.
+         */
+        UnitResolutionRevision: {
+            /** Closurereason */
+            closureReason: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            dataHygiene: components["schemas"]["DataHygiene"];
+            /** Decisiveattemptnumber */
+            decisiveAttemptNumber: number;
+            /**
+             * Decisiveunitattemptid
+             * Format: uuid
+             */
+            decisiveUnitAttemptId: string;
+            effectiveVerdict: components["schemas"]["Verdict"];
+            evidenceCompleteness: components["schemas"]["atlas_testops__domain__result__models__EvidenceCompleteness"];
+            evidenceIntegrity: components["schemas"]["atlas_testops__domain__result__models__EvidenceIntegrity"];
+            executionInfluence: components["schemas"]["ExecutionInfluence"];
+            /**
+             * Executionunitid
+             * Format: uuid
+             */
+            executionUnitId: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Inputclosurenoticeids */
+            inputClosureNoticeIds: string[];
+            /** Inputsealids */
+            inputSealIds: string[];
+            /** Inputsethash */
+            inputSetHash: string;
+            /** Manifesthash */
+            manifestHash: string;
+            outcomeClass: components["schemas"]["OutcomeClass"];
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Resolutionpolicydigest */
+            resolutionPolicyDigest: string;
+            /**
+             * Resolutionpolicyversion
+             * @default 0.1.0
+             * @constant
+             */
+            resolutionPolicyVersion: "0.1.0";
+            /** Revision */
+            revision: number;
+            /**
+             * Schemaversion
+             * @default atlas.unit-resolution-revision/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.unit-resolution-revision/0.1";
+            stability: components["schemas"]["Stability"];
+            /** Supersedesrevisionid */
+            supersedesRevisionId?: string | null;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Unitkey */
+            unitKey: string;
+            /**
+             * Unitresolutionid
+             * Format: uuid
+             */
+            unitResolutionId: string;
+        };
+        /**
          * UpdateAccountPool
          * @description 更新账号池策略。
          */
@@ -7249,6 +8102,12 @@ export interface components {
          * @enum {string}
          */
         ValueSourceKind: "FIXTURE" | "ACTOR" | "RUN" | "LITERAL";
+        /**
+         * Verdict
+         * @description Minimal business judgment axis used by Result Center.
+         * @enum {string}
+         */
+        Verdict: "PENDING" | "PASSED" | "FAILED" | "INCONCLUSIVE" | "NOT_EVALUATED";
         /**
          * VerifyTestAccount
          * @description Request a login and role health check on one exact Origin.
@@ -7434,6 +8293,30 @@ export interface components {
          * @enum {string}
          */
         WorkflowPhase: "setup" | "identity" | "execute" | "assert" | "cleanup";
+        /**
+         * EvidenceCompleteness
+         * @description Required-evidence coverage axis.
+         * @enum {string}
+         */
+        atlas_testops__domain__result__models__EvidenceCompleteness: "PENDING" | "COMPLETE" | "PARTIAL" | "MISSING" | "NOT_APPLICABLE";
+        /**
+         * EvidenceIntegrity
+         * @description Independent evidence verification axis.
+         * @enum {string}
+         */
+        atlas_testops__domain__result__models__EvidenceIntegrity: "UNVERIFIED" | "VERIFIED" | "INVALID";
+        /**
+         * EvidenceCompleteness
+         * @description Whether every frozen Oracle has its required evidence.
+         * @enum {string}
+         */
+        atlas_testops__domain__runtime__models__EvidenceCompleteness: "COMPLETE" | "PARTIAL" | "MISSING";
+        /**
+         * EvidenceIntegrity
+         * @description Independent verification state for referenced artifact bytes.
+         * @enum {string}
+         */
+        atlas_testops__domain__runtime__models__EvidenceIntegrity: "VERIFIED" | "INVALID";
     };
     responses: never;
     parameters: never;
@@ -12627,6 +13510,179 @@ export interface operations {
             };
         };
     };
+    get_unit_resolution_v1_execution_units__unitId__resolution_get: {
+        parameters: {
+            query?: {
+                revision?: number | null;
+            };
+            header?: {
+                "If-None-Match"?: string | null;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitResolutionRevision"];
+                };
+            };
+            /** @description ETag 未变化 */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Result 请求或分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Result 资源不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    revise_failure_classification_v1_failure_classifications__classificationId__revisions_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                classificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestFailureClassificationRevision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FailureClassificationRevision"];
+                };
+            };
+            /** @description Result 请求或分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能复核 Result */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Result 资源不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Classification Revision 已变化 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     get_fixture_run_v1_fixture_runs__runId__get: {
         parameters: {
             query?: never;
@@ -15051,6 +16107,87 @@ export interface operations {
             };
         };
     };
+    list_failure_clusters_v1_result_snapshots__snapshotId__clusters_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "If-None-Match"?: string | null;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                snapshotId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FailureClusterPage"];
+                };
+            };
+            /** @description ETag 未变化 */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Result 请求或分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Result 资源不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     current_session_v1_session_get: {
         parameters: {
             query?: never;
@@ -15106,6 +16243,97 @@ export interface operations {
                 };
             };
             /** @description PlatformPrincipal 已存在 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    evaluate_task_gate_v1_task_gates_evaluations_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestTaskGateEvaluation"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskGateDecision"];
+                };
+            };
+            /** @description Result 请求或分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能评估 Task Gate */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Result 资源不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Snapshot 或 Classification 尚不可评估 */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -15843,6 +17071,86 @@ export interface operations {
                 };
             };
             /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_task_result_v1_task_runs__runId__result_get: {
+        parameters: {
+            query?: {
+                snapshotId?: string | null;
+            };
+            header?: {
+                "If-None-Match"?: string | null;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskResultView"];
+                };
+            };
+            /** @description ETag 未变化 */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Result 请求或分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Result 资源不存在或不可见 */
             404: {
                 headers: {
                     [name: string]: unknown;

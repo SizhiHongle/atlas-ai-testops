@@ -491,3 +491,79 @@ async def test_loads_and_inserts_failure_cluster_and_classification_facts() -> N
     assert cluster_params is not None and len(cluster_params) == 19
     assert "insert into atlas.failure_classification_revision" in classification_query
     assert classification_params is not None and len(classification_params) == 26
+
+
+@pytest.mark.anyio
+async def test_reads_exact_resolution_gate_and_as_of_cluster_page() -> None:
+    resolution = _resolution()
+    cluster_content = _cluster_content()
+    cluster = FailureClusterRevision(
+        **cluster_content.model_dump(mode="python"),
+        cluster_hash=failure_cluster_revision_hash(cluster_content),
+    )
+    classification_content = _classification_content()
+    classification = FailureClassificationRevision(
+        **classification_content.model_dump(mode="python"),
+        classification_hash=failure_classification_revision_hash(
+            classification_content
+        ),
+    )
+    connection = _Connection(
+        resolution.model_dump(mode="python"),
+        None,
+        (
+            cast(
+                DictRow,
+                {
+                    "cluster": cluster.model_dump(mode="json", by_alias=True),
+                    "classification": classification.model_dump(
+                        mode="json",
+                        by_alias=True,
+                    ),
+                },
+            ),
+        ),
+    )
+    repository = ResultFactRepository()
+
+    exact = await repository.get_resolution_revision(
+        cast(AsyncConnection[DictRow], connection),
+        execution_unit_id=resolution.execution_unit_id,
+        revision=resolution.revision,
+    )
+    gate = await repository.get_latest_task_gate_for_snapshot(
+        cast(AsyncConnection[DictRow], connection),
+        cluster.result_snapshot_id,
+    )
+    page = await repository.list_failure_clusters_page(
+        cast(AsyncConnection[DictRow], connection),
+        result_snapshot_id=cluster.result_snapshot_id,
+        as_of=NOW,
+        after_fingerprint=None,
+        after_failure_cluster_id=None,
+        after_cluster_revision_id=None,
+        limit=51,
+    )
+
+    assert exact == resolution
+    assert gate is None
+    assert page == ((cluster, classification),)
+    resolution_query, resolution_params = connection.calls[0]
+    gate_query, gate_params = connection.calls[1]
+    page_query, page_params = connection.calls[2]
+    assert "revision = %s" in resolution_query
+    assert resolution_params == (resolution.execution_unit_id, resolution.revision)
+    assert "where result_snapshot_id = %s" in gate_query
+    assert gate_params == (cluster.result_snapshot_id,)
+    assert "source.created_at <= %s" in page_query
+    assert "left join lateral" in page_query
+    assert page_params == (
+        cluster.result_snapshot_id,
+        NOW,
+        NOW,
+        None,
+        None,
+        None,
+        None,
+        51,
+    )

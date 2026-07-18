@@ -456,7 +456,10 @@ class ResultClassificationService:
             or not actor.can_read_project(snapshot.project_id)
         ):
             raise _not_found()
-        if not actor.can_operate_project(snapshot.project_id):
+        if not (
+            actor.can_operate_project(snapshot.project_id)
+            or actor.can_review_results(snapshot.project_id)
+        ):
             raise _forbidden("当前角色不能为该 Project 生成失败归因。")
         if (
             run.lifecycle is not ExecutionLifecycle.CLOSED

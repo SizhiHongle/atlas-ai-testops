@@ -2160,6 +2160,51 @@
         "title": "CaseVersionStatus",
         "type": "string"
       },
+      "ClassificationAuthorKind": {
+        "description": "Bounded author authority without persisting hidden model reasoning.",
+        "enum": [
+          "SYSTEM_RULE",
+          "AI_MODEL",
+          "HUMAN"
+        ],
+        "title": "ClassificationAuthorKind",
+        "type": "string"
+      },
+      "ClassificationConfidence": {
+        "additionalProperties": false,
+        "description": "Exact confidence fraction with a fixed basis-point denominator.",
+        "properties": {
+          "denominator": {
+            "const": 10000,
+            "default": 10000,
+            "title": "Denominator",
+            "type": "integer"
+          },
+          "numerator": {
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Numerator",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "numerator"
+        ],
+        "title": "ClassificationConfidence",
+        "type": "object"
+      },
+      "ClassificationJudgmentState": {
+        "description": "How one immutable classification judgment was produced or reviewed.",
+        "enum": [
+          "RULE_PROPOSED",
+          "AI_PROPOSED",
+          "HUMAN_CONFIRMED",
+          "HUMAN_REJECTED",
+          "HUMAN_REVISED"
+        ],
+        "title": "ClassificationJudgmentState",
+        "type": "string"
+      },
       "CleanupContract": {
         "additionalProperties": false,
         "description": "A reviewed operation that cleans one ledger-owned resource.",
@@ -4237,6 +4282,18 @@
         "title": "DataClassification",
         "type": "string"
       },
+      "DataHygiene": {
+        "description": "Side-effect cleanup state captured when the Attempt is sealed.",
+        "enum": [
+          "PENDING",
+          "CLEANED",
+          "CLEANUP_FAILED",
+          "LEAKED",
+          "NOT_APPLICABLE"
+        ],
+        "title": "DataHygiene",
+        "type": "string"
+      },
       "DataNodeAttempt": {
         "additionalProperties": false,
         "description": "Append-oriented safe summary of one provider call.",
@@ -5593,7 +5650,7 @@
             "type": "string"
           },
           "integrity": {
-            "$ref": "#/components/schemas/EvidenceIntegrity"
+            "$ref": "#/components/schemas/atlas_testops__domain__runtime__models__EvidenceIntegrity"
           },
           "kind": {
             "$ref": "#/components/schemas/EvidenceArtifactKind"
@@ -5654,7 +5711,7 @@
             "type": "string"
           },
           "integrity": {
-            "$ref": "#/components/schemas/EvidenceIntegrity"
+            "$ref": "#/components/schemas/EvidenceIntegrity-Input"
           },
           "kind": {
             "$ref": "#/components/schemas/EvidenceArtifactKind"
@@ -5716,17 +5773,7 @@
         "title": "EvidenceArtifactKind",
         "type": "string"
       },
-      "EvidenceCompleteness": {
-        "description": "Whether every frozen Oracle has its required evidence.",
-        "enum": [
-          "COMPLETE",
-          "PARTIAL",
-          "MISSING"
-        ],
-        "title": "EvidenceCompleteness",
-        "type": "string"
-      },
-      "EvidenceIntegrity": {
+      "EvidenceIntegrity-Input": {
         "description": "Independent verification state for referenced artifact bytes.",
         "enum": [
           "VERIFIED",
@@ -5759,7 +5806,7 @@
             "type": "array"
           },
           "completeness": {
-            "$ref": "#/components/schemas/EvidenceCompleteness"
+            "$ref": "#/components/schemas/atlas_testops__domain__runtime__models__EvidenceCompleteness"
           },
           "contentDigest": {
             "pattern": "^sha256:[0-9a-f]{64}$",
@@ -5828,7 +5875,7 @@
             "type": "integer"
           },
           "integrity": {
-            "$ref": "#/components/schemas/EvidenceIntegrity"
+            "$ref": "#/components/schemas/atlas_testops__domain__runtime__models__EvidenceIntegrity"
           },
           "missingAssertionIds": {
             "items": {
@@ -6237,6 +6284,16 @@
         "title": "ExecutionHygiene",
         "type": "string"
       },
+      "ExecutionInfluence": {
+        "description": "Who influenced the execution actions.",
+        "enum": [
+          "AUTONOMOUS",
+          "MANUAL_ASSISTED",
+          "MANUAL_ONLY"
+        ],
+        "title": "ExecutionInfluence",
+        "type": "string"
+      },
       "ExecutionLifecycle": {
         "description": "Shared TaskRun, ExecutionUnit, and UnitAttempt lifecycle axis.",
         "enum": [
@@ -6553,6 +6610,516 @@
           "items"
         ],
         "title": "ExecutionUnitPage",
+        "type": "object"
+      },
+      "FailureClassificationRevision": {
+        "additionalProperties": false,
+        "description": "Hashed immutable classification judgment.",
+        "properties": {
+          "authorKind": {
+            "$ref": "#/components/schemas/ClassificationAuthorKind"
+          },
+          "authoredBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authoredby"
+          },
+          "classificationHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Classificationhash",
+            "type": "string"
+          },
+          "classificationPolicyDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Classificationpolicydigest",
+            "type": "string"
+          },
+          "classificationPolicyVersion": {
+            "const": "0.1.0",
+            "default": "0.1.0",
+            "title": "Classificationpolicyversion",
+            "type": "string"
+          },
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/ClassificationConfidence"
+          },
+          "contradictingEvidenceRefs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FailureEvidenceRef"
+            },
+            "maxItems": 256,
+            "title": "Contradictingevidencerefs",
+            "type": "array"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "evidenceGapCodes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "Evidencegapcodes",
+            "type": "array"
+          },
+          "failureClassificationId": {
+            "format": "uuid",
+            "title": "Failureclassificationid",
+            "type": "string"
+          },
+          "failureClusterRevisionId": {
+            "format": "uuid",
+            "title": "Failureclusterrevisionid",
+            "type": "string"
+          },
+          "failureDomain": {
+            "$ref": "#/components/schemas/FailureDomain"
+          },
+          "hypothesis": {
+            "maxLength": 500,
+            "minLength": 1,
+            "pattern": "^[^\\x00-\\x1f\\x7f]{1,500}$",
+            "title": "Hypothesis",
+            "type": "string"
+          },
+          "hypothesisCode": {
+            "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+            "title": "Hypothesiscode",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "judgmentState": {
+            "$ref": "#/components/schemas/ClassificationJudgmentState"
+          },
+          "modelVersionRef": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 3,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modelversionref"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "resultSnapshotId": {
+            "format": "uuid",
+            "title": "Resultsnapshotid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schemaVersion": {
+            "const": "atlas.failure-classification-revision/0.1",
+            "default": "atlas.failure-classification-revision/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "supersedesRevisionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedesrevisionid"
+          },
+          "supportingEvidenceRefs": {
+            "items": {
+              "$ref": "#/components/schemas/FailureEvidenceRef"
+            },
+            "maxItems": 256,
+            "minItems": 1,
+            "title": "Supportingevidencerefs",
+            "type": "array"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "failureClassificationId",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "resultSnapshotId",
+          "failureClusterRevisionId",
+          "revision",
+          "failureDomain",
+          "hypothesisCode",
+          "hypothesis",
+          "confidence",
+          "supportingEvidenceRefs",
+          "judgmentState",
+          "authorKind",
+          "classificationPolicyDigest",
+          "clientMutationId",
+          "createdAt",
+          "classificationHash"
+        ],
+        "title": "FailureClassificationRevision",
+        "type": "object"
+      },
+      "FailureClusterItem": {
+        "additionalProperties": false,
+        "description": "One current Cluster revision and its latest judgment as of the page fence.",
+        "properties": {
+          "classification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FailureClassificationRevision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cluster": {
+            "$ref": "#/components/schemas/FailureClusterRevision"
+          }
+        },
+        "required": [
+          "cluster"
+        ],
+        "title": "FailureClusterItem",
+        "type": "object"
+      },
+      "FailureClusterPage": {
+        "additionalProperties": false,
+        "description": "Stable as-of page of current failure clusters for one immutable Snapshot.",
+        "properties": {
+          "asOf": {
+            "format": "date-time",
+            "title": "Asof",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FailureClusterItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "maxLength": 1024,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          },
+          "projectionWatermark": {
+            "format": "date-time",
+            "title": "Projectionwatermark",
+            "type": "string"
+          },
+          "resultSnapshotId": {
+            "format": "uuid",
+            "title": "Resultsnapshotid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resultSnapshotId",
+          "asOf",
+          "projectionWatermark",
+          "items"
+        ],
+        "title": "FailureClusterPage",
+        "type": "object"
+      },
+      "FailureClusterRevision": {
+        "additionalProperties": false,
+        "description": "Hashed immutable cluster projection over exact Snapshot inputs.",
+        "properties": {
+          "affectedCount": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Affectedcount",
+            "type": "integer"
+          },
+          "affectedUnitResolutionRevisionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Affectedunitresolutionrevisionids",
+            "type": "array"
+          },
+          "clusterHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Clusterhash",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "failureClusterId": {
+            "format": "uuid",
+            "title": "Failureclusterid",
+            "type": "string"
+          },
+          "fingerprint": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "fingerprintPolicyDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Fingerprintpolicydigest",
+            "type": "string"
+          },
+          "fingerprintVersion": {
+            "const": "0.1.0",
+            "default": "0.1.0",
+            "title": "Fingerprintversion",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "projectionWatermark": {
+            "format": "date-time",
+            "title": "Projectionwatermark",
+            "type": "string"
+          },
+          "representativeUnitResolutionRevisionId": {
+            "format": "uuid",
+            "title": "Representativeunitresolutionrevisionid",
+            "type": "string"
+          },
+          "resultSnapshotId": {
+            "format": "uuid",
+            "title": "Resultsnapshotid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schemaVersion": {
+            "const": "atlas.failure-cluster-revision/0.1",
+            "default": "atlas.failure-cluster-revision/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "signal": {
+            "$ref": "#/components/schemas/FailureSignal"
+          },
+          "supersedesClusterRevisionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedesclusterrevisionid"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "failureClusterId",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "resultSnapshotId",
+          "revision",
+          "fingerprintPolicyDigest",
+          "fingerprint",
+          "signal",
+          "affectedUnitResolutionRevisionIds",
+          "affectedCount",
+          "representativeUnitResolutionRevisionId",
+          "projectionWatermark",
+          "createdAt",
+          "clusterHash"
+        ],
+        "title": "FailureClusterRevision",
+        "type": "object"
+      },
+      "FailureDomain": {
+        "description": "Stable bounded taxonomy used for triage and later Gate policy.",
+        "enum": [
+          "PRODUCT",
+          "TEST_SPEC",
+          "TEST_DATA",
+          "IDENTITY",
+          "ENVIRONMENT",
+          "INFRASTRUCTURE",
+          "EXTERNAL_DEPENDENCY",
+          "AGENT_AUTOMATION",
+          "POLICY_SECURITY",
+          "EVIDENCE",
+          "CLEANUP",
+          "UNKNOWN"
+        ],
+        "title": "FailureDomain",
+        "type": "string"
+      },
+      "FailureEvidenceKind": {
+        "description": "Immutable Result facts accepted as classification evidence.",
+        "enum": [
+          "UNIT_RESOLUTION",
+          "UNIT_HYGIENE_RESOLUTION",
+          "ATTEMPT_SEAL",
+          "ATTEMPT_CLOSURE_NOTICE"
+        ],
+        "title": "FailureEvidenceKind",
+        "type": "string"
+      },
+      "FailureEvidenceRef": {
+        "additionalProperties": false,
+        "description": "Typed immutable source reference used to support or contradict a judgment.",
+        "properties": {
+          "contentDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Contentdigest",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FailureEvidenceKind"
+          },
+          "refId": {
+            "format": "uuid",
+            "title": "Refid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "refId",
+          "contentDigest"
+        ],
+        "title": "FailureEvidenceRef",
+        "type": "object"
+      },
+      "FailureSignal": {
+        "additionalProperties": false,
+        "description": "Deterministic bounded signal used by the first clustering policy.",
+        "properties": {
+          "closureReason": {
+            "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+            "title": "Closurereason",
+            "type": "string"
+          },
+          "dataHygiene": {
+            "$ref": "#/components/schemas/DataHygiene"
+          },
+          "effectiveVerdict": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "evidenceCompleteness": {
+            "$ref": "#/components/schemas/atlas_testops__domain__result__models__EvidenceCompleteness"
+          },
+          "evidenceIntegrity": {
+            "$ref": "#/components/schemas/atlas_testops__domain__result__models__EvidenceIntegrity"
+          },
+          "failureDomain": {
+            "$ref": "#/components/schemas/FailureDomain"
+          },
+          "outcomeClass": {
+            "$ref": "#/components/schemas/OutcomeClass"
+          },
+          "schemaVersion": {
+            "const": "atlas.failure-signal/0.1",
+            "default": "atlas.failure-signal/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "signalCode": {
+            "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+            "title": "Signalcode",
+            "type": "string"
+          },
+          "stability": {
+            "$ref": "#/components/schemas/Stability"
+          }
+        },
+        "required": [
+          "failureDomain",
+          "signalCode",
+          "effectiveVerdict",
+          "outcomeClass",
+          "closureReason",
+          "dataHygiene",
+          "evidenceCompleteness",
+          "evidenceIntegrity",
+          "stability"
+        ],
+        "title": "FailureSignal",
         "type": "object"
       },
       "FieldViolation": {
@@ -7932,6 +8499,20 @@
         "title": "OracleStrength",
         "type": "string"
       },
+      "OutcomeClass": {
+        "description": "Stable high-level cause family independent of Verdict.",
+        "enum": [
+          "BUSINESS",
+          "DEPENDENCY",
+          "PLATFORM",
+          "USER",
+          "AUTOMATION",
+          "POLICY",
+          "UNKNOWN"
+        ],
+        "title": "OutcomeClass",
+        "type": "string"
+      },
       "OutcomePolicy": {
         "additionalProperties": false,
         "description": "Independent Oracle authority requirements.",
@@ -8889,6 +9470,120 @@
         "title": "RequestDebugRunCancel",
         "type": "object"
       },
+      "RequestFailureClassificationRevision": {
+        "additionalProperties": false,
+        "description": "Idempotent human review request over one exact Classification revision.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/ClassificationConfidence"
+          },
+          "contradictingEvidenceRefs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FailureEvidenceRef"
+            },
+            "maxItems": 256,
+            "title": "Contradictingevidencerefs",
+            "type": "array"
+          },
+          "evidenceGapCodes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "Evidencegapcodes",
+            "type": "array"
+          },
+          "expectedRevision": {
+            "minimum": 1.0,
+            "title": "Expectedrevision",
+            "type": "integer"
+          },
+          "failureDomain": {
+            "$ref": "#/components/schemas/FailureDomain"
+          },
+          "hypothesis": {
+            "maxLength": 500,
+            "minLength": 1,
+            "pattern": "^[^\\x00-\\x1f\\x7f]{1,500}$",
+            "title": "Hypothesis",
+            "type": "string"
+          },
+          "hypothesisCode": {
+            "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+            "title": "Hypothesiscode",
+            "type": "string"
+          },
+          "judgmentState": {
+            "enum": [
+              "HUMAN_CONFIRMED",
+              "HUMAN_REJECTED",
+              "HUMAN_REVISED"
+            ],
+            "title": "Judgmentstate",
+            "type": "string"
+          },
+          "supportingEvidenceRefs": {
+            "items": {
+              "$ref": "#/components/schemas/FailureEvidenceRef"
+            },
+            "maxItems": 256,
+            "minItems": 1,
+            "title": "Supportingevidencerefs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "failureDomain",
+          "hypothesisCode",
+          "hypothesis",
+          "confidence",
+          "supportingEvidenceRefs",
+          "judgmentState",
+          "clientMutationId"
+        ],
+        "title": "RequestFailureClassificationRevision",
+        "type": "object"
+      },
+      "RequestTaskGateEvaluation": {
+        "additionalProperties": false,
+        "description": "Idempotent request to evaluate one exact immutable Result Snapshot.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "gatePolicyVersion": {
+            "const": "0.1.0",
+            "default": "0.1.0",
+            "title": "Gatepolicyversion",
+            "type": "string"
+          },
+          "resultSnapshotId": {
+            "format": "uuid",
+            "title": "Resultsnapshotid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resultSnapshotId",
+          "clientMutationId"
+        ],
+        "title": "RequestTaskGateEvaluation",
+        "type": "object"
+      },
       "RequestTaskRunCancel": {
         "additionalProperties": false,
         "description": "Idempotent public request to cancel one exact TaskRun revision.",
@@ -9270,6 +9965,37 @@
         "title": "ResourceRecordStatus",
         "type": "string"
       },
+      "ResultPassRate": {
+        "additionalProperties": false,
+        "description": "Exact rational pass rate without floating-point or rounding ambiguity.",
+        "properties": {
+          "denominator": {
+            "minimum": 0.0,
+            "title": "Denominator",
+            "type": "integer"
+          },
+          "numerator": {
+            "minimum": 0.0,
+            "title": "Numerator",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "numerator",
+          "denominator"
+        ],
+        "title": "ResultPassRate",
+        "type": "object"
+      },
+      "ResultSnapshotSelection": {
+        "description": "Whether the caller selected the latest or one exact Snapshot.",
+        "enum": [
+          "LATEST",
+          "EXACT"
+        ],
+        "title": "ResultSnapshotSelection",
+        "type": "string"
+      },
       "RetryPolicy": {
         "additionalProperties": false,
         "description": "Bounded retry budget for transient connector outcomes.",
@@ -9416,6 +10142,18 @@
         ],
         "title": "SourceRequirementRef",
         "type": "object"
+      },
+      "Stability": {
+        "description": "Attempt-level placeholder for the later Unit resolution axis.",
+        "enum": [
+          "UNKNOWN",
+          "STABLE",
+          "INFRA_RECOVERED",
+          "FLAKY_SUSPECT",
+          "FLAKY_CONFIRMED"
+        ],
+        "title": "Stability",
+        "type": "string"
       },
       "StartDebugRun": {
         "additionalProperties": false,
@@ -9570,6 +10308,114 @@
         "title": "SurfaceRef",
         "type": "object"
       },
+      "TaskDataHygieneCounts": {
+        "additionalProperties": false,
+        "description": "Task-level distribution of the DataHygiene axis.",
+        "properties": {
+          "cleaned": {
+            "minimum": 0.0,
+            "title": "Cleaned",
+            "type": "integer"
+          },
+          "cleanupFailed": {
+            "minimum": 0.0,
+            "title": "Cleanupfailed",
+            "type": "integer"
+          },
+          "leaked": {
+            "minimum": 0.0,
+            "title": "Leaked",
+            "type": "integer"
+          },
+          "notApplicable": {
+            "minimum": 0.0,
+            "title": "Notapplicable",
+            "type": "integer"
+          },
+          "pending": {
+            "minimum": 0.0,
+            "title": "Pending",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pending",
+          "cleaned",
+          "cleanupFailed",
+          "leaked",
+          "notApplicable"
+        ],
+        "title": "TaskDataHygieneCounts",
+        "type": "object"
+      },
+      "TaskEvidenceCompletenessCounts": {
+        "additionalProperties": false,
+        "description": "Task-level distribution of the EvidenceCompleteness axis.",
+        "properties": {
+          "complete": {
+            "minimum": 0.0,
+            "title": "Complete",
+            "type": "integer"
+          },
+          "missing": {
+            "minimum": 0.0,
+            "title": "Missing",
+            "type": "integer"
+          },
+          "notApplicable": {
+            "minimum": 0.0,
+            "title": "Notapplicable",
+            "type": "integer"
+          },
+          "partial": {
+            "minimum": 0.0,
+            "title": "Partial",
+            "type": "integer"
+          },
+          "pending": {
+            "minimum": 0.0,
+            "title": "Pending",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pending",
+          "complete",
+          "partial",
+          "missing",
+          "notApplicable"
+        ],
+        "title": "TaskEvidenceCompletenessCounts",
+        "type": "object"
+      },
+      "TaskEvidenceIntegrityCounts": {
+        "additionalProperties": false,
+        "description": "Task-level distribution of the EvidenceIntegrity axis.",
+        "properties": {
+          "invalid": {
+            "minimum": 0.0,
+            "title": "Invalid",
+            "type": "integer"
+          },
+          "unverified": {
+            "minimum": 0.0,
+            "title": "Unverified",
+            "type": "integer"
+          },
+          "verified": {
+            "minimum": 0.0,
+            "title": "Verified",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unverified",
+          "verified",
+          "invalid"
+        ],
+        "title": "TaskEvidenceIntegrityCounts",
+        "type": "object"
+      },
       "TaskExecutionEvent": {
         "additionalProperties": false,
         "description": "Append-only monotonic event projection for Task execution replay.",
@@ -9704,6 +10550,225 @@
         "title": "TaskExecutionEventPage",
         "type": "object"
       },
+      "TaskExecutionInfluenceCounts": {
+        "additionalProperties": false,
+        "description": "Task-level distribution of the ExecutionInfluence axis.",
+        "properties": {
+          "autonomous": {
+            "minimum": 0.0,
+            "title": "Autonomous",
+            "type": "integer"
+          },
+          "manualAssisted": {
+            "minimum": 0.0,
+            "title": "Manualassisted",
+            "type": "integer"
+          },
+          "manualOnly": {
+            "minimum": 0.0,
+            "title": "Manualonly",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "autonomous",
+          "manualAssisted",
+          "manualOnly"
+        ],
+        "title": "TaskExecutionInfluenceCounts",
+        "type": "object"
+      },
+      "TaskGateDecision": {
+        "additionalProperties": false,
+        "description": "Hashed immutable Gate fact.",
+        "properties": {
+          "classificationSetHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Classificationsethash",
+            "type": "string"
+          },
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/TaskGateVerdict"
+          },
+          "decisionHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Decisionhash",
+            "type": "string"
+          },
+          "evaluatedAt": {
+            "format": "date-time",
+            "title": "Evaluatedat",
+            "type": "string"
+          },
+          "evaluatedBy": {
+            "format": "uuid",
+            "title": "Evaluatedby",
+            "type": "string"
+          },
+          "failureClassificationRevisionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "title": "Failureclassificationrevisionids",
+            "type": "array"
+          },
+          "gatePolicyDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Gatepolicydigest",
+            "type": "string"
+          },
+          "gatePolicyVersion": {
+            "const": "0.1.0",
+            "default": "0.1.0",
+            "title": "Gatepolicyversion",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/TaskGateReason"
+            },
+            "maxItems": 11,
+            "title": "Reasons",
+            "type": "array"
+          },
+          "resultSnapshotHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Resultsnapshothash",
+            "type": "string"
+          },
+          "resultSnapshotId": {
+            "format": "uuid",
+            "title": "Resultsnapshotid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schemaVersion": {
+            "const": "atlas.task-gate-decision/0.1",
+            "default": "atlas.task-gate-decision/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "supersedesGateDecisionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedesgatedecisionid"
+          },
+          "taskGateId": {
+            "format": "uuid",
+            "title": "Taskgateid",
+            "type": "string"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "taskGateId",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "resultSnapshotId",
+          "resultSnapshotHash",
+          "revision",
+          "failureClassificationRevisionIds",
+          "classificationSetHash",
+          "gatePolicyDigest",
+          "decision",
+          "reasons",
+          "evaluatedBy",
+          "clientMutationId",
+          "evaluatedAt",
+          "decisionHash"
+        ],
+        "title": "TaskGateDecision",
+        "type": "object"
+      },
+      "TaskGateReason": {
+        "additionalProperties": false,
+        "description": "One machine-readable reason and the exact affected count.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/TaskGateReasonCode"
+          },
+          "count": {
+            "minimum": 1.0,
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "count"
+        ],
+        "title": "TaskGateReason",
+        "type": "object"
+      },
+      "TaskGateReasonCode": {
+        "description": "Bounded, stable reasons emitted by the frozen strict Gate policy.",
+        "enum": [
+          "CLASSIFICATION_NOT_GATE_READY",
+          "DATA_HYGIENE_UNRESOLVED",
+          "DATA_LEAK",
+          "EVIDENCE_INCOMPLETE",
+          "EVIDENCE_INVALID_OR_UNVERIFIED",
+          "FAILED_UNITS",
+          "INCONCLUSIVE_UNITS",
+          "MANUAL_INFLUENCE",
+          "NOT_EVALUATED_UNITS",
+          "SNAPSHOT_NOT_FULLY_RESOLVED",
+          "UNSTABLE_EXECUTION"
+        ],
+        "title": "TaskGateReasonCode",
+        "type": "string"
+      },
+      "TaskGateVerdict": {
+        "description": "Three-valued release decision; uncertainty never becomes acceptance.",
+        "enum": [
+          "ACCEPTED",
+          "REJECTED",
+          "INCONCLUSIVE"
+        ],
+        "title": "TaskGateVerdict",
+        "type": "string"
+      },
       "TaskMaterializationState": {
         "description": "Completeness gate for a TaskRun aggregate before dispatch.",
         "enum": [
@@ -9765,6 +10830,58 @@
           "dataProfileVersionIds"
         ],
         "title": "TaskMatrixDefinition",
+        "type": "object"
+      },
+      "TaskOutcomeClassCounts": {
+        "additionalProperties": false,
+        "description": "Task-level distribution of the OutcomeClass axis.",
+        "properties": {
+          "automation": {
+            "minimum": 0.0,
+            "title": "Automation",
+            "type": "integer"
+          },
+          "business": {
+            "minimum": 0.0,
+            "title": "Business",
+            "type": "integer"
+          },
+          "dependency": {
+            "minimum": 0.0,
+            "title": "Dependency",
+            "type": "integer"
+          },
+          "platform": {
+            "minimum": 0.0,
+            "title": "Platform",
+            "type": "integer"
+          },
+          "policy": {
+            "minimum": 0.0,
+            "title": "Policy",
+            "type": "integer"
+          },
+          "unknown": {
+            "minimum": 0.0,
+            "title": "Unknown",
+            "type": "integer"
+          },
+          "user": {
+            "minimum": 0.0,
+            "title": "User",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "business",
+          "dependency",
+          "platform",
+          "user",
+          "automation",
+          "policy",
+          "unknown"
+        ],
+        "title": "TaskOutcomeClassCounts",
         "type": "object"
       },
       "TaskPlan": {
@@ -10047,6 +11164,423 @@
           "caseProfiles"
         ],
         "title": "TaskProfileRefs",
+        "type": "object"
+      },
+      "TaskResultAxisDistributions": {
+        "additionalProperties": false,
+        "description": "Complete fixed-cardinality axis distributions for one Task snapshot.",
+        "properties": {
+          "dataHygiene": {
+            "$ref": "#/components/schemas/TaskDataHygieneCounts"
+          },
+          "evidenceCompleteness": {
+            "$ref": "#/components/schemas/TaskEvidenceCompletenessCounts"
+          },
+          "evidenceIntegrity": {
+            "$ref": "#/components/schemas/TaskEvidenceIntegrityCounts"
+          },
+          "executionInfluence": {
+            "$ref": "#/components/schemas/TaskExecutionInfluenceCounts"
+          },
+          "outcomeClass": {
+            "$ref": "#/components/schemas/TaskOutcomeClassCounts"
+          },
+          "stability": {
+            "$ref": "#/components/schemas/TaskStabilityCounts"
+          }
+        },
+        "required": [
+          "dataHygiene",
+          "evidenceCompleteness",
+          "evidenceIntegrity",
+          "executionInfluence",
+          "stability",
+          "outcomeClass"
+        ],
+        "title": "TaskResultAxisDistributions",
+        "type": "object"
+      },
+      "TaskResultSnapshot": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "finality": {
+                  "const": "QUALITY_FINAL"
+                }
+              },
+              "required": [
+                "finality"
+              ]
+            },
+            "then": {
+              "properties": {
+                "aggregationPolicyVersion": {
+                  "const": "0.1.0"
+                },
+                "inputHygieneResolutionSetHash": {
+                  "type": "null"
+                },
+                "reevaluationCommandId": {
+                  "type": "null"
+                },
+                "reevaluationSourceSnapshotId": {
+                  "type": "null"
+                },
+                "schemaVersion": {
+                  "const": "atlas.task-result-snapshot/0.1"
+                },
+                "unitHygieneResolutionRevisionIds": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "finality": {
+                  "const": "FULLY_RESOLVED"
+                }
+              },
+              "required": [
+                "finality"
+              ]
+            },
+            "then": {
+              "properties": {
+                "aggregationPolicyVersion": {
+                  "const": "0.2.0"
+                },
+                "inputHygieneResolutionSetHash": {
+                  "pattern": "^sha256:[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "reevaluationCommandId": {
+                  "type": "null"
+                },
+                "reevaluationSourceSnapshotId": {
+                  "type": "null"
+                },
+                "schemaVersion": {
+                  "const": "atlas.task-result-snapshot/0.2"
+                },
+                "unitHygieneResolutionRevisionIds": {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "maxItems": 100000,
+                  "minItems": 1,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "unitHygieneResolutionRevisionIds",
+                "inputHygieneResolutionSetHash"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "finality": {
+                  "const": "REEVALUATED"
+                }
+              },
+              "required": [
+                "finality"
+              ]
+            },
+            "then": {
+              "properties": {
+                "aggregationPolicyVersion": {
+                  "const": "0.3.0"
+                },
+                "inputHygieneResolutionSetHash": {
+                  "pattern": "^sha256:[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "reevaluationCommandId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "reevaluationSourceSnapshotId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "schemaVersion": {
+                  "const": "atlas.task-result-snapshot/0.3"
+                },
+                "unitHygieneResolutionRevisionIds": {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "maxItems": 100000,
+                  "minItems": 1,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "unitHygieneResolutionRevisionIds",
+                "inputHygieneResolutionSetHash",
+                "reevaluationSourceSnapshotId",
+                "reevaluationCommandId"
+              ]
+            }
+          }
+        ],
+        "description": "Immutable hashed Task-level projection over exact UnitResolution revisions.",
+        "properties": {
+          "aggregationPolicyDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Aggregationpolicydigest",
+            "type": "string"
+          },
+          "aggregationPolicyVersion": {
+            "default": "0.1.0",
+            "enum": [
+              "0.1.0",
+              "0.2.0",
+              "0.3.0"
+            ],
+            "title": "Aggregationpolicyversion",
+            "type": "string"
+          },
+          "autonomousPassRate": {
+            "$ref": "#/components/schemas/ResultPassRate"
+          },
+          "axisDistributions": {
+            "$ref": "#/components/schemas/TaskResultAxisDistributions"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "decisivePassRate": {
+            "$ref": "#/components/schemas/ResultPassRate"
+          },
+          "finality": {
+            "default": "QUALITY_FINAL",
+            "enum": [
+              "QUALITY_FINAL",
+              "FULLY_RESOLVED",
+              "REEVALUATED"
+            ],
+            "title": "Finality",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inputHygieneResolutionSetHash": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inputhygieneresolutionsethash"
+          },
+          "inputResolutionSetHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Inputresolutionsethash",
+            "type": "string"
+          },
+          "manifestCount": {
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Manifestcount",
+            "type": "integer"
+          },
+          "manifestHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Manifesthash",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "projectionWatermark": {
+            "format": "date-time",
+            "title": "Projectionwatermark",
+            "type": "string"
+          },
+          "rawPassRate": {
+            "$ref": "#/components/schemas/ResultPassRate"
+          },
+          "reevaluationCommandId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reevaluationcommandid"
+          },
+          "reevaluationSourceSnapshotId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reevaluationsourcesnapshotid"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schemaVersion": {
+            "default": "atlas.task-result-snapshot/0.1",
+            "enum": [
+              "atlas.task-result-snapshot/0.1",
+              "atlas.task-result-snapshot/0.2",
+              "atlas.task-result-snapshot/0.3"
+            ],
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "snapshotHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Snapshothash",
+            "type": "string"
+          },
+          "supersedesSnapshotId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedessnapshotid"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "trustedPassRate": {
+            "$ref": "#/components/schemas/ResultPassRate"
+          },
+          "unitHygieneResolutionRevisionIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 100000,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unithygieneresolutionrevisionids"
+          },
+          "unitResolutionRevisionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100000,
+            "minItems": 1,
+            "title": "Unitresolutionrevisionids",
+            "type": "array"
+          },
+          "verdictCounts": {
+            "$ref": "#/components/schemas/TaskVerdictCounts"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "manifestHash",
+          "revision",
+          "unitResolutionRevisionIds",
+          "inputResolutionSetHash",
+          "aggregationPolicyDigest",
+          "projectionWatermark",
+          "manifestCount",
+          "verdictCounts",
+          "axisDistributions",
+          "rawPassRate",
+          "trustedPassRate",
+          "autonomousPassRate",
+          "decisivePassRate",
+          "createdAt",
+          "snapshotHash"
+        ],
+        "title": "TaskResultSnapshot",
+        "type": "object"
+      },
+      "TaskResultView": {
+        "additionalProperties": false,
+        "description": "One explicit Task Result Snapshot and its latest bound Gate decision.",
+        "properties": {
+          "projectionWatermark": {
+            "format": "date-time",
+            "title": "Projectionwatermark",
+            "type": "string"
+          },
+          "resultSnapshot": {
+            "$ref": "#/components/schemas/TaskResultSnapshot"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/ResultSnapshotSelection"
+          },
+          "taskGateDecision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskGateDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskRunId",
+          "selection",
+          "resultSnapshot",
+          "projectionWatermark"
+        ],
+        "title": "TaskResultView",
         "type": "object"
       },
       "TaskRetryPolicy": {
@@ -10840,6 +12374,46 @@
         "title": "TaskRunRerunSelectionMode",
         "type": "string"
       },
+      "TaskStabilityCounts": {
+        "additionalProperties": false,
+        "description": "Task-level distribution of the Stability axis.",
+        "properties": {
+          "flakyConfirmed": {
+            "minimum": 0.0,
+            "title": "Flakyconfirmed",
+            "type": "integer"
+          },
+          "flakySuspect": {
+            "minimum": 0.0,
+            "title": "Flakysuspect",
+            "type": "integer"
+          },
+          "infraRecovered": {
+            "minimum": 0.0,
+            "title": "Infrarecovered",
+            "type": "integer"
+          },
+          "stable": {
+            "minimum": 0.0,
+            "title": "Stable",
+            "type": "integer"
+          },
+          "unknown": {
+            "minimum": 0.0,
+            "title": "Unknown",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unknown",
+          "stable",
+          "infraRecovered",
+          "flakySuspect",
+          "flakyConfirmed"
+        ],
+        "title": "TaskStabilityCounts",
+        "type": "object"
+      },
       "TaskTriggerSource": {
         "description": "Bounded trigger origins used in TaskRun idempotency scope.",
         "enum": [
@@ -10851,6 +12425,40 @@
         ],
         "title": "TaskTriggerSource",
         "type": "string"
+      },
+      "TaskVerdictCounts": {
+        "additionalProperties": false,
+        "description": "Manifest-conserving final Verdict counts.",
+        "properties": {
+          "failed": {
+            "minimum": 0.0,
+            "title": "Failed",
+            "type": "integer"
+          },
+          "inconclusive": {
+            "minimum": 0.0,
+            "title": "Inconclusive",
+            "type": "integer"
+          },
+          "notEvaluated": {
+            "minimum": 0.0,
+            "title": "Notevaluated",
+            "type": "integer"
+          },
+          "passed": {
+            "minimum": 0.0,
+            "title": "Passed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "passed",
+          "failed",
+          "inconclusive",
+          "notEvaluated"
+        ],
+        "title": "TaskVerdictCounts",
+        "type": "object"
       },
       "Tenant": {
         "additionalProperties": false,
@@ -11993,6 +13601,178 @@
         "title": "UnitAttemptPage",
         "type": "object"
       },
+      "UnitResolutionRevision": {
+        "additionalProperties": false,
+        "description": "One append-only interpretation of every terminal Attempt for a Unit.",
+        "properties": {
+          "closureReason": {
+            "pattern": "^[A-Z][A-Z0-9_]{1,95}$",
+            "title": "Closurereason",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "dataHygiene": {
+            "$ref": "#/components/schemas/DataHygiene"
+          },
+          "decisiveAttemptNumber": {
+            "minimum": 1.0,
+            "title": "Decisiveattemptnumber",
+            "type": "integer"
+          },
+          "decisiveUnitAttemptId": {
+            "format": "uuid",
+            "title": "Decisiveunitattemptid",
+            "type": "string"
+          },
+          "effectiveVerdict": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "evidenceCompleteness": {
+            "$ref": "#/components/schemas/atlas_testops__domain__result__models__EvidenceCompleteness"
+          },
+          "evidenceIntegrity": {
+            "$ref": "#/components/schemas/atlas_testops__domain__result__models__EvidenceIntegrity"
+          },
+          "executionInfluence": {
+            "$ref": "#/components/schemas/ExecutionInfluence"
+          },
+          "executionUnitId": {
+            "format": "uuid",
+            "title": "Executionunitid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inputClosureNoticeIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Inputclosurenoticeids",
+            "type": "array"
+          },
+          "inputSealIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Inputsealids",
+            "type": "array"
+          },
+          "inputSetHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Inputsethash",
+            "type": "string"
+          },
+          "manifestHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Manifesthash",
+            "type": "string"
+          },
+          "outcomeClass": {
+            "$ref": "#/components/schemas/OutcomeClass"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "resolutionPolicyDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Resolutionpolicydigest",
+            "type": "string"
+          },
+          "resolutionPolicyVersion": {
+            "const": "0.1.0",
+            "default": "0.1.0",
+            "title": "Resolutionpolicyversion",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schemaVersion": {
+            "const": "atlas.unit-resolution-revision/0.1",
+            "default": "atlas.unit-resolution-revision/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "stability": {
+            "$ref": "#/components/schemas/Stability"
+          },
+          "supersedesRevisionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedesrevisionid"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "unitKey": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Unitkey",
+            "type": "string"
+          },
+          "unitResolutionId": {
+            "format": "uuid",
+            "title": "Unitresolutionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "unitResolutionId",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "executionUnitId",
+          "manifestHash",
+          "unitKey",
+          "revision",
+          "inputSealIds",
+          "inputClosureNoticeIds",
+          "inputSetHash",
+          "effectiveVerdict",
+          "outcomeClass",
+          "closureReason",
+          "dataHygiene",
+          "evidenceCompleteness",
+          "evidenceIntegrity",
+          "executionInfluence",
+          "stability",
+          "decisiveUnitAttemptId",
+          "decisiveAttemptNumber",
+          "resolutionPolicyDigest",
+          "createdAt"
+        ],
+        "title": "UnitResolutionRevision",
+        "type": "object"
+      },
       "UpdateAccountPool": {
         "additionalProperties": false,
         "description": "更新账号池策略。",
@@ -12530,6 +14310,18 @@
         "title": "ValueSourceKind",
         "type": "string"
       },
+      "Verdict": {
+        "description": "Minimal business judgment axis used by Result Center.",
+        "enum": [
+          "PENDING",
+          "PASSED",
+          "FAILED",
+          "INCONCLUSIVE",
+          "NOT_EVALUATED"
+        ],
+        "title": "Verdict",
+        "type": "string"
+      },
       "VerifyTestAccount": {
         "additionalProperties": false,
         "description": "Request a login and role health check on one exact Origin.",
@@ -12971,6 +14763,47 @@
           "cleanup"
         ],
         "title": "WorkflowPhase",
+        "type": "string"
+      },
+      "atlas_testops__domain__result__models__EvidenceCompleteness": {
+        "description": "Required-evidence coverage axis.",
+        "enum": [
+          "PENDING",
+          "COMPLETE",
+          "PARTIAL",
+          "MISSING",
+          "NOT_APPLICABLE"
+        ],
+        "title": "EvidenceCompleteness",
+        "type": "string"
+      },
+      "atlas_testops__domain__result__models__EvidenceIntegrity": {
+        "description": "Independent evidence verification axis.",
+        "enum": [
+          "UNVERIFIED",
+          "VERIFIED",
+          "INVALID"
+        ],
+        "title": "EvidenceIntegrity",
+        "type": "string"
+      },
+      "atlas_testops__domain__runtime__models__EvidenceCompleteness": {
+        "description": "Whether every frozen Oracle has its required evidence.",
+        "enum": [
+          "COMPLETE",
+          "PARTIAL",
+          "MISSING"
+        ],
+        "title": "EvidenceCompleteness",
+        "type": "string"
+      },
+      "atlas_testops__domain__runtime__models__EvidenceIntegrity": {
+        "description": "Independent verification state for referenced artifact bytes.",
+        "enum": [
+          "VERIFIED",
+          "INVALID"
+        ],
+        "title": "EvidenceIntegrity",
         "type": "string"
       }
     },
@@ -21097,6 +22930,314 @@
         ]
       }
     },
+    "/v1/execution-units/{unitId}/resolution": {
+      "get": {
+        "operationId": "get_unit_resolution_v1_execution_units__unitId__resolution_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unitId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unitid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "revision",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Revision"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitResolutionRevision"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "304": {
+            "description": "ETag 未变化"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Result 请求或分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Result 资源不存在或不可见"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 ExecutionUnit 的 latest 或 exact Resolution Revision",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/v1/failure-classifications/{classificationId}/revisions": {
+      "post": {
+        "operationId": "revise_failure_classification_v1_failure_classifications__classificationId__revisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "classificationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Classificationid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestFailureClassificationRevision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureClassificationRevision"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Result 请求或分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能复核 Result"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Result 资源不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Classification Revision 已变化"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "追加人工 FailureClassification Revision",
+        "tags": [
+          "results"
+        ]
+      }
+    },
     "/v1/fixture-runs/{runId}": {
       "get": {
         "operationId": "get_fixture_run_v1_fixture_runs__runId__get",
@@ -25003,6 +27144,170 @@
         ]
       }
     },
+    "/v1/result-snapshots/{snapshotId}/clusters": {
+      "get": {
+        "operationId": "list_failure_clusters_v1_result_snapshots__snapshotId__clusters_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Snapshotid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 1024,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureClusterPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "304": {
+            "description": "ETag 未变化"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Result 请求或分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Result 资源不存在或不可见"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "按稳定 as-of Cursor 列出 Result Snapshot 的 FailureCluster",
+        "tags": [
+          "results"
+        ]
+      }
+    },
     "/v1/session": {
       "get": {
         "description": "实时复核主体、成员关系和 Workspace Context。",
@@ -25092,6 +27397,152 @@
         "summary": "读取当前 Session",
         "tags": [
           "authentication"
+        ]
+      }
+    },
+    "/v1/task-gates/evaluations": {
+      "post": {
+        "operationId": "evaluate_task_gate_v1_task_gates_evaluations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTaskGateEvaluation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskGateDecision"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Result 请求或分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能评估 Task Gate"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Result 资源不存在或不可见"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Snapshot 或 Classification 尚不可评估"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "对 exact Result Snapshot 追加三值 Task Gate 决策",
+        "tags": [
+          "results"
         ]
       }
     },
@@ -26329,6 +28780,158 @@
         "summary": "读取 TaskRun 的不可变 Run Manifest",
         "tags": [
           "task-runs"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}/result": {
+      "get": {
+        "operationId": "get_task_result_v1_task_runs__runId__result_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "snapshotId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Snapshotid"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResultView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "304": {
+            "description": "ETag 未变化"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Result 请求或分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Result 资源不存在或不可见"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 TaskRun 的 latest 或 exact Result Snapshot",
+        "tags": [
+          "results"
         ]
       }
     },

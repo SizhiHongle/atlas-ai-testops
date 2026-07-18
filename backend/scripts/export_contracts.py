@@ -27,6 +27,7 @@ from atlas_testops.domain.result import (
     FailureClassificationRevision,
     FailureClusterRevision,
     ResultRef,
+    TaskGateDecision,
     TaskResultReevaluationCommand,
     TaskResultSnapshot,
     UnitHygieneResolutionRevision,
@@ -115,6 +116,7 @@ FAILURE_CLUSTER_REVISION_SCHEMA = (
 FAILURE_CLASSIFICATION_REVISION_SCHEMA = (
     REPOSITORY_ROOT / "contracts" / "failure-classification-revision.schema.json"
 )
+TASK_GATE_DECISION_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-gate-decision.schema.json"
 
 
 def render_schema(model: type[BaseModel], schema_id: str) -> str:
@@ -299,6 +301,10 @@ def main() -> None:
         FAILURE_CLASSIFICATION_REVISION_SCHEMA: render_schema(
             FailureClassificationRevision,
             "https://atlas.test/contracts/failure-classification-revision/0.1/schema.json",
+        ),
+        TASK_GATE_DECISION_SCHEMA: render_schema(
+            TaskGateDecision,
+            "https://atlas.test/contracts/task-gate-decision/0.1/schema.json",
         ),
     }
 

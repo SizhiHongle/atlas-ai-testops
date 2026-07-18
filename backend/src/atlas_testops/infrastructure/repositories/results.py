@@ -17,11 +17,13 @@ from atlas_testops.domain.result import (
     FailureClusterRevision,
     ResultIntegrityIncident,
     ResultRef,
+    TaskGateDecision,
     TaskResultReevaluationCommand,
     TaskResultSnapshot,
     TaskResultSnapshotFinality,
     UnitHygieneResolutionRevision,
     UnitResolutionRevision,
+    task_gate_decision_document,
     task_result_snapshot_document,
 )
 
@@ -187,6 +189,26 @@ class ResultFactRepository:
             limit 1
             """,
             (execution_unit_id,),
+        )
+        row = await cursor.fetchone()
+        return UnitResolutionRevision.model_validate(row) if row is not None else None
+
+    async def get_resolution_revision(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        execution_unit_id: UUID,
+        revision: int,
+    ) -> UnitResolutionRevision | None:
+        """Load one exact immutable Unit Resolution revision."""
+
+        cursor = await connection.execute(
+            f"""
+            select {UNIT_RESOLUTION_COLUMNS}
+            from atlas.unit_resolution_revision
+            where execution_unit_id = %s and revision = %s
+            """,
+            (execution_unit_id, revision),
         )
         row = await cursor.fetchone()
         return UnitResolutionRevision.model_validate(row) if row is not None else None
@@ -481,6 +503,259 @@ class ResultFactRepository:
             FailureClassificationRevision.model_validate(row["classification"])
             if row is not None
             else None
+        )
+
+    async def list_current_gate_classifications(
+        self,
+        connection: AsyncConnection[DictRow],
+        result_snapshot_id: UUID,
+    ) -> tuple[
+        tuple[FailureClusterRevision, FailureClassificationRevision | None],
+        ...,
+    ]:
+        """Load latest Cluster revisions and latest bound judgments canonically."""
+
+        cursor = await connection.execute(
+            """
+            with latest_clusters as (
+              select distinct on (source.failure_cluster_id)
+                source.id,
+                source.failure_cluster_id,
+                source.fingerprint,
+                source.cluster
+              from atlas.failure_cluster_revision source
+              where source.result_snapshot_id = %s
+              order by source.failure_cluster_id, source.revision desc
+            )
+            select latest.cluster, judgment.classification
+            from latest_clusters latest
+            left join lateral (
+              select source.classification
+              from atlas.failure_classification_revision source
+              where source.failure_cluster_revision_id = latest.id
+              order by source.revision desc
+              limit 1
+            ) judgment on true
+            order by latest.fingerprint, latest.failure_cluster_id, latest.id
+            """,
+            (result_snapshot_id,),
+        )
+        rows = await cursor.fetchall()
+        return tuple(
+            (
+                FailureClusterRevision.model_validate(row["cluster"]),
+                (
+                    FailureClassificationRevision.model_validate(row["classification"])
+                    if row["classification"] is not None
+                    else None
+                ),
+            )
+            for row in rows
+        )
+
+    async def lock_failure_classification_chains(
+        self,
+        connection: AsyncConnection[DictRow],
+        failure_classification_ids: tuple[UUID, ...],
+    ) -> None:
+        """Fence concurrent human reviews while one Gate freezes latest judgments."""
+
+        for classification_id in sorted(set(failure_classification_ids)):
+            await connection.execute(
+                """
+                select pg_advisory_xact_lock(
+                  hashtextextended(%s::text, 0)
+                )
+                """,
+                (classification_id,),
+            )
+
+    async def get_latest_task_gate_for_update(
+        self,
+        connection: AsyncConnection[DictRow],
+        task_run_id: UUID,
+    ) -> TaskGateDecision | None:
+        """Serialize one Task Gate chain and load its latest immutable decision."""
+
+        await connection.execute(
+            """
+            select pg_advisory_xact_lock(
+              hashtextextended(%s::text, 2)
+            )
+            """,
+            (task_run_id,),
+        )
+        cursor = await connection.execute(
+            """
+            select decision_document
+            from atlas.task_gate_decision
+            where task_run_id = %s
+            order by revision desc
+            limit 1
+            """,
+            (task_run_id,),
+        )
+        row = await cursor.fetchone()
+        return (
+            TaskGateDecision.model_validate(row["decision_document"])
+            if row is not None
+            else None
+        )
+
+    async def get_latest_task_gate_for_snapshot(
+        self,
+        connection: AsyncConnection[DictRow],
+        result_snapshot_id: UUID,
+    ) -> TaskGateDecision | None:
+        """Load the latest immutable Gate decision bound to one exact Snapshot."""
+
+        cursor = await connection.execute(
+            """
+            select decision_document
+            from atlas.task_gate_decision
+            where result_snapshot_id = %s
+            order by revision desc
+            limit 1
+            """,
+            (result_snapshot_id,),
+        )
+        row = await cursor.fetchone()
+        return (
+            TaskGateDecision.model_validate(row["decision_document"])
+            if row is not None
+            else None
+        )
+
+    async def list_failure_clusters_page(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        result_snapshot_id: UUID,
+        as_of: datetime,
+        after_fingerprint: str | None,
+        after_failure_cluster_id: UUID | None,
+        after_cluster_revision_id: UUID | None,
+        limit: int,
+    ) -> tuple[
+        tuple[FailureClusterRevision, FailureClassificationRevision | None],
+        ...,
+    ]:
+        """List current Cluster revisions and judgments behind one as-of fence."""
+
+        cursor = await connection.execute(
+            """
+            with latest_clusters as (
+              select distinct on (source.failure_cluster_id)
+                source.id,
+                source.failure_cluster_id,
+                source.fingerprint,
+                source.cluster
+              from atlas.failure_cluster_revision source
+              where source.result_snapshot_id = %s
+                and source.created_at <= %s
+              order by source.failure_cluster_id, source.revision desc, source.id desc
+            )
+            select latest.cluster, judgment.classification
+            from latest_clusters latest
+            left join lateral (
+              select source.classification
+              from atlas.failure_classification_revision source
+              where source.failure_cluster_revision_id = latest.id
+                and source.created_at <= %s
+              order by source.revision desc, source.id desc
+              limit 1
+            ) judgment on true
+            where (
+              %s::text is null
+              or (
+                latest.fingerprint,
+                latest.failure_cluster_id,
+                latest.id
+              ) > (
+                %s::text,
+                %s::uuid,
+                %s::uuid
+              )
+            )
+            order by latest.fingerprint, latest.failure_cluster_id, latest.id
+            limit %s
+            """,
+            (
+                result_snapshot_id,
+                as_of,
+                as_of,
+                after_fingerprint,
+                after_fingerprint,
+                after_failure_cluster_id,
+                after_cluster_revision_id,
+                limit,
+            ),
+        )
+        rows = await cursor.fetchall()
+        return tuple(
+            (
+                FailureClusterRevision.model_validate(row["cluster"]),
+                (
+                    FailureClassificationRevision.model_validate(row["classification"])
+                    if row["classification"] is not None
+                    else None
+                ),
+            )
+            for row in rows
+        )
+
+    async def insert_task_gate_decision(
+        self,
+        connection: AsyncConnection[DictRow],
+        decision: TaskGateDecision,
+    ) -> None:
+        """Insert one database-revalidated immutable Task Gate decision."""
+
+        await connection.execute(
+            """
+            insert into atlas.task_gate_decision (
+              id, task_gate_id, tenant_id, project_id, task_run_id,
+              result_snapshot_id, result_snapshot_hash, revision,
+              failure_classification_revision_ids, classification_set_hash,
+              gate_policy_version, gate_policy_digest, decision, reasons,
+              evaluated_by, client_mutation_id, supersedes_gate_decision_id,
+              evaluated_at, decision_hash, decision_document
+            ) values (
+              %s, %s, %s, %s, %s,
+              %s, %s, %s,
+              %s, %s,
+              %s, %s, %s, %s,
+              %s, %s, %s,
+              %s, %s, %s
+            )
+            """,
+            (
+                decision.id,
+                decision.task_gate_id,
+                decision.tenant_id,
+                decision.project_id,
+                decision.task_run_id,
+                decision.result_snapshot_id,
+                decision.result_snapshot_hash,
+                decision.revision,
+                list(decision.failure_classification_revision_ids),
+                decision.classification_set_hash,
+                decision.gate_policy_version,
+                decision.gate_policy_digest,
+                decision.decision,
+                Jsonb(
+                    [
+                        item.model_dump(mode="json", by_alias=True)
+                        for item in decision.reasons
+                    ]
+                ),
+                decision.evaluated_by,
+                decision.client_mutation_id,
+                decision.supersedes_gate_decision_id,
+                decision.evaluated_at,
+                decision.decision_hash,
+                Jsonb(task_gate_decision_document(decision)),
+            ),
         )
 
     async def get_attempt_fixture_binding(

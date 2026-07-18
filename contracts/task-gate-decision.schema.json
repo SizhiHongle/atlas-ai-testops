@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-gate-decision/0.1/schema.json",
+  "$defs": {
+    "TaskGateReason": {
+      "additionalProperties": false,
+      "description": "One machine-readable reason and the exact affected count.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/TaskGateReasonCode"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code",
+        "count"
+      ],
+      "title": "TaskGateReason",
+      "type": "object"
+    },
+    "TaskGateReasonCode": {
+      "description": "Bounded, stable reasons emitted by the frozen strict Gate policy.",
+      "enum": [
+        "CLASSIFICATION_NOT_GATE_READY",
+        "DATA_HYGIENE_UNRESOLVED",
+        "DATA_LEAK",
+        "EVIDENCE_INCOMPLETE",
+        "EVIDENCE_INVALID_OR_UNVERIFIED",
+        "FAILED_UNITS",
+        "INCONCLUSIVE_UNITS",
+        "MANUAL_INFLUENCE",
+        "NOT_EVALUATED_UNITS",
+        "SNAPSHOT_NOT_FULLY_RESOLVED",
+        "UNSTABLE_EXECUTION"
+      ],
+      "title": "TaskGateReasonCode",
+      "type": "string"
+    },
+    "TaskGateVerdict": {
+      "description": "Three-valued release decision; uncertainty never becomes acceptance.",
+      "enum": [
+        "ACCEPTED",
+        "REJECTED",
+        "INCONCLUSIVE"
+      ],
+      "title": "TaskGateVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Hashed immutable Gate fact.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.task-gate-decision/0.1",
+      "default": "atlas.task-gate-decision/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "taskGateId": {
+      "format": "uuid",
+      "title": "Taskgateid",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "resultSnapshotId": {
+      "format": "uuid",
+      "title": "Resultsnapshotid",
+      "type": "string"
+    },
+    "resultSnapshotHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Resultsnapshothash",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "failureClassificationRevisionIds": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "title": "Failureclassificationrevisionids",
+      "type": "array"
+    },
+    "classificationSetHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Classificationsethash",
+      "type": "string"
+    },
+    "gatePolicyVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Gatepolicyversion",
+      "type": "string"
+    },
+    "gatePolicyDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Gatepolicydigest",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/TaskGateVerdict"
+    },
+    "reasons": {
+      "items": {
+        "$ref": "#/$defs/TaskGateReason"
+      },
+      "maxItems": 11,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "evaluatedBy": {
+      "format": "uuid",
+      "title": "Evaluatedby",
+      "type": "string"
+    },
+    "clientMutationId": {
+      "maxLength": 200,
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "title": "Clientmutationid",
+      "type": "string"
+    },
+    "supersedesGateDecisionId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedesgatedecisionid"
+    },
+    "evaluatedAt": {
+      "format": "date-time",
+      "title": "Evaluatedat",
+      "type": "string"
+    },
+    "decisionHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Decisionhash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "taskGateId",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "resultSnapshotId",
+    "resultSnapshotHash",
+    "revision",
+    "failureClassificationRevisionIds",
+    "classificationSetHash",
+    "gatePolicyDigest",
+    "decision",
+    "reasons",
+    "evaluatedBy",
+    "clientMutationId",
+    "evaluatedAt",
+    "decisionHash"
+  ],
+  "title": "TaskGateDecision",
+  "type": "object"
+}

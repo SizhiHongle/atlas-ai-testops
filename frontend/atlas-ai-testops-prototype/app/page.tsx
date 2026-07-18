@@ -67,6 +67,13 @@ import {
   type DataBlueprintCatalogItem
 } from "../lib/api/fixture";
 import { useIdentityWallet } from "../lib/api/identity";
+import {
+  useFailureClusters,
+  useTaskResult,
+  useTaskRuns,
+  type FailureClusterItem as ApiFailureClusterItem,
+  type TaskRun as ApiTaskRun
+} from "../lib/api/results";
 
 type ViewId = "space" | "identities" | "atoms" | "compose" | "cases" | "launch" | "live" | "results" | "insights";
 
@@ -461,6 +468,7 @@ type TaskStatus = "running" | "attention" | "queued" | "passed";
 
 type TaskRun = {
   id: string;
+  backendId?: string;
   name: string;
   trigger: string;
   status: TaskStatus;
@@ -487,6 +495,62 @@ const taskFailureClusters = [
   { id: "selector", name: "筛选入口语义漂移", kind: "测试方法", count: 1, impact: "1 个 Execution", confidence: 88, tone: "violet" },
   { id: "session", name: "客服登录态过期", kind: "环境问题", count: 1, impact: "1 个 Execution", confidence: 93, tone: "sand" }
 ];
+
+function projectApiTaskRun(run: ApiTaskRun): TaskRun {
+  const closed = run.lifecycle === "CLOSED";
+  const passed = closed && run.quality === "PASSED";
+  const executions = run.materializedUnitCount ?? run.materializedFirstAttemptCount ?? 0;
+  const triggerLabels: Record<ApiTaskRun["triggerSource"], string> = {
+    MANUAL: "手动",
+    SCHEDULE: "定时",
+    CI: "CI",
+    WEBHOOK: "Webhook",
+    API: "API"
+  };
+  return {
+    id: `TASK-${run.id.slice(0, 8).toUpperCase()}`,
+    backendId: run.id,
+    name: `正式任务 · ${run.taskPlanVersionId.slice(0, 8)}`,
+    trigger: `${triggerLabels[run.triggerSource]} · immutable`,
+    status: passed ? "passed" : closed ? "attention" : run.lifecycle === "QUEUED" ? "queued" : "running",
+    progress: closed ? 100 : run.lifecycle === "QUEUED" ? 0 : 50,
+    executions,
+    passed: passed ? executions : 0,
+    failed: closed && !passed ? 1 : 0,
+    eta: closed ? "已完成" : run.lifecycle === "QUEUED" ? "等待调度" : "执行中",
+    matrix: `${executions} ExecutionUnit · Manifest locked`,
+    roles: ["CaseVersion 绑定身份"],
+    browsers: ["BrowserProfile locked"]
+  };
+}
+
+function failureDomainLabel(domain: string | undefined): string {
+  if (domain === "PRODUCT") return "产品问题";
+  if (domain === "TEST_SPEC" || domain === "TEST_DATA" || domain === "AGENT_AUTOMATION") return "测试方法";
+  if (domain === "POLICY_SECURITY") return "策略安全";
+  if (domain === "EVIDENCE") return "证据问题";
+  if (domain === "CLEANUP") return "清理问题";
+  return "环境问题";
+}
+
+function projectFailureClusters(items: ApiFailureClusterItem[]) {
+  const tones = ["coral", "violet", "sand"] as const;
+  return items.map((item, index) => {
+    const classification = item.classification;
+    const confidence = classification
+      ? Math.round(classification.confidence.numerator / classification.confidence.denominator * 100)
+      : 0;
+    return {
+      id: item.cluster.id,
+      name: classification?.hypothesis ?? item.cluster.signal.signalCode,
+      kind: failureDomainLabel(classification?.failureDomain),
+      count: item.cluster.affectedCount,
+      impact: `${item.cluster.affectedCount} 个 Execution`,
+      confidence,
+      tone: tones[index % tones.length]
+    };
+  });
+}
 
 type ExecutionState = "passed" | "running" | "queued" | "product" | "infra" | "flaky";
 
@@ -749,6 +813,9 @@ export default function Home() {
   const { data: fixtureAssetCatalog } = useFixtureAssetCatalog(
     platformSession?.project.id ?? null
   );
+  const { data: backendTaskRunPage } = useTaskRuns(
+    platformSession?.project.id ?? null
+  );
   const [view, setView] = useState<ViewId>("space");
   const [mobileNav, setMobileNav] = useState(false);
   const [selectedAtom, setSelectedAtom] = useState("customer");
@@ -779,6 +846,36 @@ export default function Home() {
   const [taskTrigger, setTaskTrigger] = useState("立即执行");
   const [scheduledTask, setScheduledTask] = useState<TaskRun | null>(null);
   const [toast, setToast] = useState("");
+  const backendTaskRuns = useMemo(
+    () => (backendTaskRunPage?.items ?? []).map(projectApiTaskRun),
+    [backendTaskRunPage?.items]
+  );
+  const baseTaskRuns = backendTaskRuns.length
+    ? [...backendTaskRuns, ...taskRuns]
+    : taskRuns;
+  const visibleTaskRuns = scheduledTask
+    ? [scheduledTask, ...baseTaskRuns]
+    : baseTaskRuns;
+  const selectedTaskRecord = visibleTaskRuns.find(
+    (task) => task.id === selectedTaskId
+  );
+  const activeTask = scheduledTask?.status === "running"
+    ? scheduledTask
+    : selectedTaskRecord?.status === "running"
+      ? selectedTaskRecord
+      : baseTaskRuns.find((task) => task.status === "running") ?? baseTaskRuns[0];
+  const { data: backendTaskResult } = useTaskResult(
+    view === "results" ? selectedTaskRecord?.backendId ?? null : null
+  );
+  const { data: backendFailureClusterPage } = useFailureClusters(
+    view === "results"
+      ? backendTaskResult?.resultSnapshot.id ?? null
+      : null
+  );
+  const projectedFailureClusters = useMemo(
+    () => projectFailureClusters(backendFailureClusterPage?.items ?? []),
+    [backendFailureClusterPage?.items]
+  );
   const currentProjectName = platformSession?.project.name ?? "客户运营";
   const compactProjectName = currentProjectName.length > 8
     ? `${currentProjectName.slice(0, 8)}…`
@@ -838,20 +935,68 @@ export default function Home() {
   const executionStates = Array.from({ length: selectedTaskTotal }, (_, index) => executionStateAt(index, completedExecutions, selectedTaskTotal, running && selectedTaskStatus === "running", selectedTaskStatus !== "passed"));
   const executionCounts = executionStates.reduce((counts, status) => ({ ...counts, [status]: counts[status] + 1 }), { passed: 0, running: 0, queued: 0, product: 0, infra: 0, flaky: 0 } as Record<ExecutionState, number>);
   const selectedExecutionState = executionStates[selectedExecution] ?? "queued";
-  const selectedClusterData = taskFailureClusters.find((cluster) => cluster.id === selectedCluster) ?? taskFailureClusters[0];
-  const clusterSignal = selectedCluster === "api" ? "GET /api/customers?trackingId=*" : selectedCluster === "selector" ? "DOM semantic role: customer-filter" : "AUTH_SESSION_EXPIRED · service pool";
-  const clusterConclusion = selectedCluster === "api" ? "相同接口在销售与主管角色下持续返回 502，接口重放仍可复现。" : selectedCluster === "selector" ? "页面筛选入口的语义标签发生漂移，业务接口与数据断言均正常。" : "失败集中在客服账号池，刷新身份租约后执行单元可以稳定通过。";
-  const resultPassed = selectedTaskStatus === "passed";
-  const visibleTaskRuns = scheduledTask ? [scheduledTask, ...taskRuns] : taskRuns;
-  const activeTask = scheduledTask?.status === "running" ? scheduledTask : taskRuns[0];
-  const selectedTaskRecord = visibleTaskRuns.find((task) => task.id === selectedTaskId);
+  const visibleFailureClusters = projectedFailureClusters.length
+    ? projectedFailureClusters
+    : taskFailureClusters;
+  const selectedClusterData = visibleFailureClusters.find(
+    (cluster) => cluster.id === selectedCluster
+  ) ?? visibleFailureClusters[0];
+  const selectedClusterFact = backendFailureClusterPage?.items.find(
+    (item) => item.cluster.id === selectedClusterData.id
+  );
+  const backendSnapshot = backendTaskResult?.resultSnapshot;
+  const backendGate = backendTaskResult?.taskGateDecision;
+  const resultGateLabel = backendTaskResult
+    ? backendGate?.decision ?? "INCONCLUSIVE"
+    : selectedTaskStatus === "passed" ? "ACCEPTED" : "REJECTED";
+  const resultPassed = resultGateLabel === "ACCEPTED";
   const activeTaskVersions = (selectedTaskRecord?.caseVersionIds ?? []).map((id) => publishedVersions.find((version) => version.id === id)).filter((version): version is NonNullable<typeof version> => Boolean(version));
   const activeManifestCount = selectedTaskRecord?.caseVersionIds?.length ?? Math.max(1, Math.round(selectedTaskTotal / Math.max(1, selectedTaskRoles.length * selectedTaskBrowsers.length)));
-  const resultPassCount = resultPassed ? selectedTaskTotal : selectedTaskStatus === "attention" ? selectedTaskRecord?.passed ?? executionCounts.passed : executionCounts.passed;
-  const resultProductCount = resultPassed ? 0 : selectedTaskStatus === "attention" ? 3 : executionCounts.product;
-  const resultMethodCount = resultPassed ? 0 : selectedTaskStatus === "attention" ? 1 : executionCounts.flaky;
-  const resultEnvironmentCount = resultPassed ? 0 : selectedTaskStatus === "attention" ? 1 : executionCounts.infra;
-  const resultStableRate = selectedTaskTotal ? Math.round(resultPassCount / selectedTaskTotal * 1000) / 10 : 0;
+  const resultTaskTotal = backendSnapshot?.manifestCount ?? selectedTaskTotal;
+  const resultPassCount = backendSnapshot?.verdictCounts.passed
+    ?? (resultPassed ? selectedTaskTotal : selectedTaskStatus === "attention" ? selectedTaskRecord?.passed ?? executionCounts.passed : executionCounts.passed);
+  const resultProductCount = backendFailureClusterPage
+    ? backendFailureClusterPage.items.reduce(
+        (total, item) => total + (item.classification?.failureDomain === "PRODUCT" ? item.cluster.affectedCount : 0),
+        0
+      )
+    : resultPassed ? 0 : selectedTaskStatus === "attention" ? 3 : executionCounts.product;
+  const resultMethodCount = backendFailureClusterPage
+    ? backendFailureClusterPage.items.reduce(
+        (total, item) => total + (["TEST_SPEC", "TEST_DATA", "AGENT_AUTOMATION"].includes(item.classification?.failureDomain ?? "") ? item.cluster.affectedCount : 0),
+        0
+      )
+    : resultPassed ? 0 : selectedTaskStatus === "attention" ? 1 : executionCounts.flaky;
+  const resultEnvironmentCount = backendFailureClusterPage
+    ? backendFailureClusterPage.items.reduce(
+        (total, item) => total + (["IDENTITY", "ENVIRONMENT", "INFRASTRUCTURE", "EXTERNAL_DEPENDENCY"].includes(item.classification?.failureDomain ?? "") ? item.cluster.affectedCount : 0),
+        0
+      )
+    : resultPassed ? 0 : selectedTaskStatus === "attention" ? 1 : executionCounts.infra;
+  const resultStableRate = backendSnapshot
+    ? Math.round(backendSnapshot.trustedPassRate.numerator / backendSnapshot.trustedPassRate.denominator * 1000) / 10
+    : selectedTaskTotal ? Math.round(resultPassCount / selectedTaskTotal * 1000) / 10 : 0;
+  const resultGateSummary = backendTaskResult
+    ? backendGate
+      ? backendGate.reasons.length
+        ? backendGate.reasons.slice(0, 2).map((reason) => `${reason.code} × ${reason.count}`).join("；")
+        : "全部严格门禁条件已满足。"
+      : "Snapshot 已冻结，等待显式 Gate 评估。"
+    : resultPassed
+      ? "未发现新增产品回归，所有发布门禁均已满足。"
+      : `发布阈值为 98%，存在 ${resultProductCount} 个新增产品失败。`;
+  const resultRecommendationTitle = resultPassed
+    ? "建议进入下一道发布门"
+    : resultGateLabel === "INCONCLUSIVE"
+      ? "等待证据与归因闭环"
+      : "阻止本次客户模块发布";
+  const resultRecommendationDetail = backendTaskResult
+    ? resultGateLabel === "ACCEPTED"
+      ? "Snapshot、Evidence、Hygiene、Stability 与 Classification 均满足冻结 Gate Policy。"
+      : resultGateSummary
+    : resultPassed
+      ? "所有执行单元稳定通过，未出现新的产品、测试方法或环境失败信号。"
+      : `${resultProductCount} 个失败共享同一响应特征，跨角色复现，判定为产品回归的置信度为 96%。`;
   const matrixGroupLabels = matrixDimension === "role" ? selectedTaskRoles : selectedTaskBrowsers;
   const executionDescriptors = Array.from({ length: selectedTaskTotal }, (_, index) => {
     const version = activeTaskVersions.length ? activeTaskVersions[Math.floor(index / Math.max(1, selectedTaskBrowsers.length)) % activeTaskVersions.length] : undefined;
@@ -867,17 +1012,50 @@ export default function Home() {
   const selectedBrowserLabel = selectedDescriptor?.browser ?? "Chromium";
   const selectedCaseLabel = selectedDescriptor?.caseId ?? "TC-1042";
   const workerLanes = activeTaskVersions.length ? activeTaskVersions.map((version) => `${version.caseName} · ${version.role}`) : ["客户筛选 · 销售", "客户筛选 · 主管", "权限边界 · 客服", "来访绑定 · 销售", "空结果 · 主管", "账号租约 · 客服"];
-  const clusterNodes = selectedCluster === "api"
+  const clusterSignal = selectedClusterFact
+    ? `${selectedClusterFact.cluster.signal.signalCode} · ${selectedClusterFact.cluster.signal.closureReason}`
+    : selectedCluster === "api" ? "GET /api/customers?trackingId=*" : selectedCluster === "selector" ? "DOM semantic role: customer-filter" : "AUTH_SESSION_EXPIRED · service pool";
+  const clusterConclusion = selectedClusterFact
+    ? selectedClusterFact.classification?.hypothesis ?? "当前失败簇尚未形成可发布的归因结论。"
+    : selectedCluster === "api" ? "相同接口在销售与主管角色下持续返回 502，接口重放仍可复现。" : selectedCluster === "selector" ? "页面筛选入口的语义标签发生漂移，业务接口与数据断言均正常。" : "失败集中在客服账号池，刷新身份租约后执行单元可以稳定通过。";
+  const clusterNodes = selectedClusterFact
+    ? [
+        ...selectedClusterFact.cluster.affectedUnitResolutionRevisionIds.slice(0, 3).map((id) => `UNIT · ${id.slice(0, 8)}`),
+        selectedClusterFact.cluster.signal.outcomeClass,
+        selectedClusterFact.cluster.signal.effectiveVerdict
+      ]
+    : selectedCluster === "api"
     ? ["销售 · Chromium", "主管 · Chromium", "客户列表", "预发环境", "queryCustomers"]
     : selectedCluster === "selector"
       ? ["销售 · Chromium", "客户列表", "筛选面板", "semantic role", "TC-1042"]
       : ["客服 · Chromium", "身份钱包", "登录回调", "预发环境", "service pool"];
-  const clusterEvidence = selectedCluster === "api"
+  const clusterEvidence = selectedClusterFact
+    ? selectedClusterFact.classification?.supportingEvidenceRefs.slice(0, 4).map((evidence) => `${evidence.kind} · ${evidence.refId.slice(0, 8)}`)
+      ?? ["等待人工补充归因证据"]
+    : selectedCluster === "api"
     ? ["相同接口与状态码", "跨两个角色复现", "接口重放仍然失败", "页面操作路径一致"]
     : selectedCluster === "selector"
       ? ["业务接口返回正常", "DOM 语义标签已变化", "视觉入口仍然存在", "旧定位规则无法命中"]
       : ["仅客服账号池受影响", "刷新租约后恢复", "业务接口稳定通过", "新浏览器上下文可复现恢复"];
-  const clusterAction = selectedCluster === "api" ? "创建产品缺陷" : selectedCluster === "selector" ? "提交方法修订" : "创建环境事件";
+  const clusterAction = selectedClusterFact
+    ? selectedClusterFact.classification?.failureDomain === "PRODUCT"
+      ? "创建产品缺陷"
+      : ["TEST_SPEC", "TEST_DATA", "AGENT_AUTOMATION"].includes(selectedClusterFact.classification?.failureDomain ?? "")
+        ? "提交方法修订"
+        : "创建环境事件"
+    : selectedCluster === "api" ? "创建产品缺陷" : selectedCluster === "selector" ? "提交方法修订" : "创建环境事件";
+  const latestRiskTask = baseTaskRuns.find((task) => task.status === "attention")
+    ?? taskRuns[1];
+
+  useEffect(() => {
+    if (
+      !projectedFailureClusters.length
+      || projectedFailureClusters.some((cluster) => cluster.id === selectedCluster)
+    ) {
+      return;
+    }
+    setSelectedCluster(projectedFailureClusters[0].id);
+  }, [projectedFailureClusters, selectedCluster]);
 
   useEffect(() => {
     if (!running || liveMode !== "task" || (view !== "launch" && view !== "live")) return;
@@ -912,7 +1090,7 @@ export default function Home() {
   function navigate(next: ViewId) {
     if (next === "live") setLiveMode("task");
     if (next === "launch") {
-      const focusTask = scheduledTask?.status === "running" ? scheduledTask : taskRuns[0];
+      const focusTask = scheduledTask?.status === "running" ? scheduledTask : activeTask;
       setSelectedTaskId(focusTask.id);
       setSelectedTaskStatus(focusTask.status);
       setSelectedTaskTotal(focusTask.executions);
@@ -1336,7 +1514,7 @@ export default function Home() {
               <button className="task-orbit-core" style={{ "--task-progress": `${taskProgress}%` } as React.CSSProperties} onClick={() => openTask(activeTask)}>
                 <span>LIVE · {activeTask.id}</span><strong>{taskProgress}%</strong><small>{completedExecutions} / {activeTask.executions} EXECUTIONS</small><i />
               </button>
-              {taskRuns.slice(1).map((task, index) => <button key={task.id} className={`task-satellite satellite-${index + 1} status-${task.status}`} onClick={() => openTask(task)}><span>{task.id}</span><strong>{task.name}</strong><small>{task.status === "attention" ? `${task.failed} 个新增失败` : task.status === "queued" ? "等待调度资源" : "质量门禁通过"}</small><i /></button>)}
+              {baseTaskRuns.slice(1, 4).map((task, index) => <button key={task.id} className={`task-satellite satellite-${index + 1} status-${task.status}`} onClick={() => openTask(task)}><span>{task.id}</span><strong>{task.name}</strong><small>{task.status === "attention" ? `${task.failed} 个新增失败` : task.status === "queued" ? "等待调度资源" : "质量门禁通过"}</small><i /></button>)}
               <div className="task-orbit-caption"><Bot size={15} /><span>8 个 Agent Worker 正在穿过执行矩阵</span></div>
             </div> : <div className="task-dense-list">
               {visibleTaskRuns.map((task) => <button key={task.id} onClick={() => openTask(task)}><i className={`task-state-dot status-${task.status}`} /><div><span>{task.id} · {task.trigger}</span><strong>{task.name}</strong></div><b>{task.id === activeTask.id ? taskProgress : task.progress}%</b><small>{task.passed} 通过 · {task.failed} 失败</small><em>{task.eta}</em><ArrowUpRight size={15} /></button>)}
@@ -1469,19 +1647,19 @@ export default function Home() {
       <SceneIntro eyebrow={`TASK RESULT · ${selectedTaskId}`} title={resultPassed ? "这次回归，可以进入下一道发布门。" : "结果不是一张报表，而是一次发布决定。"} description="区分产品问题、测试方法、环境失败与 Flaky，并把每个判断连接回真实证据。" action={<><button className="ghost-action" onClick={() => setToast("已导出任务证据包")}><FileText size={15} />导出证据</button><button className="black-action" onClick={() => setToast(resultPassed ? "已按相同冻结配置创建新任务" : `仅重跑 ${resultProductCount + resultMethodCount + resultEnvironmentCount} 个失败 Execution`)}><RefreshCw size={15} />{resultPassed ? "按此配置再运行" : "重跑失败单元"}</button></>} />
 
       <div className="result-gate-hero">
-        <div className={`quality-gate-core ${resultPassed ? "passed" : ""}`}><span>QUALITY GATE</span><div className="gate-orbit"><i /><i /><strong>{resultPassed ? "PASSED" : "BLOCKED"}</strong><small>稳定通过 {resultStableRate}%</small></div><p>{resultPassed ? "未发现新增产品回归，所有发布门禁均已满足。" : `发布阈值为 98%，存在 ${resultProductCount} 个新增产品失败。`}</p></div>
-        <div className="result-score-grid"><div><span>执行单元</span><strong>{selectedTaskTotal}</strong><small>{selectedTaskMatrix}</small></div><div><span>稳定通过</span><strong>{resultPassCount}</strong><small>{resultPassed ? "全部稳定通过" : "较上次 -2"}</small></div><div className={resultPassed ? "" : "risk"}><span>新增回归</span><strong>{resultProductCount}</strong><small>{resultPassed ? "无新增信号" : "集中于客户查询"}</small></div><div><span>测试 / 环境</span><strong>{resultMethodCount} / {resultEnvironmentCount}</strong><small>{resultPassed ? "无需处置" : "已从发布结论拆分"}</small></div></div>
-        <div className={`result-ai-verdict ${resultPassed ? "passed" : ""}`}><div><BrainCircuit size={20} /><StatusPill tone={resultPassed ? "good" : "violet"}>AI VERDICT</StatusPill></div><span>发布建议</span><h3>{resultPassed ? "建议进入下一道发布门" : "阻止本次客户模块发布"}</h3><p>{resultPassed ? "所有执行单元稳定通过，未出现新的产品、测试方法或环境失败信号。" : `${resultProductCount} 个失败共享同一响应特征，跨角色复现，判定为产品回归的置信度为 96%。`}</p><button onClick={() => resultPassed ? setToast("已展开冻结快照与门禁依据") : setSelectedCluster("api")}>{resultPassed ? "查看门禁依据" : "查看判断依据"} <ArrowRight size={14} /></button></div>
+        <div className={`quality-gate-core ${resultPassed ? "passed" : ""}`}><span>QUALITY GATE</span><div className="gate-orbit"><i /><i /><strong>{resultGateLabel}</strong><small>稳定通过 {resultStableRate}%</small></div><p>{resultGateSummary}</p></div>
+        <div className="result-score-grid"><div><span>执行单元</span><strong>{resultTaskTotal}</strong><small>{selectedTaskMatrix}</small></div><div><span>稳定通过</span><strong>{resultPassCount}</strong><small>{resultPassed ? "全部稳定通过" : "较上次 -2"}</small></div><div className={resultPassed ? "" : "risk"}><span>新增回归</span><strong>{resultProductCount}</strong><small>{resultPassed ? "无新增信号" : "集中于客户查询"}</small></div><div><span>测试 / 环境</span><strong>{resultMethodCount} / {resultEnvironmentCount}</strong><small>{resultPassed ? "无需处置" : "已从发布结论拆分"}</small></div></div>
+        <div className={`result-ai-verdict ${resultPassed ? "passed" : ""}`}><div><BrainCircuit size={20} /><StatusPill tone={resultPassed ? "good" : "violet"}>AI VERDICT</StatusPill></div><span>发布建议</span><h3>{resultRecommendationTitle}</h3><p>{resultRecommendationDetail}</p><button onClick={() => resultPassed ? setToast("已展开冻结快照与门禁依据") : setSelectedCluster(visibleFailureClusters[0].id)}>{resultPassed ? "查看门禁依据" : "查看判断依据"} <ArrowRight size={14} /></button></div>
       </div>
 
       {resultPassed ? <div className="result-clear-state">
         <div className="clear-orbit"><i /><i /><ShieldCheck size={34} /><strong>100%</strong><span>STABLE</span></div>
-        <div className="clear-copy"><span>NO NEW REGRESSIONS</span><h2>所有执行单元，都回到了稳定基线。</h2><p>数据初始化、角色权限、浏览器动作和确定性断言均已完成；3 个历史已知问题未计入本次门禁。</p><button onClick={() => setToast(`已展开 ${selectedTaskTotal} 个 Execution 的完整证据目录`)}>查看完整证据目录 <ArrowRight size={14} /></button></div>
+        <div className="clear-copy"><span>NO NEW REGRESSIONS</span><h2>所有执行单元，都回到了稳定基线。</h2><p>数据初始化、角色权限、浏览器动作和确定性断言均已完成；3 个历史已知问题未计入本次门禁。</p><button onClick={() => setToast(`已展开 ${resultTaskTotal} 个 Execution 的完整证据目录`)}>查看完整证据目录 <ArrowRight size={14} /></button></div>
         <div className="clear-snapshot"><span>冻结快照</span>{[selectedTaskMatrix, `${activeManifestCount} CaseVersion · locked`, "11 个原子组件 · healthy", "Atlas Agent 2.1", "CRM R26.07 · rev 18"].map((item) => <small key={item}><CircleCheck size={12} />{item}</small>)}</div>
       </div> : <div className="result-workspace">
         <div className="failure-cluster-deck">
           <header><div><span>FAILURE CLUSTERS</span><strong>失败聚类</strong></div><button><Filter size={14} />全部类型</button></header>
-          {taskFailureClusters.map((cluster) => <button key={cluster.id} className={`failure-cluster-card cluster-${cluster.tone} ${selectedCluster === cluster.id ? "selected" : ""}`} onClick={() => setSelectedCluster(cluster.id)}><span>{cluster.kind}</span><strong>{cluster.name}</strong><small>{cluster.impact}</small><b>{cluster.count}</b><i style={{ "--cluster-confidence": `${cluster.confidence}%` } as React.CSSProperties} /><em>AI {cluster.confidence}%</em></button>)}
+          {visibleFailureClusters.map((cluster) => <button key={cluster.id} className={`failure-cluster-card cluster-${cluster.tone} ${selectedCluster === cluster.id ? "selected" : ""}`} onClick={() => setSelectedCluster(cluster.id)}><span>{cluster.kind}</span><strong>{cluster.name}</strong><small>{cluster.impact}</small><b>{cluster.count}</b><i style={{ "--cluster-confidence": `${cluster.confidence}%` } as React.CSSProperties} /><em>AI {cluster.confidence}%</em></button>)}
           <button className="known-issue-card"><CircleCheck size={16} /><div><strong>3 个已知问题已折叠</strong><small>不影响当前质量门禁计算</small></div><ChevronRight size={14} /></button>
         </div>
 
@@ -1495,7 +1673,7 @@ export default function Home() {
           <header><span>TRIAGE ACTIONS</span><Settings2 size={15} /></header>
           <div className="triage-confidence"><span>{selectedClusterData.kind}置信度</span><strong>{selectedClusterData.confidence}%</strong><i><b style={{ width: `${selectedClusterData.confidence}%` }} /></i></div>
           <div className="triage-evidence"><span>共同证据</span>{clusterEvidence.map((item) => <small key={item}><Check size={11} />{item}</small>)}</div>
-          <button className="triage-primary" onClick={() => setToast(`${clusterAction}已创建，并关联当前失败簇证据`)}>{selectedCluster === "api" ? <CircleAlert size={15} /> : selectedCluster === "selector" ? <Sparkles size={15} /> : <Globe2 size={15} />}{clusterAction}</button>
+          <button className="triage-primary" onClick={() => setToast(`${clusterAction}已创建，并关联当前失败簇证据`)}>{clusterAction === "创建产品缺陷" ? <CircleAlert size={15} /> : clusterAction === "提交方法修订" ? <Sparkles size={15} /> : <Globe2 size={15} />}{clusterAction}</button>
           <button onClick={() => setToast("失败簇已标记为已知问题")}><BadgeCheck size={15} />标记已知问题</button>
           <button onClick={() => setToast("已提交测试方法候选修订") }><Sparkles size={15} />提交方法候选</button>
         </aside>
@@ -1509,7 +1687,7 @@ export default function Home() {
 
   const insightsView = (
     <section className="scene insights-scene">
-      <SceneIntro eyebrow="QUALITY TERRAIN · 30 DAYS" title="把失败放回它发生的旅程里。" description="洞察跨越多个 Task 观察质量趋势；发布判断仍然回到每一次冻结任务的真实结果。" action={<button className="black-action" onClick={() => openTask(taskRuns[1])}>查看最新风险任务 <ArrowUpRight size={15} /></button>} />
+      <SceneIntro eyebrow="QUALITY TERRAIN · 30 DAYS" title="把失败放回它发生的旅程里。" description="洞察跨越多个 Task 观察质量趋势；发布判断仍然回到每一次冻结任务的真实结果。" action={<button className="black-action" onClick={() => openTask(latestRiskTask)}>查看最新风险任务 <ArrowUpRight size={15} /></button>} />
       <div className="terrain-stage">
         <div className="terrain-title"><span>R26.07 · QUALITY SIGNALS</span><strong>1,284</strong><small>次 Execution · 30 天质量地形</small></div>
         <div className="quality-sphere">
@@ -1517,7 +1695,7 @@ export default function Home() {
           <svg viewBox="0 0 620 620" aria-hidden="true"><path d="M105 340 C178 184 303 160 370 246 S482 408 535 252" /><path d="M145 430 C258 330 338 370 476 180" /></svg>
           <button className="terrain-node terrain-node-one"><i /><span>客户筛选</span><b>97.8%</b></button><button className="terrain-node terrain-node-two risk"><i /><span>权限边界</span><b>92.4%</b></button><button className="terrain-node terrain-node-three"><i /><span>来访关系</span><b>99.1%</b></button><button className="terrain-node terrain-node-four"><i /><span>身份租约</span><b>96.6%</b></button>
         </div>
-        <aside className="terrain-metrics"><div><span>稳定通过</span><strong>96.8%</strong><small>较上周期 +1.4%</small></div><div><span>方法健康度</span><strong>94</strong><small>36 条已发布方法</small></div><div className="risk-cluster"><CircleAlert size={20} /><span>ACTIVE RISK CLUSTER</span><h3>客户权限发布门禁</h3><p>5 个失败已拆分为产品、测试方法与环境信号。</p><button onClick={() => openTask(taskRuns[1])}>进入任务结果 <ArrowRight size={14} /></button></div></aside>
+        <aside className="terrain-metrics"><div><span>稳定通过</span><strong>96.8%</strong><small>较上周期 +1.4%</small></div><div><span>方法健康度</span><strong>94</strong><small>36 条已发布方法</small></div><div className="risk-cluster"><CircleAlert size={20} /><span>ACTIVE RISK CLUSTER</span><h3>客户权限发布门禁</h3><p>5 个失败已拆分为产品、测试方法与环境信号。</p><button onClick={() => openTask(latestRiskTask)}>进入任务结果 <ArrowRight size={14} /></button></div></aside>
         <div className="replay-card"><div><span>TRACE REPLAY · FROZEN</span><h3>{replayVersion?.caseName ?? selectedCase.name} · {replayVersion?.version ?? "—"}</h3></div><div className="replay-path">{replayWorkflow.slice(0, 6).map((step) => <button className={step.atomId === "filter" || step.atomId === "asset-filter" ? "risk" : ""} key={step.id}><i /><span>{step.name}</span><small>{step.atomId === "filter" || step.atomId === "asset-filter" ? "signal" : "stable"}</small></button>)}</div><button className="replay-play" aria-label="回放正式 Execution" onClick={replaySelectedExecution}><Play size={16} /></button></div>
       </div>
     </section>
