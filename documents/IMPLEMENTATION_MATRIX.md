@@ -16,6 +16,7 @@
 | Evidence | 现场与结果 v0.2 | assertion_result、evidence_artifact、evidence_manifest、browser_runtime_report、evidence_read_grant、unit_attempt_result_fact | 内部报告链与受信终结、Manifest、scoped read-token、完整字节读取；annotations 待后续 | Live Evidence、Result Evidence | 基础中：P6-02A DOM Mask、canonical PNG、write / read-back verification、hash-only Read Grant 与二次完整性校验已验收；P6-03A 已建立正式 UnitAttempt 的签名 AttemptSeal Fact |
 | Result | 结果中心 v0.2 | unit_attempt_result_fact、result_ref、result_integrity_incident、attempt_closure_notice、unit_resolution_revision、task_result_snapshot、attempt_fixture_binding、unit_hygiene_resolution_revision、task_result_reevaluation_command、failure_cluster_revision、failure_classification_revision、task_gate_decision | Result Snapshot / Unit Resolution / Cluster 查询、Classification Revision、Gate Evaluation | 既有 Results 槽位映射真实 TaskRun、Snapshot、Gate、Cluster 与 Classification | 已验收：P6-03A/P6-03B 与 P7-01A 至 P7-03 已形成可信 Result 链；Gate fail-closed、查询固定 Snapshot fence、API/ETag/OpenAPI 与前端回退接线均已验证，未改原型结构 |
 | Insight | 洞察中心 v0.2 | insight_snapshot | 30 天为默认的 7/30/90 UTC brief preview、immutable snapshot pin / exact read | 既有 Insights terrain、指标与风险任务槽位 | 基础中：P8 V1 已实现固定 MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums、current/baseline、DatasetCut、Gate 风险信号、不可变 Snapshot、ETag 与真实前端映射；Projector generation、Signal/Review 与异步 Export 仍待后续扩展 |
+| Production Hardening | 总体落地方案 v1.1 | 无新增业务表；`atlas.p9-acceptance-report/0.1` 临时发布 Artifact | `make p9-acceptance` 固定 Runner；生产 Telemetry 由部署面接入 | 不修改前端原型 | 基础中：P9 本地六类故障、10,000 Lease、2× Evidence、跨 Project、30 次黄金链、30 次 Temporal Schedule 与 Live P95 全部通过；月度可用性、人工分类、影子迭代和灾备演练仍为外部 `NOT_EVALUATED` |
 
 ## 第一批机器可读契约
 
@@ -75,7 +76,7 @@
 | 不变量 | 最低证明方式 | 计划阶段 |
 | --- | --- | --- |
 | Tenant 数据不可越权 | 两个 Tenant 的真实 PostgreSQL RLS 集成测试 | P1 |
-| Account Slot 不重复租用 | P2：100 并发单轮与管理对撞；P9：100 并发 × 100 轮 | P2 / P9 |
+| Account Slot 不重复租用 | P2：100 并发单轮与管理对撞；P9：100 并发 × 100 轮，10,000 次完整循环冲突 0 | P2 / P9 已通过 |
 | 旧 Worker 无法继续写入 | Heartbeat、Release、TTL、管理撤销与新 Lease 的 fencing token 测试 | P2 |
 | Secret Grant 不可重放且不泄密 | 20 路并发兑换、Hash-only 存储、Origin / Worker / Fence、事件与持久化秘密扫描 | P2 |
 | Adapter 无法读取或返回秘密定位信息 | `AdapterContext.with_password_secret(...)` 合约测试；无 `getSecret`、SecretRef 或 SecretVersion | P2 |
@@ -124,4 +125,8 @@
 | SSE 重连不丢事件且可幂等去重 | 轻量 Snapshot 高水位单 SQL、DebugRun-bound Opaque Cursor、`Last-Event-ID` 的 `seq > afterSeq` 有序 replay、Heartbeat 不推进 Cursor、跨 `terminated` 继续 replay 后续 `snapshot_outdated`；UnitAttempt Control Command 走独立 REST lane | P6；P6-02B2 已完成正式 UnitAttempt LiveSession，SSE 不承载控制命令 |
 | 慢客户端不能无限占用 Live Observer | Route `_DebugLiveStreamingResponse` 负责生成、Source close 与 Slot release；最后安装的 pure-ASGI Middleware 负责 `BaseHTTPMiddleware` 后的真实 client-facing `send`。两层均使用 `maximum_connection_seconds` + 固定 1.0 秒 Close Grace，阻塞写入到期强制取消 | P6 |
 | 洞察可由事实重建 | 清空投影后重放一致性测试 | P8 |
-| 黄金链路稳定 | 30 次连续运行，平台失败率不高于 5% | P9 |
+| 黄金链路稳定 | 30 次连续运行，平台失败率不高于 5%；本地参考 30 / 30、失败率 0%、Cleanup 100% | P9 本地已通过；真实 SaaS 试点待外部输入 |
+| 六类故障安全收敛 | API timeout、账号过期、Worker interruption、存储失败、断线、清理失败固定 Selector | P9 本地 12 tests 已通过 |
+| 2×峰值与隔离 | 100 Evidence Objects、账号不足、多 Project、Task / Evidence / Live 跨 Project 不可见 | P9 本地 7 tests 已通过 |
+| Schedule 启动参考 SLO | 30 个真实 PostgreSQL + Temporal 纵向样本，保守完整命令 P95 <60s | P9 本地 P95 4,787 ms；生产 Telemetry 待外部输入 |
+| Live Event 参考 SLO | 100 个应用内 event-to-client 样本 P95 <2s | P9 本地 P95 4 ms；真实 Network / Proxy / Browser 待外部输入 |

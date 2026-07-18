@@ -65,6 +65,7 @@ addopts = [
 testpaths = ["tests"]
 markers = [
   "integration: requires external infrastructure such as PostgreSQL",
+  "p9: opt-in production-hardening acceptance scenario",
 ]
 
 [tool.ruff]

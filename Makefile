@@ -4,7 +4,7 @@ ATLAS_OWNER_DATABASE_URL ?= postgresql://atlas_owner:atlas_owner@127.0.0.1:5432/
 ATLAS_TEST_DATABASE_URL ?= postgresql://atlas_app:atlas_app@127.0.0.1:5432/atlas
 ATLAS_TEST_TEMPORAL_ADDRESS ?= 127.0.0.1:7233
 
-.PHONY: infra-up infra-down migrate contracts backend-check frontend-check verify
+.PHONY: infra-up infra-down migrate contracts backend-check frontend-check p9-acceptance verify
 
 infra-up:
 	docker compose up -d --wait
@@ -32,5 +32,12 @@ frontend-check:
 	cd frontend/atlas-ai-testops-prototype && npm run check:api
 	cd frontend/atlas-ai-testops-prototype && npm run lint
 	cd frontend/atlas-ai-testops-prototype && npm run build
+
+p9-acceptance:
+	cd backend && \
+	ATLAS_TEST_DATABASE_URL='$(ATLAS_TEST_DATABASE_URL)' \
+	ATLAS_TEST_OWNER_DATABASE_URL='$(ATLAS_OWNER_DATABASE_URL)' \
+	ATLAS_TEST_TEMPORAL_ADDRESS='$(ATLAS_TEST_TEMPORAL_ADDRESS)' \
+	uv run python scripts/run_p9_acceptance.py
 
 verify: backend-check frontend-check

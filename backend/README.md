@@ -62,6 +62,7 @@ Atlas AI 测试平台的 Python 3.14 模块化后端。
 - P7-02B 建立 `atlas.task-gate-decision/0.1` 与 `20260718_0039`。Gate 只冻结一个 exact `resultSnapshotId`、该 Snapshot 完整 current Cluster 覆盖和每个 Cluster 的 latest Classification Revision，并计算 `classificationSetHash`；人工已确认/修订且置信度达标的归因或极少数高置信安全规则才可进入 Gate。任何缺失、低证据、未决 Hygiene、无效 Evidence、人工影响或不稳定执行都 fail-closed 为 `INCONCLUSIVE`，明确失败/泄漏才为 `REJECTED`，全部严格通过才为 `ACCEPTED`。Decision append-only、幂等、可审计，并由 PostgreSQL 重算全部输入、原因、三值结论和 hash。
 - P7-03 已开放 `GET /v1/task-runs/{runId}/result?snapshotId=`、`GET /v1/execution-units/{unitId}/resolution?revision=`、`GET /v1/result-snapshots/{snapshotId}/clusters`、`POST /v1/failure-classifications/{classificationId}/revisions` 与 `POST /v1/task-gates/evaluations`。Task 查询明确区分 latest/exact Snapshot 并返回其最新 bound Gate；Cluster Cursor 绑定 `snapshotId + asOf`，Classification 也固定在同一 fence；读接口提供强 ETag、304、Snapshot/Watermark headers，写接口保持 RBAC、幂等和 append-only。OpenAPI 与前端类型同步生成；现有 Task/Result 原型槽位会在 Session 下映射真实 TaskRun、Snapshot、Gate、Cluster 与 Classification，并在未连接数据时保留演示回退，未修改原型 DOM、布局、样式或既有交互。
 - P8 V1 建立 `atlas.insight-snapshot/0.1` 与 `20260718_0040`。平台固定三项 Unit-grain MetricDefinition，以 TaskRun immutable `finalizedAt` 作为 `qualityFinalizedAt` 归窗，按 Manifest Unit 对 trusted pass、autonomous pass 与 method health 做 ratio-of-sums；0 分母返回 `NO_DATA`，不平均百分比。Brief 冻结相邻 current/baseline、最多四个 TaskPlan terrain、latest non-accepted Gate 风险信号，以及 exact Result/Gate IDs、hashes、sourceSetDigest、watermark、queryHash 与 authScopeHash。`GET /v1/projects/{projectId}/insights/brief`、Snapshot pin / exact read 提供 ETag 和 DatasetCut headers；PostgreSQL 重选 asOf source cut 并复核 canonical hash、RLS、append-only 与幂等。既有 Insights 原型只映射数据槽位，未修改 DOM、布局、样式、className 或交互。
+- P9 提供 opt-in `atlas.p9-acceptance-report/0.1` Runner。固定测试六类故障注入、100 并发×100 轮 Lease、2×本地 Evidence 参考峰值、多项目与跨项目隐藏、30 次完整 Task / Result / Gate / Callback 黄金链、30 个真实 Temporal Schedule 纵向样本和 100 个应用内 Live Event 样本。任一本地 Gate 失败时非零退出；生产月度可用性、人工分类准确率、影子迭代与灾备演练无证据时明确为 `NOT_EVALUATED`。
 - 初始物化协议最多 100,000 Units：不超过 64 Units 走原子快路径；更大 Run 由 `atlas_dispatcher` 每次最多认领 64 Units，独立事务创建 Unit / 首 Attempt 并提交分区检查点。Claim Token、Dispatch Revision、Lease 与数据库时钟阻止旧 Consumer 覆盖接管者；最后一个分区仍调用同一 Seal 权威，重算 Plan / Manifest / Unit / request digest，证明完整覆盖并重验 PUBLISHED Profile、Case / Fixture exact binding、ACTIVE TEST/STAGING Environment 与当前 TestRole。部分物化永远保持 `MATERIALIZING`，不会创建 Start Intent。
 - `DebugRun=TERMINATED` 不封存事件日志；SSE 会跨过 `debug_run.terminated` replay 后续 `debug_run.snapshot_outdated`，到达当前 head 后继续 Poll，直到客户端断开或 Service 事件生成预算耗尽。Route 内 `_DebugLiveStreamingResponse` 使用 `maximum_connection_seconds` 加固定 1.0 秒 Close Grace 管理生成、Source close 与 Slot release；最后安装的 pure-ASGI `DebugLiveStreamSendDeadlineMiddleware` 使用相同 maximum 与 Close Grace，包住 `BaseHTTPMiddleware` 后的真实 client-facing `send`，阻塞写入到期会被取消。
 - Live Event 使用 event-type allowlist，不原样转发事实 Payload；取消原因、Report / Chain Digest、ObjectRef、Authorization、Password、输入 Value 与未知字段不进入 SSE。`20260716_0019` 只提交 32 KiB Payload `CHECK ... NOT VALID` 可修复边界；`20260716_0020` 只先 Validate，再创建 UPDATE / DELETE 防护 Trigger；`20260716_0021` 通过 Alembic autocommit 执行 `DROP INDEX CONCURRENTLY IF EXISTS` 清理冗余 replay index，downgrade 以 `CREATE INDEX CONCURRENTLY IF NOT EXISTS` 恢复。若历史超限 Payload 使 0020 失败，版本保持 0019；修复后重试 0020，成功后再进入 0021。
@@ -76,6 +77,14 @@ cp .env.example .env
 ATLAS_DATABASE_URL='postgresql://atlas_owner:atlas_owner@127.0.0.1:5432/atlas' uv run alembic upgrade head
 uv run uvicorn atlas_testops.main:app --reload
 ```
+
+发布候选在普通 `make verify` 之外执行重型 P9 门禁：
+
+```bash
+make p9-acceptance
+```
+
+结果写入 `../tmp/p9/acceptance-report.json`。该报告不含 DSN、Secret 或 ObjectRef；生产解释、发布顺序和回滚方式见 `../documents/runbooks/P9_PRODUCTION_READINESS.md`。
 
 服务启动后可访问：
 
