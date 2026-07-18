@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from tests.infrastructure.test_task_run_repository import _aggregate, _event, uid
 
 from atlas_testops.api.dependencies import (
+    get_task_plan_launch_service,
     get_task_run_command_service,
     get_task_run_query_service,
     get_task_run_rerun_service,
@@ -14,22 +15,27 @@ from atlas_testops.api.security import get_actor
 from atlas_testops.application.access import ActorContext
 from atlas_testops.application.platform import CommandResult
 from atlas_testops.application.task_commands import TaskRunCommandService
+from atlas_testops.application.task_launches import TaskPlanLaunchService
 from atlas_testops.application.task_reruns import TaskRunRerunService
 from atlas_testops.application.task_runs import TaskRunQueryService
 from atlas_testops.core.config import Settings
 from atlas_testops.domain.task import (
+    CITaskRunTrigger,
     ExecutionUnitPage,
     RequestTaskRunCancel,
     RequestTaskRunInfraFailureRerun,
     RequestTaskRunPause,
     RequestTaskRunResume,
     TaskExecutionEventPage,
+    TaskRetryPolicy,
     TaskRun,
     TaskRunCommandIntent,
     TaskRunCommandStatus,
     TaskRunCommandType,
     TaskRunPage,
+    TriggerTaskPlanVersionRun,
     UnitAttemptPage,
+    task_retry_policy_digest,
     task_run_command_digest,
     task_run_workflow_id,
 )
@@ -69,6 +75,20 @@ class RecordingTaskRunQueryService:
     ) -> TaskExecutionEventPage:
         self.calls.append(("events", *args, kwargs))
         return TaskExecutionEventPage(items=(self.event,))
+
+
+class RecordingTaskPlanLaunchService:
+    def __init__(self, run: TaskRun) -> None:
+        self.run = run
+        self.calls: list[tuple[object, ...]] = []
+
+    async def trigger(
+        self,
+        *args: object,
+        **kwargs: object,
+    ) -> CommandResult[TaskRun]:
+        self.calls.append((*args, kwargs))
+        return CommandResult(value=self.run, status_code=201, replayed=False)
 
 
 class RecordingTaskRunCommandService:
@@ -161,6 +181,73 @@ class RecordingTaskRunRerunService:
     ) -> CommandResult[TaskRun]:
         self.calls.append((*args, kwargs))
         return CommandResult(value=self.child, status_code=201, replayed=False)
+
+
+def _trigger_retry_policy() -> TaskRetryPolicy:
+    digest = task_retry_policy_digest(
+        infra_retry_attempts=1,
+        max_total_infra_retries=8,
+        initial_backoff_seconds=2,
+        maximum_backoff_seconds=30,
+        jitter_percent=10,
+    )
+    return TaskRetryPolicy(
+        infra_retry_attempts=1,
+        max_total_infra_retries=8,
+        initial_backoff_seconds=2,
+        maximum_backoff_seconds=30,
+        jitter_percent=10,
+        content_digest=digest,
+    )
+
+
+def test_task_run_trigger_route_accepts_typed_ci_identity() -> None:
+    query = RecordingTaskRunQueryService()
+    service = RecordingTaskPlanLaunchService(query.run)
+    actor = ActorContext(
+        tenant_id=query.run.tenant_id,
+        actor_id=query.run.requested_by,
+        request_id="task-run-trigger-api-test",
+        development_override=True,
+    )
+    app = create_app(Settings(environment="test", cors_origins=[]))
+    app.dependency_overrides[get_actor] = lambda: actor
+    app.dependency_overrides[get_task_plan_launch_service] = lambda: cast(
+        TaskPlanLaunchService,
+        service,
+    )
+    command = TriggerTaskPlanVersionRun(
+        task_plan_version_id=query.run.task_plan_version_id,
+        client_mutation_id="ci-trigger-api-001",
+        trigger=CITaskRunTrigger(
+            provider="github",
+            pipeline_run_id="build-8421",
+            job_id="test",
+            commit_sha="abcdef1",
+            branch="main",
+        ),
+        retry_policy=_trigger_retry_policy(),
+    )
+
+    with TestClient(app) as client:
+        missing_key = client.post(
+            "/v1/task-runs",
+            json=command.model_dump(mode="json", by_alias=True),
+        )
+        created = client.post(
+            "/v1/task-runs",
+            headers={"Idempotency-Key": command.client_mutation_id},
+            json=command.model_dump(mode="json", by_alias=True),
+        )
+
+    assert missing_key.status_code == 422
+    assert created.status_code == 201
+    assert created.headers["etag"] == '"revision-1"'
+    assert created.headers["location"] == f"/v1/task-runs/{query.run.id}"
+    assert created.headers["idempotency-replayed"] == "false"
+    assert service.calls[0][-1] == {
+        "idempotency_key": command.client_mutation_id,
+    }
 
 
 def test_task_run_routes_expose_snapshots() -> None:

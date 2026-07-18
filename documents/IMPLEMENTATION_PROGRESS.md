@@ -28,7 +28,7 @@
 | P2 | TestRole、AccountPool、TestAccount、Lease 与 Auth Session | 已完成 | P2-01 至 P2-06 已验收；身份、租约、Secret Grant、加密 Session 与清理链已闭环 |
 | P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 已完成 | P3-00 至 P3-03 已验收；资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与三类发布证据闭环 |
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 后端完成 | P4-00 至 P4-03 已验收；作者态、不可变 DebugRun、精确绑定、Reviewer 发布门禁与 CaseVersion 冻结闭环已落地 |
-| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00E2 已验收；不可变 Ticket、ticket-bound Port、durable command、自动 infra retry、manual infra-failure child Run、TaskPlan 公共 API、首次 Manual Launch 与 P6-02B2 UnitAttempt Takeover 均有 PostgreSQL 证据。真实 SaaS Adapter、Schedule / CI / Webhook 与超过 64 Units 分区化待后续 |
+| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00E3 已验收；不可变 Ticket、ticket-bound Port、durable command、自动 infra retry、manual infra-failure child Run、TaskPlan 公共 API、Manual 及统一 Schedule / CI / Webhook Trigger 与 P6-02B2 UnitAttempt Takeover 均有 PostgreSQL 证据。Temporal Schedule 管理、签名回调、production Adapter 与超过 64 Units 分区化待后续 |
 | P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面、P6-02A 可信截图写入 / 受控读取、P6-02B1 DebugRun Live 安全观察流、P6-02B2 UnitAttempt 控制权、P6-03A AttemptSeal / ResultRef 与 P6-03B ClosureNotice / UnitResolutionRevision 均已验收；真实 SaaS Operation、网络沙箱与 Multi-actor 仍需部署输入或后续实现 |
 | P7 | Result Fact、Snapshot、Classification 与 Gate | 已完成 | P6-03A/P6-03B 与 P7-01A 至 P7-03 已实现三阶段 Snapshot、FailureCluster / Classification、`0039` TaskGateDecision、公开 Result API、ETag 与既有 Results 槽位真实数据映射 |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 基础中 | V1 fixed MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums、DatasetCut、`0040` immutable InsightSnapshot、preview/pin/exact API 与既有 Insights 槽位映射已实现；Projector generation、Signal/Review 与异步 Export 待扩展 |
@@ -500,6 +500,25 @@
 
 - Manual Launch 只承接首次 Run 创建，不提供 Schedule / CI / Webhook Trigger Adapter，也不放宽最多 64 Units 的同步物化上限；更大矩阵必须使用后续可恢复分区物化。
 - Start Intent 只证明可靠交付；Worker / Consumer 仍默认关闭。没有部署注入真实 `TaskUnitExecutionPort` 时不会运行 SaaS 副作用；没有 AttemptSeal / Result 时也不能把执行完成描述成可信 `PASSED`。
+
+## P5-00E3 范围
+
+### 已实现
+
+- 新增统一 `POST /v1/task-runs` Trigger 入口与 `atlas.task-run-trigger/0.1` 契约。Schedule、CI、Webhook 分别使用 `scheduleId + scheduledFireTimeUtc`、`provider + pipelineRunId + jobId + rerunIndex`、`sourceKey + deliveryId` 形成永久触发身份。
+- 三类 Trigger 复用 E2 的 exact published TaskPlanVersion、compatible-only compiler、Manifest v0.2、Run / Unit / 首 Attempt、materialization Seal、唯一 Start Intent、Event、Audit、Outbox 与幂等事务，不另建弱一致性的旁路启动链。
+- CI commit / branch 和 Webhook event type 只投影为受限审计元数据，不参与永久身份，也不能覆盖 TaskPlanVersion 冻结的 Environment、URL、Credential、Tool、Model 或 Policy。重复的外部事件即使更换 HTTP Idempotency-Key，也只能返回同一个逻辑 TaskRun。
+- 新增并导出 Trigger JSON Schema，刷新 OpenAPI 与前端生成 TypeScript API 类型；没有修改前端页面、DOM、布局、样式、className 或原型交互。
+
+### 已验证
+
+- Domain / Application / API 定向测试覆盖 UTC 规范化、三类永久 Fingerprint、CI rerun identity、展示元数据排除、严格 payload、RBAC、Header、Location / ETag 和 exact replay。
+- 真实 PostgreSQL API 集成测试验证：CI 同一 pipeline job / rerun 使用不同 HTTP Idempotency-Key 且 commit / branch 变化时仍只产生一个 `SEALED` Run，并复用同一 Start Intent 与事实链。
+
+### 后续边界
+
+- E3 是 Trigger ingress，不伪装为 Temporal Schedule catalog、overlap / catch-up 策略管理或外部 callback 验签服务；这些能力继续按独立切片落地。
+- 当前同步物化仍限制最多 64 Units，Worker 仍要求部署注入正式 production `TaskUnitExecutionPort`。缺少任一生产能力时保持 fail-closed。
 
 ## P6-00 范围
 

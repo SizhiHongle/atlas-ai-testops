@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-07-16
 - Owners: Atlas Test Space
-- Scope: P5-00A 执行宿主；P5-00B1 正式 Profile、Workflow identity、materialization seal 与 Revision CAS；P5-00B2A durable Start Intent 交付；P5-00B2B 有界 Root / Attempt 耐久编排；P5-00D1 immutable Execution Ticket 与 Port 输入边界；P5-00D2A durable TaskRun Cancel；P5-00D2B batch-boundary Pause / Resume
+- Scope: P5-00A 执行宿主；P5-00B1 正式 Profile、Workflow identity、materialization seal 与 Revision CAS；P5-00B2A durable Start Intent 交付；P5-00B2B 有界 Root / Attempt 耐久编排；P5-00D1 immutable Execution Ticket 与 Port 输入边界；P5-00D2A durable TaskRun Cancel；P5-00D2B batch-boundary Pause / Resume；P5-00E1/E2/E3 TaskPlan Catalog、Manual Launch 与统一 Trigger ingress
 
 ## 背景
 
@@ -56,6 +56,8 @@ P6-02B2 的 `LiveSession`、`ControlLease`、控制 Epoch / Fence 和持久化 `
 41. P5-00E1 将 TaskPlan 编写定义为稳定 Catalog 根加 append-only published Version，不引入可变 TaskPlan Draft。`RUN_OPERATOR+` 可以创建与发布，但每次写入必须有可审计 Actor、`Idempotency-Key == clientMutationId`，并与 Audit / Outbox 同事务提交。
 42. TaskPlanVersion 公共发布请求只携带 exact Case / Profile / Fixture / Environment / Policy 引用；应用层生成 ID、时间、`versionRef` 与 canonical digest，PostgreSQL Guard 仍是同作用域和发布态的最终事实门禁。E1 不创建 Profile、不物化 TaskRun，也不把发布描述为已启动。
 43. P5-00E2 的 Manual Launch 只从 exact published TaskPlanVersion 编译。Identity 必须与 Unit CaseVersion 兼容，Data 必须与该 Case Profile 的 Fixture Blueprint 兼容；Environment 与 Browser 才可跨轴组合。编译后超过 64 Units 或任一 Case 缺少兼容 Profile 时 fail-closed。
+44. P5-00E3 的统一 Trigger 入口不接受执行配置覆盖。Schedule、CI 与 Webhook 分别用 `scheduleId + scheduledFireTimeUtc`、`provider + pipelineRunId + jobId + rerunIndex`、`sourceKey + deliveryId` 生成永久 Fingerprint；展示元数据不能改变同一外部事件的逻辑身份。
+45. 所有 Trigger 都复用同一个 compatible-only compiler、Manifest、materialization Seal、Start Intent、Event、Audit、Outbox 与 database-backed idempotency 事务。HTTP Idempotency-Key 只保护传输重试，不能为同一永久 Trigger 身份创建第二个 TaskRun。
 44. Manual Launch 请求的完整 `TaskRetryPolicy` 必须匹配 Plan Version 冻结的 `infra-retry` digest。稳定 trigger fingerprint 绑定 Plan Version 与 `clientMutationId`；Manifest v0.2、Run / Unit / 首 Attempt、15 分钟 execution window、Seal、Start Intent、Event、Audit / Outbox 与幂等完成在同一短事务提交。
 
 ## 后果
@@ -67,7 +69,7 @@ P6-02B2 的 `LiveSession`、`ControlLease`、控制 Epoch / Fence 和持久化 `
 - Schedule、CI、Webhook 与公共 API 接入必须复用 stable request digest / insert-or-get 协议；不能把服务端生成的 Run ID 与时间当作同一 triggerFingerprint 的幂等身份。
 - P5-00B2A 已落地 Pending Start Intent 的 Claim / Lease / Retry / Started / Failed 状态机、Temporal Consumer 和到期 Claim 恢复；稳定 Request ID 与 collision verification 覆盖 Start 成功但 Ack 前崩溃。该能力只证明交付，不把 `STARTED` 伪装成 Workflow 已完成或 Task 已成功。
 - P5-00B2B 已落地最多 64 Units 的真实 Task Root / UnitAttempt Workflow、固定双 Queue、8-child batch、deadline、短数据库 Activity、瞬时故障耐久重试、单次副作用与 exact-event replay。真实 PostgreSQL 已验证 tenant scope、Run → Unit → Attempt 锁、Revision CAS、最小权限和 migration 往返；真实 Temporal 已验证双 Worker、跨 batch、deterministic child ID、deadline 排队、三次数据库瞬时故障后恢复、同 Root replay、History 脱敏、非 PASS 收敛、原生 Child 取消的未知结果与 Root 取消后已完成 Child 结果保留。
-- P5-00C 已补充 TaskRun / Manifest / Unit / Attempt / Event 查询；P5-00D1 已落地 immutable Execution Ticket、Prepare Activity 与 ticket-bound Port Protocol；P5-00D2A/D2B 已落地 durable Cancel、batch-boundary Pause / Resume、Signal delivery、Cancel 抢占与 command status；P5-00D3A/D3B 已分别落地 automatic infra retry 与创建新 child Run 的 manual infra-failure rerun；P5-00E1/E2 已落地 TaskPlan Catalog、不可变版本发布与首次 Manual Launch，但没有提供真实 SaaS production Adapter。旧 Run RETRY command、Schedule / CI / Webhook Adapter 与超过 64 Units 的可恢复分区物化仍属于后续切片。Intent Consumer 与 Task Worker 在部署注入真实执行 Adapter 前保持默认关闭。
+- P5-00C 已补充 TaskRun / Manifest / Unit / Attempt / Event 查询；P5-00D1 已落地 immutable Execution Ticket、Prepare Activity 与 ticket-bound Port Protocol；P5-00D2A/D2B 已落地 durable Cancel、batch-boundary Pause / Resume、Signal delivery、Cancel 抢占与 command status；P5-00D3A/D3B 已分别落地 automatic infra retry 与创建新 child Run 的 manual infra-failure rerun；P5-00E1/E2/E3 已落地 TaskPlan Catalog、不可变版本发布、Manual Launch 与统一 Schedule / CI / Webhook Trigger ingress，但没有提供真实 SaaS production Adapter、Temporal Schedule 管理或签名回调。旧 Run RETRY command与超过 64 Units 的可恢复分区物化仍属于后续切片。Intent Consumer 与 Task Worker 在部署注入真实执行 Adapter 前保持默认关闭。
 - 同一 Trigger 的重复提交可由数据库唯一约束和后续应用幂等协议收敛为一个逻辑 TaskRun。
 - 任务重跑、失败项重跑和用例重试不会改写历史结果，为后续 Result Snapshot、Gate 和 Flaky 解释保留完整事实。
 - DebugRun 的 ExecutionContract、EvidenceManifest 与 Live Cursor 继续保持原协议；正式 Attempt 已使用独立 AttemptSeal 和 Live Control 协议，避免可空多态宿主。

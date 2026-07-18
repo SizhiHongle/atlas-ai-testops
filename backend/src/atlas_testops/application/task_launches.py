@@ -1,4 +1,4 @@
-"""Manual TaskPlanVersion launch and bounded initial TaskRun materialization."""
+"""Unified TaskPlanVersion triggers and bounded initial TaskRun materialization."""
 
 from __future__ import annotations
 
@@ -36,14 +36,17 @@ from atlas_testops.domain.task import (
     TaskExecutionEvent,
     TaskPlanStatus,
     TaskPlanVersion,
+    TaskRetryPolicy,
     TaskRun,
     TaskRunManifest,
     TaskTriggerSource,
+    TriggerTaskPlanVersionRun,
     UnitAttempt,
     execution_unit_dependency_digest,
     execution_unit_key,
     task_run_manifest_hash,
     task_run_manual_trigger_fingerprint,
+    task_run_trigger_fingerprint,
     task_run_workflow_id,
     unit_attempt_workflow_id,
 )
@@ -105,18 +108,76 @@ class TaskPlanLaunchService:
         *,
         idempotency_key: str,
     ) -> CommandResult[TaskRun]:
-        """Create an exact bounded Run or replay its stored immutable result."""
+        """Create an exact Manual Run or replay its stored immutable result."""
 
         if idempotency_key != command.client_mutation_id:
             raise _invalid_request(
                 "Idempotency-Key 必须与 clientMutationId 完全一致。"
             )
-        request_payload: dict[str, JsonValue] = {
-            "taskPlanVersionId": str(task_plan_version_id),
-            **_json_object(command),
-        }
+        return await self._launch(
+            actor,
+            task_plan_version_id=task_plan_version_id,
+            iteration_id=command.iteration_id,
+            retry_policy=command.retry_policy,
+            trigger_source=TaskTriggerSource.MANUAL,
+            trigger_fingerprint=task_run_manual_trigger_fingerprint(
+                task_plan_version_id=task_plan_version_id,
+                client_mutation_id=command.client_mutation_id,
+            ),
+            request_payload={
+                "taskPlanVersionId": str(task_plan_version_id),
+                **_json_object(command),
+            },
+            trigger_metadata={},
+            idempotency_key=idempotency_key,
+        )
+
+    async def trigger(
+        self,
+        actor: ActorContext,
+        command: TriggerTaskPlanVersionRun,
+        *,
+        idempotency_key: str,
+    ) -> CommandResult[TaskRun]:
+        """Create one Schedule, CI, or Webhook Run through the same frozen chain."""
+
+        if idempotency_key != command.client_mutation_id:
+            raise _invalid_request(
+                "Idempotency-Key 必须与 clientMutationId 完全一致。"
+            )
+        trigger_source = TaskTriggerSource(command.trigger.source)
+        return await self._launch(
+            actor,
+            task_plan_version_id=command.task_plan_version_id,
+            iteration_id=command.iteration_id,
+            retry_policy=command.retry_policy,
+            trigger_source=trigger_source,
+            trigger_fingerprint=task_run_trigger_fingerprint(command.trigger),
+            request_payload=_json_object(command),
+            trigger_metadata=_json_object(command.trigger),
+            idempotency_key=idempotency_key,
+        )
+
+    async def _launch(
+        self,
+        actor: ActorContext,
+        *,
+        task_plan_version_id: UUID,
+        iteration_id: str | None,
+        retry_policy: TaskRetryPolicy,
+        trigger_source: TaskTriggerSource,
+        trigger_fingerprint: str,
+        request_payload: dict[str, JsonValue],
+        trigger_metadata: dict[str, JsonValue],
+        idempotency_key: str,
+    ) -> CommandResult[TaskRun]:
+        """Compile, persist, seal, and emit one source-independent TaskRun."""
+
         request_hash = hash_request(request_payload)
-        scope = f"task-plan-versions.{task_plan_version_id}.runs.manual"
+        scope = (
+            f"task-plan-versions.{task_plan_version_id}.runs."
+            f"{trigger_source.value.lower()}"
+        )
         try:
             async with self._database.transaction(actor.database_context()) as connection:
                 version = await self._tasks.get_task_plan_version(
@@ -167,7 +228,7 @@ class TaskPlanLaunchService:
                     raise _conflict("已归档 TaskPlan 不能启动新的 TaskRun。")
                 if (
                     version.policy_digests.get(TASK_RETRY_POLICY_DIGEST_KEY)
-                    != command.retry_policy.content_digest
+                    != retry_policy.content_digest
                 ):
                     raise _conflict(
                         "retryPolicy 必须与已发布 TaskPlanVersion 的 "
@@ -189,7 +250,10 @@ class TaskPlanLaunchService:
                 )
                 aggregate = _build_initial_run(
                     version=version,
-                    command=command,
+                    iteration_id=iteration_id,
+                    retry_policy=retry_policy,
+                    trigger_source=trigger_source,
+                    trigger_fingerprint=trigger_fingerprint,
                     requested_by=operator_id,
                     temporal_namespace=self._temporal_namespace,
                     manifest_units=manifest_units,
@@ -211,6 +275,7 @@ class TaskPlanLaunchService:
                         version=version,
                         occurred_at=now,
                         unit_count=len(manifest_units),
+                        trigger_metadata=trigger_metadata,
                     )
                 response = CachedHttpResponse(
                     status_code=201 if created else 200,
@@ -231,7 +296,7 @@ class TaskPlanLaunchService:
                 )
         except ImmutableFactConflictError as error:
             raise _conflict(
-                "clientMutationId 已绑定到不同的 Manual Launch 输入。"
+                f"{trigger_source.value} Trigger 已绑定到不同的不可变 Run 输入。"
             ) from error
         except (
             CheckViolation,
@@ -253,6 +318,7 @@ class TaskPlanLaunchService:
         version: TaskPlanVersion,
         occurred_at: datetime,
         unit_count: int,
+        trigger_metadata: dict[str, JsonValue],
     ) -> None:
         """Append the initial execution event, audit fact, and outbox event."""
 
@@ -261,7 +327,8 @@ class TaskPlanLaunchService:
             "taskPlanId": str(version.task_plan_id),
             "taskPlanVersionId": str(version.id),
             "taskPlanVersionDigest": version.content_digest,
-            "triggerSource": TaskTriggerSource.MANUAL.value,
+            "triggerSource": run.trigger_source.value,
+            "trigger": trigger_metadata,
             "unitCount": unit_count,
             "manifestHash": run.manifest_hash,
             "requestDigest": run.request_digest,
@@ -435,43 +502,42 @@ def compile_task_plan_version(
 def _build_initial_run(
     *,
     version: TaskPlanVersion,
-    command: StartTaskPlanVersionRun,
+    iteration_id: str | None,
+    retry_policy: TaskRetryPolicy,
+    trigger_source: TaskTriggerSource,
+    trigger_fingerprint: str,
     requested_by: UUID,
     temporal_namespace: str,
     manifest_units: tuple[ExecutionUnitManifest, ...],
     now: datetime,
 ) -> _InitialTaskRunAggregate:
     run_id = new_entity_id()
-    trigger_fingerprint = task_run_manual_trigger_fingerprint(
-        task_plan_version_id=version.id,
-        client_mutation_id=command.client_mutation_id,
-    )
     manifest_hash = task_run_manifest_hash(
         task_run_id=run_id,
         task_plan_version_id=version.id,
-        trigger_source=TaskTriggerSource.MANUAL,
+        trigger_source=trigger_source,
         trigger_fingerprint=trigger_fingerprint,
         tenant_id=version.tenant_id,
         project_id=version.project_id,
-        iteration_id=command.iteration_id,
+        iteration_id=iteration_id,
         units=manifest_units,
         policy_digests=version.policy_digests,
         compiler_version=TASK_LAUNCH_COMPILER_VERSION,
         schema_version=TASK_RUN_MANIFEST_SCHEMA_VERSION,
-        retry_policy=command.retry_policy,
+        retry_policy=retry_policy,
     )
     manifest = TaskRunManifest(
         schema_version=TASK_RUN_MANIFEST_SCHEMA_VERSION,
         task_run_id=run_id,
         task_plan_version_id=version.id,
-        trigger_source=TaskTriggerSource.MANUAL,
+        trigger_source=trigger_source,
         trigger_fingerprint=trigger_fingerprint,
         tenant_id=version.tenant_id,
         project_id=version.project_id,
-        iteration_id=command.iteration_id,
+        iteration_id=iteration_id,
         units=manifest_units,
         policy_digests=version.policy_digests,
-        retry_policy=command.retry_policy,
+        retry_policy=retry_policy,
         compiler_version=TASK_LAUNCH_COMPILER_VERSION,
         manifest_hash=manifest_hash,
     )
@@ -481,7 +547,7 @@ def _build_initial_run(
         project_id=version.project_id,
         task_plan_version_id=version.id,
         manifest_hash=manifest_hash,
-        trigger_source=TaskTriggerSource.MANUAL,
+        trigger_source=trigger_source,
         trigger_fingerprint=trigger_fingerprint,
         request_digest=manifest.recompute_request_digest(),
         lifecycle=ExecutionLifecycle.QUEUED,
@@ -584,7 +650,7 @@ def _not_found() -> ApplicationError:
 def _forbidden() -> ApplicationError:
     return ApplicationError(
         error_code=ErrorCode.FORBIDDEN,
-        title="Manual Launch 被拒绝",
+        title="TaskRun Trigger 被拒绝",
         detail="当前身份不能运行该 Project，或缺少可审计 Actor。",
         status_code=403,
     )
@@ -593,7 +659,7 @@ def _forbidden() -> ApplicationError:
 def _invalid_request(detail: str) -> ApplicationError:
     return ApplicationError(
         error_code=ErrorCode.INVALID_REQUEST,
-        title="Manual Launch 请求无效",
+        title="TaskRun Trigger 请求无效",
         detail=detail,
         status_code=400,
     )
@@ -602,7 +668,7 @@ def _invalid_request(detail: str) -> ApplicationError:
 def _conflict(detail: str) -> ApplicationError:
     return ApplicationError(
         error_code=ErrorCode.CONFLICT,
-        title="Manual Launch 冲突",
+        title="TaskRun Trigger 冲突",
         detail=detail,
         status_code=409,
     )

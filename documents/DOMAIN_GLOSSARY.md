@@ -61,6 +61,7 @@ TaskPlanVersion
 | `TaskPlan` | Project 内稳定、可复用的任务计划 Catalog 根 | P5-00E1 已开放创建、Catalog 与 Detail；`RUN_OPERATOR+`、幂等、Audit / Outbox，当前不提供可变 Draft |
 | `TaskPlanVersion` | 已发布的任务选择、矩阵、触发和策略 | P5-00E1 已开放不可变发布、历史与精确读取；四类 Profile、Case / Fixture、Environment 和 canonical digest 由 PostgreSQL fail-closed |
 | `Manual Launch` | 人工触发 exact TaskPlanVersion 的首次正式运行 | P5-00E2 已开放；只编译 Case / Fixture 兼容矩阵，最多 64 Units，并原子产生 Manifest、首 Attempt、Seal 与 Start Intent |
+| `TaskRunTrigger` | 触发 exact TaskPlanVersion 的强类型事件身份 | P5-00E3 已开放统一入口；Schedule 绑定 `scheduleId + scheduledFireTimeUtc`，CI 绑定 `provider + pipelineRunId + jobId + rerunIndex`，Webhook 绑定 `sourceKey + deliveryId`。commit、branch、event type 仅是审计元数据，不能覆盖冻结执行配置 |
 | `TaskRun` | 一次触发形成的任务运行与冻结 Manifest | stable request digest 幂等；只有 `MATERIALIZING → SEALED` 完整证明后才能推进状态；P5-00D3B child 以不可变 `rerunOfTaskRunId + INFRA_FAILURES` 记录 lineage / selection |
 | `TaskWorkflowStartIntent` | 与 sealed TaskRun / deterministic Workflow ID 同事务生成，并由可靠交付状态机推进的待启动事实 | P5-00B2A 支持 `PENDING / CLAIMED / RETRY_WAIT / STARTED / FAILED`；Claim Token + Revision 防旧 Consumer 覆盖，`STARTED` 只表示 Temporal 接受，不表示 Task 已执行或成功 |
 | `TaskWorkflowIntentConsumer` | 使用独立 `atlas_dispatcher` 权限把 TaskRun Start Intent 可靠提交到 Temporal 的后台进程 | 短事务 Claim → 事务外 Start / Describe → 短事务 CAS Ack；默认关闭，只提交 exact `AtlasTaskRunWorkflow + atlas-task-run`，P5-00B2B 的 Root Worker 再消费该固定 Queue |

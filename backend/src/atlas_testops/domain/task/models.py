@@ -50,6 +50,9 @@ TASK_EXECUTION_EVENT_SCHEMA_VERSION: Literal["atlas.execution-event/0.1"] = (
 TASK_RUN_REQUEST_SCHEMA_VERSION: Literal["atlas.task-run-request/0.1"] = (
     "atlas.task-run-request/0.1"
 )
+TASK_RUN_TRIGGER_SCHEMA_VERSION: Literal["atlas.task-run-trigger/0.1"] = (
+    "atlas.task-run-trigger/0.1"
+)
 TASK_UNIT_EXECUTION_TICKET_SCHEMA_VERSION: Literal[
     "atlas.task-unit-execution-ticket/0.1"
 ] = "atlas.task-unit-execution-ticket/0.1"
@@ -685,6 +688,148 @@ class StartTaskPlanVersionRun(FrozenWireModel):
         pattern=REFERENCE_KEY_PATTERN,
     )
     retry_policy: TaskRetryPolicy
+
+
+class ScheduleTaskRunTrigger(FrozenWireModel):
+    """One exact scheduled fire emitted by a trusted schedule controller."""
+
+    source: Literal["SCHEDULE"] = "SCHEDULE"
+    schedule_id: str = Field(
+        min_length=3,
+        max_length=160,
+        pattern=REFERENCE_KEY_PATTERN,
+    )
+    scheduled_fire_time_utc: AwareDatetime
+
+    @field_validator("scheduled_fire_time_utc")
+    @classmethod
+    def normalize_fire_time(cls, value: datetime) -> datetime:
+        """Canonicalize the schedule identity to UTC."""
+
+        return value.astimezone(UTC)
+
+
+class CITaskRunTrigger(FrozenWireModel):
+    """Immutable CI job identity and non-authoritative source metadata."""
+
+    source: Literal["CI"] = "CI"
+    provider: str = Field(
+        min_length=3,
+        max_length=80,
+        pattern=REFERENCE_KEY_PATTERN,
+    )
+    pipeline_run_id: str = Field(
+        min_length=1,
+        max_length=160,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,159}$",
+    )
+    job_id: str = Field(
+        min_length=1,
+        max_length=160,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,159}$",
+    )
+    rerun_index: int = Field(default=0, ge=0, le=10_000)
+    commit_sha: str | None = Field(
+        default=None,
+        min_length=7,
+        max_length=64,
+        pattern=r"^[0-9a-f]{7,64}$",
+    )
+    branch: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=200,
+        pattern=r"^[^\x00-\x1f\x7f]{1,200}$",
+    )
+
+
+class WebhookTaskRunTrigger(FrozenWireModel):
+    """Immutable delivery identity from an allowlisted webhook gateway."""
+
+    source: Literal["WEBHOOK"] = "WEBHOOK"
+    source_key: str = Field(
+        min_length=3,
+        max_length=80,
+        pattern=REFERENCE_KEY_PATTERN,
+    )
+    delivery_id: str = Field(
+        min_length=1,
+        max_length=200,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,199}$",
+    )
+    event_type: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=120,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$",
+    )
+
+
+TaskRunTrigger = Annotated[
+    ScheduleTaskRunTrigger | CITaskRunTrigger | WebhookTaskRunTrigger,
+    Field(discriminator="source"),
+]
+
+
+class TriggerTaskPlanVersionRun(FrozenWireModel):
+    """Launch one exact published TaskPlanVersion from a non-manual trigger."""
+
+    schema_version: Literal["atlas.task-run-trigger/0.1"] = (
+        TASK_RUN_TRIGGER_SCHEMA_VERSION
+    )
+    task_plan_version_id: UUID
+    client_mutation_id: str = Field(
+        min_length=8,
+        max_length=200,
+        pattern=CLIENT_MUTATION_ID_PATTERN,
+    )
+    trigger: TaskRunTrigger
+    iteration_id: str | None = Field(
+        default=None,
+        min_length=3,
+        max_length=160,
+        pattern=REFERENCE_KEY_PATTERN,
+    )
+    retry_policy: TaskRetryPolicy
+
+
+def task_run_trigger_fingerprint(trigger: TaskRunTrigger) -> str:
+    """Derive a permanent source-specific trigger identity."""
+
+    if isinstance(trigger, ScheduleTaskRunTrigger):
+        digest = canonical_digest(
+            {
+                "schemaVersion": TASK_RUN_TRIGGER_SCHEMA_VERSION,
+                "source": trigger.source,
+                "scheduleId": trigger.schedule_id,
+                "scheduledFireTimeUtc": trigger.scheduled_fire_time_utc.isoformat(),
+            }
+        )
+        return (
+            f"schedule:{trigger.schedule_id}:"
+            f"{digest.removeprefix('sha256:')}"
+        )
+    if isinstance(trigger, CITaskRunTrigger):
+        digest = canonical_digest(
+            {
+                "schemaVersion": TASK_RUN_TRIGGER_SCHEMA_VERSION,
+                "source": trigger.source,
+                "provider": trigger.provider,
+                "pipelineRunId": trigger.pipeline_run_id,
+                "jobId": trigger.job_id,
+                "rerunIndex": trigger.rerun_index,
+            }
+        )
+        return f"ci:{trigger.provider}:{digest.removeprefix('sha256:')}"
+    digest = canonical_digest(
+        {
+            "schemaVersion": TASK_RUN_TRIGGER_SCHEMA_VERSION,
+            "source": trigger.source,
+            "sourceKey": trigger.source_key,
+            "deliveryId": trigger.delivery_id,
+        }
+    )
+    return f"webhook:{trigger.source_key}:{digest.removeprefix('sha256:')}"
 
 
 class TaskRunManifest(FrozenWireModel):

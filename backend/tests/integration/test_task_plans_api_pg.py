@@ -175,6 +175,50 @@ def test_task_plan_api_publishes_exact_dependencies_and_rejects_drift() -> None:
         assert launch_replay.headers["idempotency-replayed"] == "true"
         assert launch_replay.json()["id"] == run_id
 
+        ci_mutation = f"ci-trigger-{uuid7().hex}"
+        ci_trigger_payload: dict[str, object] = {
+            "source": "CI",
+            "provider": "github",
+            "pipelineRunId": "build-8421",
+            "jobId": "test",
+            "rerunIndex": 0,
+            "commitSha": "abcdef1",
+            "branch": "main",
+        }
+        ci_payload = {
+            "taskPlanVersionId": version_id,
+            "clientMutationId": ci_mutation,
+            "trigger": ci_trigger_payload,
+            "iterationId": "iteration:integration",
+            "retryPolicy": retry_policy.model_dump(mode="json", by_alias=True),
+        }
+        ci_created = client.post(
+            "/v1/task-runs",
+            headers={**headers, "Idempotency-Key": ci_mutation},
+            json=ci_payload,
+        )
+        assert ci_created.status_code == 201, ci_created.text
+        assert ci_created.json()["triggerSource"] == "CI"
+        ci_run_id = ci_created.json()["id"]
+
+        duplicate_mutation = f"ci-trigger-{uuid7().hex}"
+        ci_duplicate = client.post(
+            "/v1/task-runs",
+            headers={**headers, "Idempotency-Key": duplicate_mutation},
+            json={
+                **ci_payload,
+                "clientMutationId": duplicate_mutation,
+                "trigger": {
+                    **ci_trigger_payload,
+                    "commitSha": "1234567",
+                    "branch": "release",
+                },
+            },
+        )
+        assert ci_duplicate.status_code == 200, ci_duplicate.text
+        assert ci_duplicate.json()["id"] == ci_run_id
+        assert ci_duplicate.headers["idempotency-replayed"] == "true"
+
         manifest = client.get(
             f"/v1/task-runs/{run_id}/manifest",
             headers=headers,

@@ -270,6 +270,9 @@ def _install_openapi_security_contract(
             f"{api_v1_prefix}/unit-attempts/{{attemptId}}/commands/{{commandId}}": {
                 "get": [{"PlatformSession": []}],
             },
+            f"{api_v1_prefix}/task-runs": {
+                "post": [{"PlatformSession": []}],
+            },
         }
         paths = document.get("paths", {})
         for path, methods in secured_paths.items():

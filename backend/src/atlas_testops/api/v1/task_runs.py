@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Header, Path, Query, Response, status
 
 from atlas_testops.api.dependencies import (
+    TaskPlanLaunchServiceDependency,
     TaskRunCommandServiceDependency,
     TaskRunQueryServiceDependency,
     TaskRunRerunServiceDependency,
@@ -24,6 +25,7 @@ from atlas_testops.domain.task import (
     TaskRunCommandIntent,
     TaskRunManifest,
     TaskRunPage,
+    TriggerTaskPlanVersionRun,
     UnitAttemptPage,
 )
 
@@ -49,6 +51,38 @@ router = APIRouter(
         404: {"description": "TaskRun 或 ExecutionUnit 不存在", "model": ProblemDetails},
     }
 )
+
+
+@router.post(
+    "/task-runs",
+    response_model=TaskRun,
+    status_code=status.HTTP_201_CREATED,
+    summary="通过 Schedule、CI 或 Webhook 幂等触发 TaskRun",
+    responses={
+        403: {"description": "当前角色不能运行该 TaskPlan", "model": ProblemDetails},
+        409: {
+            "description": "触发身份、策略、矩阵或依赖门禁冲突",
+            "model": ProblemDetails,
+        },
+    },
+)
+async def trigger_task_run(
+    command: TriggerTaskPlanVersionRun,
+    response: Response,
+    actor: ActorDependency,
+    service: TaskPlanLaunchServiceDependency,
+    idempotency_key: IdempotencyKeyHeader,
+) -> TaskRun:
+    result = await service.trigger(
+        actor,
+        command,
+        idempotency_key=idempotency_key,
+    )
+    response.status_code = result.status_code
+    response.headers["ETag"] = format_revision_etag(result.value.revision)
+    response.headers["Location"] = f"/v1/task-runs/{result.value.id}"
+    response.headers["Idempotency-Replayed"] = str(result.replayed).lower()
+    return result.value
 
 
 @router.get(

@@ -13,6 +13,7 @@ from atlas_testops.domain.task import (
     TASK_PLAN_SCHEMA_VERSION,
     TASK_RUN_MANIFEST_SCHEMA_VERSION,
     CaseExecutionProfileRef,
+    CITaskRunTrigger,
     ExecutionHygiene,
     ExecutionLifecycle,
     ExecutionQuality,
@@ -20,6 +21,7 @@ from atlas_testops.domain.task import (
     ExecutionUnitManifest,
     PublishTaskPlanVersion,
     RequestTaskRunInfraFailureRerun,
+    ScheduleTaskRunTrigger,
     TaskExecutionEvent,
     TaskMaterializationState,
     TaskMatrixDefinition,
@@ -32,7 +34,9 @@ from atlas_testops.domain.task import (
     TaskRunManifest,
     TaskRunRerunSelectionMode,
     TaskTriggerSource,
+    TriggerTaskPlanVersionRun,
     UnitAttempt,
+    WebhookTaskRunTrigger,
     execution_unit_dependency_digest,
     execution_unit_key,
     task_plan_version_content_digest,
@@ -40,6 +44,7 @@ from atlas_testops.domain.task import (
     task_retry_policy_digest,
     task_run_infra_rerun_trigger_fingerprint,
     task_run_manifest_hash,
+    task_run_trigger_fingerprint,
     task_run_workflow_id,
     unit_attempt_workflow_id,
 )
@@ -79,6 +84,26 @@ def profile_refs(*case_version_ids: UUID) -> TaskProfileRefs:
             )
             for index, case_version_id in enumerate(case_version_ids, start=1)
         )
+    )
+
+
+def retry_policy() -> TaskRetryPolicy:
+    """Build one canonical infrastructure retry policy."""
+
+    digest = task_retry_policy_digest(
+        infra_retry_attempts=1,
+        max_total_infra_retries=8,
+        initial_backoff_seconds=2,
+        maximum_backoff_seconds=30,
+        jitter_percent=10,
+    )
+    return TaskRetryPolicy(
+        infra_retry_attempts=1,
+        max_total_infra_retries=8,
+        initial_backoff_seconds=2,
+        maximum_backoff_seconds=30,
+        jitter_percent=10,
+        content_digest=digest,
     )
 
 
@@ -974,3 +999,60 @@ def test_task_execution_event_json_schema_exposes_version_and_payload_limit() ->
         "type": "string",
     }
     assert schema["properties"]["payload"]["x-atlas-max-serialized-bytes"] == 32_768
+
+
+def test_schedule_trigger_fingerprint_uses_canonical_utc_fire_identity() -> None:
+    utc_trigger = ScheduleTaskRunTrigger(
+        schedule_id="crm.nightly",
+        scheduled_fire_time_utc=datetime(2026, 7, 18, 2, 0, tzinfo=UTC),
+    )
+    offset_trigger = ScheduleTaskRunTrigger(
+        schedule_id="crm.nightly",
+        scheduled_fire_time_utc=datetime.fromisoformat("2026-07-18T10:00:00+08:00"),
+    )
+
+    assert offset_trigger.scheduled_fire_time_utc == utc_trigger.scheduled_fire_time_utc
+    assert task_run_trigger_fingerprint(offset_trigger) == task_run_trigger_fingerprint(
+        utc_trigger
+    )
+
+
+def test_ci_trigger_identity_excludes_display_metadata_but_includes_rerun() -> None:
+    first = CITaskRunTrigger(
+        provider="github",
+        pipeline_run_id="build-8421",
+        job_id="test",
+        commit_sha="abcdef1",
+        branch="main",
+    )
+    metadata_changed = first.model_copy(
+        update={"commit_sha": "1234567", "branch": "release"}
+    )
+    rerun = first.model_copy(update={"rerun_index": 1})
+
+    assert task_run_trigger_fingerprint(first) == task_run_trigger_fingerprint(
+        metadata_changed
+    )
+    assert task_run_trigger_fingerprint(first) != task_run_trigger_fingerprint(rerun)
+
+
+def test_webhook_trigger_and_launch_contract_are_strict_and_versioned() -> None:
+    trigger = WebhookTaskRunTrigger(
+        source_key="gitlab",
+        delivery_id="delivery-001",
+        event_type="pipeline.completed",
+    )
+    command = TriggerTaskPlanVersionRun(
+        task_plan_version_id=uid(3),
+        client_mutation_id="webhook-trigger-001",
+        trigger=trigger,
+        retry_policy=retry_policy(),
+    )
+
+    assert command.schema_version == "atlas.task-run-trigger/0.1"
+    assert task_run_trigger_fingerprint(trigger).startswith("webhook:gitlab:")
+    with pytest.raises(ValidationError, match="String should match pattern"):
+        WebhookTaskRunTrigger(
+            source_key="gitlab",
+            delivery_id="delivery\nforged",
+        )

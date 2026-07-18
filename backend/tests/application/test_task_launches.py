@@ -21,8 +21,11 @@ from atlas_testops.domain.platform import Project, ProjectStatus
 from atlas_testops.domain.task import (
     TASK_RETRY_POLICY_DIGEST_KEY,
     CaseExecutionProfileRef,
+    CITaskRunTrigger,
     ExecutionUnit,
+    ScheduleTaskRunTrigger,
     StartTaskPlanVersionRun,
+    TaskExecutionEvent,
     TaskMaterializationState,
     TaskMatrixDefinition,
     TaskPlanVersion,
@@ -30,10 +33,13 @@ from atlas_testops.domain.task import (
     TaskRetryPolicy,
     TaskRun,
     TaskRunManifest,
+    TriggerTaskPlanVersionRun,
     UnitAttempt,
+    WebhookTaskRunTrigger,
     task_plan_version_content_digest,
     task_plan_version_ref,
     task_retry_policy_digest,
+    task_run_trigger_fingerprint,
 )
 from atlas_testops.infrastructure.audit import AuditRepository
 from atlas_testops.infrastructure.database import Database, DatabaseContext
@@ -393,6 +399,65 @@ async def test_manual_launch_compiles_seals_and_replays_one_exact_run() -> None:
     assert len(tasks.events) == 1
     assert len(audit.calls) == 1
     assert len(outbox.calls) == 1
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "trigger",
+    [
+        ScheduleTaskRunTrigger(
+            schedule_id="crm.nightly",
+            scheduled_fire_time_utc=NOW,
+        ),
+        CITaskRunTrigger(
+            provider="github",
+            pipeline_run_id="build-8421",
+            job_id="test",
+            rerun_index=0,
+            commit_sha="abcdef1",
+            branch="main",
+        ),
+        WebhookTaskRunTrigger(
+            source_key="gitlab",
+            delivery_id="delivery-001",
+            event_type="pipeline.completed",
+        ),
+    ],
+)
+async def test_non_manual_triggers_reuse_the_exact_launch_chain(
+    trigger: ScheduleTaskRunTrigger | CITaskRunTrigger | WebhookTaskRunTrigger,
+) -> None:
+    service, tasks, audit, outbox = _service()
+    command = TriggerTaskPlanVersionRun(
+        task_plan_version_id=uid(5),
+        client_mutation_id=f"trigger-{trigger.source.lower()}-001",
+        trigger=trigger,
+        iteration_id="iteration:nightly",
+        retry_policy=_retry_policy(),
+    )
+
+    created = await service.trigger(
+        _actor(),
+        command,
+        idempotency_key=command.client_mutation_id,
+    )
+    replayed = await service.trigger(
+        _actor(),
+        command,
+        idempotency_key=command.client_mutation_id,
+    )
+
+    assert created.status_code == 201
+    assert replayed.replayed
+    assert replayed.value == created.value
+    assert len(tasks.create_calls) == 1
+    manifest = cast(TaskRunManifest, tasks.create_calls[0]["manifest"])
+    assert manifest.trigger_source.value == trigger.source
+    assert manifest.trigger_fingerprint == task_run_trigger_fingerprint(trigger)
+    assert len(tasks.events) == len(audit.calls) == len(outbox.calls) == 1
+    event = cast(TaskExecutionEvent, tasks.events[0])
+    assert event.payload["triggerSource"] == trigger.source
+    assert cast(dict[str, object], event.payload["trigger"])["source"] == trigger.source
 
 
 def test_compiler_only_expands_compatible_profiles_and_enforces_bound() -> None:

@@ -1511,6 +1511,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/task-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 通过 Schedule、CI 或 Webhook 幂等触发 TaskRun */
+        post: operations["trigger_task_run_v1_task_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/task-runs/{runId}": {
         parameters: {
             query?: never;
@@ -2984,6 +3001,32 @@ export interface components {
              * Format: uuid
              */
             executionContractId: string;
+        };
+        /**
+         * CITaskRunTrigger
+         * @description Immutable CI job identity and non-authoritative source metadata.
+         */
+        CITaskRunTrigger: {
+            /** Branch */
+            branch?: string | null;
+            /** Commitsha */
+            commitSha?: string | null;
+            /** Jobid */
+            jobId: string;
+            /** Pipelinerunid */
+            pipelineRunId: string;
+            /** Provider */
+            provider: string;
+            /**
+             * Rerunindex
+             * @default 0
+             */
+            rerunIndex: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            source: "CI";
         };
         /**
          * CapabilityDescriptor
@@ -7573,6 +7616,24 @@ export interface components {
             targetPort: string;
         };
         /**
+         * ScheduleTaskRunTrigger
+         * @description One exact scheduled fire emitted by a trusted schedule controller.
+         */
+        ScheduleTaskRunTrigger: {
+            /** Scheduleid */
+            scheduleId: string;
+            /**
+             * Scheduledfiretimeutc
+             * Format: date-time
+             */
+            scheduledFireTimeUtc: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            source: "SCHEDULE";
+        };
+        /**
          * SecretGrant
          * @description 只向受信 Worker 返回不可兑换为账号信息的短期 Grant Ref。
          */
@@ -8929,6 +8990,30 @@ export interface components {
             toolSchemaDigest: string;
         };
         /**
+         * TriggerTaskPlanVersionRun
+         * @description Launch one exact published TaskPlanVersion from a non-manual trigger.
+         */
+        TriggerTaskPlanVersionRun: {
+            /** Clientmutationid */
+            clientMutationId: string;
+            /** Iterationid */
+            iterationId?: string | null;
+            retryPolicy: components["schemas"]["TaskRetryPolicy"];
+            /**
+             * Schemaversion
+             * @default atlas.task-run-trigger/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.task-run-trigger/0.1";
+            /**
+             * Taskplanversionid
+             * Format: uuid
+             */
+            taskPlanVersionId: string;
+            /** Trigger */
+            trigger: components["schemas"]["ScheduleTaskRunTrigger"] | components["schemas"]["CITaskRunTrigger"] | components["schemas"]["WebhookTaskRunTrigger"];
+        };
+        /**
          * UnitAttempt
          * @description One append-only physical execution attempt for an ExecutionUnit.
          */
@@ -9295,6 +9380,23 @@ export interface components {
             height: number;
             /** Width */
             width: number;
+        };
+        /**
+         * WebhookTaskRunTrigger
+         * @description Immutable delivery identity from an allowlisted webhook gateway.
+         */
+        WebhookTaskRunTrigger: {
+            /** Deliveryid */
+            deliveryId: string;
+            /** Eventtype */
+            eventType?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            source: "WEBHOOK";
+            /** Sourcekey */
+            sourceKey: string;
         };
         /**
          * WorkflowDraftSnapshot
@@ -18842,6 +18944,97 @@ export interface operations {
                 };
             };
             /** @description 唯一键、状态、依赖门禁或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    trigger_task_run_v1_task_runs_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TriggerTaskPlanVersionRun"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskRun"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能运行该 TaskPlan */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 触发身份、策略、矩阵或依赖门禁冲突 */
             409: {
                 headers: {
                     [name: string]: unknown;

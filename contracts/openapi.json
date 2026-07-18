@@ -1886,6 +1886,81 @@
         "title": "BrowserRuntimeTransition",
         "type": "object"
       },
+      "CITaskRunTrigger": {
+        "additionalProperties": false,
+        "description": "Immutable CI job identity and non-authoritative source metadata.",
+        "properties": {
+          "branch": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "pattern": "^[^\\x00-\\x1f\\x7f]{1,200}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          },
+          "commitSha": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 7,
+                "pattern": "^[0-9a-f]{7,64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commitsha"
+          },
+          "jobId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,159}$",
+            "title": "Jobid",
+            "type": "string"
+          },
+          "pipelineRunId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,159}$",
+            "title": "Pipelinerunid",
+            "type": "string"
+          },
+          "provider": {
+            "maxLength": 80,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+            "title": "Provider",
+            "type": "string"
+          },
+          "rerunIndex": {
+            "default": 0,
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Rerunindex",
+            "type": "integer"
+          },
+          "source": {
+            "const": "CI",
+            "default": "CI",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "pipelineRunId",
+          "jobId"
+        ],
+        "title": "CITaskRunTrigger",
+        "type": "object"
+      },
       "CapabilityDescriptor": {
         "additionalProperties": false,
         "description": "Adapter 代码理论支持的单个版本化能力。",
@@ -11780,6 +11855,36 @@
         "title": "RunInputBinding",
         "type": "object"
       },
+      "ScheduleTaskRunTrigger": {
+        "additionalProperties": false,
+        "description": "One exact scheduled fire emitted by a trusted schedule controller.",
+        "properties": {
+          "scheduleId": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+            "title": "Scheduleid",
+            "type": "string"
+          },
+          "scheduledFireTimeUtc": {
+            "format": "date-time",
+            "title": "Scheduledfiretimeutc",
+            "type": "string"
+          },
+          "source": {
+            "const": "SCHEDULE",
+            "default": "SCHEDULE",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scheduleId",
+          "scheduledFireTimeUtc"
+        ],
+        "title": "ScheduleTaskRunTrigger",
+        "type": "object"
+      },
       "SecretGrant": {
         "additionalProperties": false,
         "description": "只向受信 Worker 返回不可兑换为账号信息的短期 Grant Ref。",
@@ -15064,6 +15169,77 @@
         "title": "ToolExecutionProfile",
         "type": "object"
       },
+      "TriggerTaskPlanVersionRun": {
+        "additionalProperties": false,
+        "description": "Launch one exact published TaskPlanVersion from a non-manual trigger.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "iterationId": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 3,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iterationid"
+          },
+          "retryPolicy": {
+            "$ref": "#/components/schemas/TaskRetryPolicy"
+          },
+          "schemaVersion": {
+            "const": "atlas.task-run-trigger/0.1",
+            "default": "atlas.task-run-trigger/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "taskPlanVersionId": {
+            "format": "uuid",
+            "title": "Taskplanversionid",
+            "type": "string"
+          },
+          "trigger": {
+            "discriminator": {
+              "mapping": {
+                "CI": "#/components/schemas/CITaskRunTrigger",
+                "SCHEDULE": "#/components/schemas/ScheduleTaskRunTrigger",
+                "WEBHOOK": "#/components/schemas/WebhookTaskRunTrigger"
+              },
+              "propertyName": "source"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ScheduleTaskRunTrigger"
+              },
+              {
+                "$ref": "#/components/schemas/CITaskRunTrigger"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookTaskRunTrigger"
+              }
+            ],
+            "title": "Trigger"
+          }
+        },
+        "required": [
+          "taskPlanVersionId",
+          "clientMutationId",
+          "trigger",
+          "retryPolicy"
+        ],
+        "title": "TriggerTaskPlanVersionRun",
+        "type": "object"
+      },
       "UnitAttempt": {
         "additionalProperties": false,
         "allOf": [
@@ -16122,6 +16298,52 @@
           "height"
         ],
         "title": "Viewport",
+        "type": "object"
+      },
+      "WebhookTaskRunTrigger": {
+        "additionalProperties": false,
+        "description": "Immutable delivery identity from an allowlisted webhook gateway.",
+        "properties": {
+          "deliveryId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,199}$",
+            "title": "Deliveryid",
+            "type": "string"
+          },
+          "eventType": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eventtype"
+          },
+          "source": {
+            "const": "WEBHOOK",
+            "default": "WEBHOOK",
+            "title": "Source",
+            "type": "string"
+          },
+          "sourceKey": {
+            "maxLength": 80,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+            "title": "Sourcekey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceKey",
+          "deliveryId"
+        ],
+        "title": "WebhookTaskRunTrigger",
         "type": "object"
       },
       "WorkflowDraftSnapshot": {
@@ -31364,6 +31586,157 @@
         "summary": "发布不可变 TaskPlanVersion",
         "tags": [
           "task-plans"
+        ]
+      }
+    },
+    "/v1/task-runs": {
+      "post": {
+        "operationId": "trigger_task_run_v1_task_runs_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerTaskPlanVersionRun"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能运行该 TaskPlan"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "触发身份、策略、矩阵或依赖门禁冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "security": [
+          {
+            "PlatformSession": []
+          }
+        ],
+        "summary": "通过 Schedule、CI 或 Webhook 幂等触发 TaskRun",
+        "tags": [
+          "task-runs"
         ]
       }
     },

@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-run-trigger/0.1/schema.json",
+  "$defs": {
+    "CITaskRunTrigger": {
+      "additionalProperties": false,
+      "description": "Immutable CI job identity and non-authoritative source metadata.",
+      "properties": {
+        "source": {
+          "const": "CI",
+          "default": "CI",
+          "title": "Source",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 80,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+          "title": "Provider",
+          "type": "string"
+        },
+        "pipelineRunId": {
+          "maxLength": 160,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,159}$",
+          "title": "Pipelinerunid",
+          "type": "string"
+        },
+        "jobId": {
+          "maxLength": 160,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,159}$",
+          "title": "Jobid",
+          "type": "string"
+        },
+        "rerunIndex": {
+          "default": 0,
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Rerunindex",
+          "type": "integer"
+        },
+        "commitSha": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 7,
+              "pattern": "^[0-9a-f]{7,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Commitsha"
+        },
+        "branch": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "pattern": "^[^\\x00-\\x1f\\x7f]{1,200}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Branch"
+        }
+      },
+      "required": [
+        "provider",
+        "pipelineRunId",
+        "jobId"
+      ],
+      "title": "CITaskRunTrigger",
+      "type": "object"
+    },
+    "ScheduleTaskRunTrigger": {
+      "additionalProperties": false,
+      "description": "One exact scheduled fire emitted by a trusted schedule controller.",
+      "properties": {
+        "source": {
+          "const": "SCHEDULE",
+          "default": "SCHEDULE",
+          "title": "Source",
+          "type": "string"
+        },
+        "scheduleId": {
+          "maxLength": 160,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+          "title": "Scheduleid",
+          "type": "string"
+        },
+        "scheduledFireTimeUtc": {
+          "format": "date-time",
+          "title": "Scheduledfiretimeutc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scheduleId",
+        "scheduledFireTimeUtc"
+      ],
+      "title": "ScheduleTaskRunTrigger",
+      "type": "object"
+    },
+    "TaskRetryPolicy": {
+      "additionalProperties": false,
+      "description": "Frozen bounded policy for safe, explicitly classified infrastructure retries.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.task-retry-policy/0.1",
+          "default": "atlas.task-retry-policy/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "infraRetryAttempts": {
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Infraretryattempts",
+          "type": "integer"
+        },
+        "maxTotalInfraRetries": {
+          "maximum": 256,
+          "minimum": 0,
+          "title": "Maxtotalinfraretries",
+          "type": "integer"
+        },
+        "initialBackoffSeconds": {
+          "maximum": 300,
+          "minimum": 1,
+          "title": "Initialbackoffseconds",
+          "type": "integer"
+        },
+        "maximumBackoffSeconds": {
+          "maximum": 3600,
+          "minimum": 1,
+          "title": "Maximumbackoffseconds",
+          "type": "integer"
+        },
+        "jitterPercent": {
+          "maximum": 50,
+          "minimum": 0,
+          "title": "Jitterpercent",
+          "type": "integer"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "infraRetryAttempts",
+        "maxTotalInfraRetries",
+        "initialBackoffSeconds",
+        "maximumBackoffSeconds",
+        "jitterPercent",
+        "contentDigest"
+      ],
+      "title": "TaskRetryPolicy",
+      "type": "object"
+    },
+    "WebhookTaskRunTrigger": {
+      "additionalProperties": false,
+      "description": "Immutable delivery identity from an allowlisted webhook gateway.",
+      "properties": {
+        "source": {
+          "const": "WEBHOOK",
+          "default": "WEBHOOK",
+          "title": "Source",
+          "type": "string"
+        },
+        "sourceKey": {
+          "maxLength": 80,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+          "title": "Sourcekey",
+          "type": "string"
+        },
+        "deliveryId": {
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,199}$",
+          "title": "Deliveryid",
+          "type": "string"
+        },
+        "eventType": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eventtype"
+        }
+      },
+      "required": [
+        "sourceKey",
+        "deliveryId"
+      ],
+      "title": "WebhookTaskRunTrigger",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Launch one exact published TaskPlanVersion from a non-manual trigger.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.task-run-trigger/0.1",
+      "default": "atlas.task-run-trigger/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "taskPlanVersionId": {
+      "format": "uuid",
+      "title": "Taskplanversionid",
+      "type": "string"
+    },
+    "clientMutationId": {
+      "maxLength": 200,
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+      "title": "Clientmutationid",
+      "type": "string"
+    },
+    "trigger": {
+      "discriminator": {
+        "mapping": {
+          "CI": "#/$defs/CITaskRunTrigger",
+          "SCHEDULE": "#/$defs/ScheduleTaskRunTrigger",
+          "WEBHOOK": "#/$defs/WebhookTaskRunTrigger"
+        },
+        "propertyName": "source"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ScheduleTaskRunTrigger"
+        },
+        {
+          "$ref": "#/$defs/CITaskRunTrigger"
+        },
+        {
+          "$ref": "#/$defs/WebhookTaskRunTrigger"
+        }
+      ],
+      "title": "Trigger"
+    },
+    "iterationId": {
+      "anyOf": [
+        {
+          "maxLength": 160,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Iterationid"
+    },
+    "retryPolicy": {
+      "$ref": "#/$defs/TaskRetryPolicy"
+    }
+  },
+  "required": [
+    "taskPlanVersionId",
+    "clientMutationId",
+    "trigger",
+    "retryPolicy"
+  ],
+  "title": "TriggerTaskPlanVersionRun",
+  "type": "object"
+}
