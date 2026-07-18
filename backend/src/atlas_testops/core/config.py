@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     task_attempt_task_queue: Literal["atlas-unit-attempt"] = "atlas-unit-attempt"
     task_run_worker_max_concurrency: int = Field(default=8, ge=1, le=64)
     task_attempt_worker_max_concurrency: int = Field(default=8, ge=1, le=64)
+    task_schedule_worker_enabled: bool = False
+    task_schedule_task_queue: Literal["atlas-task-schedule"] = (
+        "atlas-task-schedule"
+    )
+    task_schedule_worker_max_concurrency: int = Field(default=8, ge=1, le=64)
     task_execution_api_base_url: str | None = Field(default=None, max_length=2_048)
     task_execution_hmac_key_base64: SecretStr | None = None
     task_execution_worker_identity: str = Field(
@@ -243,6 +248,8 @@ class Settings(BaseSettings):
                 label="Task execution HMAC",
                 exact_length=None,
             )
+        if self.task_schedule_worker_enabled and self.database_url is None:
+            raise ValueError("enabled Task Schedule Worker requires the API database DSN")
         browser_runtime_secrets = (
             self.browser_runtime_permit_key_base64,
             self.browser_runtime_request_hmac_key_base64,
@@ -414,7 +421,7 @@ class TaskIntentConsumerSettings(BaseSettings):
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$",
     )
     task_intent_poll_interval_seconds: float = Field(default=1.0, ge=0.1, le=60)
-    task_intent_lease_seconds: int = Field(default=90, ge=10, le=900)
+    task_intent_lease_seconds: int = Field(default=180, ge=10, le=300)
     task_intent_batch_size: int = Field(default=32, ge=1, le=100)
     task_intent_max_attempts: int = Field(default=8, ge=1, le=64)
     task_intent_retry_initial_seconds: float = Field(default=5.0, ge=0.1, le=300)
@@ -463,7 +470,7 @@ class TaskIntentConsumerSettings(BaseSettings):
                 "task intent retry maximum must be >= retry initial"
             )
         rpc_budget = (
-            2
+            3
             * self.task_intent_rpc_attempts
             * self.task_intent_rpc_timeout_seconds
             + (

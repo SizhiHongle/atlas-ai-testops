@@ -342,6 +342,7 @@ class PlatformRepository:
             f"""
             update atlas.environment
             set name = coalesce(%s, name),
+                kind = coalesce(%s, kind),
                 status = coalesce(%s, status),
                 allowed_origins = coalesce(%s, allowed_origins),
                 revision = revision + 1
@@ -350,6 +351,7 @@ class PlatformRepository:
             """,
             (
                 command.name.strip() if command.name is not None else None,
+                command.kind,
                 command.status,
                 (
                     list(command.allowed_origins)

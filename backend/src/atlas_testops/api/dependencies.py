@@ -35,6 +35,7 @@ from atlas_testops.application.task_launches import TaskPlanLaunchService
 from atlas_testops.application.task_plans import TaskPlanService
 from atlas_testops.application.task_reruns import TaskRunRerunService
 from atlas_testops.application.task_runs import TaskRunQueryService
+from atlas_testops.application.task_schedules import TaskScheduleService
 from atlas_testops.core.config import Settings
 from atlas_testops.core.errors import ApplicationError, ErrorCode
 from atlas_testops.infrastructure.adapters.fixture_registry import FixtureOperationRegistry
@@ -341,6 +342,24 @@ def get_task_plan_launch_service(
 TaskPlanLaunchServiceDependency = Annotated[
     TaskPlanLaunchService,
     Depends(get_task_plan_launch_service),
+]
+
+
+def get_task_schedule_service(
+    database: DatabaseDependency,
+    settings: SettingsDependency,
+) -> TaskScheduleService:
+    """Create the stateless Schedule catalog and desired-state service."""
+
+    return TaskScheduleService(
+        database,
+        temporal_namespace=settings.temporal_namespace,
+    )
+
+
+TaskScheduleServiceDependency = Annotated[
+    TaskScheduleService,
+    Depends(get_task_schedule_service),
 ]
 
 

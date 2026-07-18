@@ -36,6 +36,10 @@ FROM runtime AS task-intent-consumer
 
 CMD ["atlas-task-intent-consumer"]
 
+FROM runtime AS task-schedule-worker
+
+CMD ["atlas-task-schedule-worker"]
+
 FROM runtime AS task-worker
 
 CMD ["atlas-task-worker"]

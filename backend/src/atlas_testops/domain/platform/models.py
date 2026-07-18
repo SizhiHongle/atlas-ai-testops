@@ -150,6 +150,7 @@ class UpdateEnvironment(PlatformCommand):
     """Environment 可变属性补丁。"""
 
     name: str | None = Field(default=None, min_length=1, max_length=160)
+    kind: EnvironmentKind | None = None
     status: EnvironmentStatus | None = None
     allowed_origins: tuple[str, ...] | None = Field(default=None, max_length=32)
 
@@ -165,7 +166,12 @@ class UpdateEnvironment(PlatformCommand):
     def require_change(self) -> UpdateEnvironment:
         """拒绝没有任何变更意图的 PATCH。"""
 
-        if self.name is None and self.status is None and self.allowed_origins is None:
+        if (
+            self.name is None
+            and self.kind is None
+            and self.status is None
+            and self.allowed_origins is None
+        ):
             raise ValueError("at least one environment field is required")
         return self
 

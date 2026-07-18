@@ -1405,6 +1405,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/schedules/{scheduleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 Schedule desired state 与 Temporal sync 投影 */
+        get: operations["get_task_schedule_v1_schedules__scheduleId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/schedules/{scheduleId}:pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 暂停 Schedule 的未来触发，不影响已启动 TaskRun */
+        post: operations["pause_task_schedule_v1_schedules__scheduleId__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/schedules/{scheduleId}:resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 恢复 Schedule 的未来触发 */
+        post: operations["resume_task_schedule_v1_schedules__scheduleId__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/session": {
         parameters: {
             query?: never;
@@ -1453,6 +1504,24 @@ export interface paths {
         get: operations["get_task_plan_version_v1_task_plan_versions__taskPlanVersionId__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-plan-versions/{taskPlanVersionId}/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 exact TaskPlanVersion 的 Schedule */
+        get: operations["list_task_schedules_v1_task_plan_versions__taskPlanVersionId__schedules_get"];
+        put?: never;
+        /** 为 exact TaskPlanVersion 创建 Temporal Schedule desired state */
+        post: operations["create_task_schedule_v1_task_plan_versions__taskPlanVersionId__schedules_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3660,6 +3729,38 @@ export interface components {
             name: string;
             /** Taskkey */
             taskKey: string;
+        };
+        /**
+         * CreateTaskSchedule
+         * @description Create one immutable schedule definition for an exact Plan Version.
+         */
+        CreateTaskSchedule: {
+            calendar: components["schemas"]["TaskScheduleCalendar"];
+            /** @default RUN_ONCE */
+            catchupPolicy: components["schemas"]["TaskScheduleCatchupPolicy"];
+            /**
+             * Catchupwindowseconds
+             * @default 3600
+             */
+            catchupWindowSeconds: number;
+            /** Clientmutationid */
+            clientMutationId: string;
+            /** Iterationid */
+            iterationId?: string | null;
+            /**
+             * Jitterseconds
+             * @default 0
+             */
+            jitterSeconds: number;
+            /** Name */
+            name: string;
+            /** @default QUEUE_ONE */
+            overlapPolicy: components["schemas"]["TaskScheduleOverlapPolicy"];
+            retryPolicy: components["schemas"]["TaskRetryPolicy"];
+            /** Schedulekey */
+            scheduleKey: string;
+            /** Timezonename */
+            timeZoneName: string;
         };
         /**
          * CreateTenant
@@ -7419,6 +7520,26 @@ export interface components {
             clientMutationId: string;
         };
         /**
+         * RequestTaskSchedulePause
+         * @description Pause future Schedule actions with an auditable reason.
+         */
+        RequestTaskSchedulePause: {
+            /** Clientmutationid */
+            clientMutationId: string;
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * RequestTaskScheduleResume
+         * @description Resume future Schedule actions after explicit review.
+         */
+        RequestTaskScheduleResume: {
+            /** Clientmutationid */
+            clientMutationId: string;
+            /** Reason */
+            reason: string;
+        };
+        /**
          * ResourceCleanupAttempt
          * @description Safe append-only cleanup attempt without the provider locator.
          */
@@ -8531,6 +8652,167 @@ export interface components {
          */
         TaskRunRerunSelectionMode: "INFRA_FAILURES";
         /**
+         * TaskSchedule
+         * @description Database-authoritative Task Schedule and Temporal sync projection.
+         */
+        TaskSchedule: {
+            calendar: components["schemas"]["TaskScheduleCalendar"];
+            catchupPolicy: components["schemas"]["TaskScheduleCatchupPolicy"];
+            /** Catchupwindowseconds */
+            catchupWindowSeconds: number;
+            /** Contentdigest */
+            contentDigest: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Createdby
+             * Format: uuid
+             */
+            createdBy: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Iterationid */
+            iterationId?: string | null;
+            /** Jitterseconds */
+            jitterSeconds: number;
+            /** Lastsyncerrorcode */
+            lastSyncErrorCode?: string | null;
+            /** Name */
+            name: string;
+            /** Nextfiretimesutc */
+            nextFireTimesUtc: string[];
+            overlapPolicy: components["schemas"]["TaskScheduleOverlapPolicy"];
+            /** Pausereason */
+            pauseReason?: string | null;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            retryPolicy: components["schemas"]["TaskRetryPolicy"];
+            /** Revision */
+            revision: number;
+            /** Schedulekey */
+            scheduleKey: string;
+            /**
+             * Schemaversion
+             * @default atlas.task-schedule/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.task-schedule/0.1";
+            status: components["schemas"]["TaskScheduleStatus"];
+            syncStatus: components["schemas"]["TaskScheduleSyncStatus"];
+            /** Syncedrevision */
+            syncedRevision?: number | null;
+            /**
+             * Taskplanversionid
+             * Format: uuid
+             */
+            taskPlanVersionId: string;
+            /** Temporalnamespace */
+            temporalNamespace: string;
+            /** Temporalscheduleid */
+            temporalScheduleId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Timezonename */
+            timeZoneName: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            /**
+             * Updatedby
+             * Format: uuid
+             */
+            updatedBy: string;
+        };
+        /**
+         * TaskScheduleCalendar
+         * @description Structured minute-resolution calendar mapped directly to Temporal.
+         */
+        TaskScheduleCalendar: {
+            /**
+             * Daysofmonth
+             * @default []
+             */
+            daysOfMonth: number[];
+            /**
+             * Hours
+             * @default [
+             *       0
+             *     ]
+             */
+            hours: number[];
+            /**
+             * Isodaysofweek
+             * @default []
+             */
+            isoDaysOfWeek: number[];
+            /**
+             * Minutes
+             * @default [
+             *       0
+             *     ]
+             */
+            minutes: number[];
+            /**
+             * Months
+             * @default []
+             */
+            months: number[];
+            /**
+             * Schemaversion
+             * @default atlas.task-schedule-calendar/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.task-schedule-calendar/0.1";
+        };
+        /**
+         * TaskScheduleCatchupPolicy
+         * @description Missed fires can be discarded or collapsed to one bounded action.
+         * @enum {string}
+         */
+        TaskScheduleCatchupPolicy: "RUN_ONCE" | "SKIP";
+        /**
+         * TaskScheduleOverlapPolicy
+         * @description Only the two bounded V1 overlap policies are accepted.
+         * @enum {string}
+         */
+        TaskScheduleOverlapPolicy: "QUEUE_ONE" | "SKIP";
+        /**
+         * TaskSchedulePage
+         * @description Keyset page of schedules bound to one TaskPlanVersion.
+         */
+        TaskSchedulePage: {
+            /** Items */
+            items: components["schemas"]["TaskSchedule"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * TaskScheduleStatus
+         * @description Desired product state; pausing never mutates an already started TaskRun.
+         * @enum {string}
+         */
+        TaskScheduleStatus: "ACTIVE" | "PAUSED";
+        /**
+         * TaskScheduleSyncStatus
+         * @description Public projection of durable Temporal Schedule synchronization.
+         * @enum {string}
+         */
+        TaskScheduleSyncStatus: "PENDING" | "SYNCED" | "RETRY_WAIT" | "FAILED";
+        /**
          * TaskStabilityCounts
          * @description Task-level distribution of the Stability axis.
          */
@@ -9289,6 +9571,7 @@ export interface components {
         UpdateEnvironment: {
             /** Allowedorigins */
             allowedOrigins?: string[] | null;
+            kind?: components["schemas"]["EnvironmentKind"] | null;
             /** Name */
             name?: string | null;
             status?: components["schemas"]["EnvironmentStatus"] | null;
@@ -18345,6 +18628,282 @@ export interface operations {
             };
         };
     };
+    get_task_schedule_v1_schedules__scheduleId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskSchedule"];
+                };
+            };
+            /** @description Schedule 请求或分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Schedule 或 TaskPlanVersion 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    pause_task_schedule_v1_schedules__scheduleId__pause_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestTaskSchedulePause"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskSchedule"];
+                };
+            };
+            /** @description Schedule 请求或分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能管理 Schedule */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Schedule 或 TaskPlanVersion 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Schedule 当前状态不允许暂停 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Schedule Revision 已变化 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    resume_task_schedule_v1_schedules__scheduleId__resume_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestTaskScheduleResume"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskSchedule"];
+                };
+            };
+            /** @description Schedule 请求或分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能管理 Schedule */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Schedule 或 TaskPlanVersion 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Schedule 当前状态不允许恢复 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Schedule Revision 已变化 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     current_session_v1_session_get: {
         parameters: {
             query?: never;
@@ -18579,6 +19138,172 @@ export interface operations {
                 };
             };
             /** @description 唯一键、状态、依赖门禁或幂等冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_task_schedules_v1_task_plan_versions__taskPlanVersionId__schedules_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                taskPlanVersionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskSchedulePage"];
+                };
+            };
+            /** @description Schedule 请求或分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Schedule 或 TaskPlanVersion 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_task_schedule_v1_task_plan_versions__taskPlanVersionId__schedules_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                taskPlanVersionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTaskSchedule"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskSchedule"];
+                };
+            };
+            /** @description Schedule 请求或分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能管理 Schedule */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Schedule 或 TaskPlanVersion 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Schedule Key、环境、策略或依赖门禁冲突 */
             409: {
                 headers: {
                     [name: string]: unknown;

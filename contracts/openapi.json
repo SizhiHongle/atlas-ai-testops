@@ -3410,6 +3410,90 @@
         "title": "CreateTaskPlan",
         "type": "object"
       },
+      "CreateTaskSchedule": {
+        "additionalProperties": false,
+        "description": "Create one immutable schedule definition for an exact Plan Version.",
+        "properties": {
+          "calendar": {
+            "$ref": "#/components/schemas/TaskScheduleCalendar"
+          },
+          "catchupPolicy": {
+            "$ref": "#/components/schemas/TaskScheduleCatchupPolicy",
+            "default": "RUN_ONCE"
+          },
+          "catchupWindowSeconds": {
+            "default": 3600,
+            "maximum": 604800.0,
+            "minimum": 60.0,
+            "title": "Catchupwindowseconds",
+            "type": "integer"
+          },
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "iterationId": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iterationid"
+          },
+          "jitterSeconds": {
+            "default": 0,
+            "maximum": 3600.0,
+            "minimum": 0.0,
+            "title": "Jitterseconds",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "overlapPolicy": {
+            "$ref": "#/components/schemas/TaskScheduleOverlapPolicy",
+            "default": "QUEUE_ONE"
+          },
+          "retryPolicy": {
+            "$ref": "#/components/schemas/TaskRetryPolicy"
+          },
+          "scheduleKey": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$",
+            "title": "Schedulekey",
+            "type": "string"
+          },
+          "timeZoneName": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*(?:/[A-Za-z0-9._+-]+){0,7}$",
+            "title": "Timezonename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scheduleKey",
+          "name",
+          "calendar",
+          "timeZoneName",
+          "retryPolicy",
+          "clientMutationId"
+        ],
+        "title": "CreateTaskSchedule",
+        "type": "object"
+      },
       "CreateTenant": {
         "additionalProperties": false,
         "description": "Development Bootstrap 使用的 Tenant 创建命令。",
@@ -11439,6 +11523,56 @@
         "title": "RequestTaskRunResume",
         "type": "object"
       },
+      "RequestTaskSchedulePause": {
+        "additionalProperties": false,
+        "description": "Pause future Schedule actions with an auditable reason.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientMutationId",
+          "reason"
+        ],
+        "title": "RequestTaskSchedulePause",
+        "type": "object"
+      },
+      "RequestTaskScheduleResume": {
+        "additionalProperties": false,
+        "description": "Resume future Schedule actions after explicit review.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientMutationId",
+          "reason"
+        ],
+        "title": "RequestTaskScheduleResume",
+        "type": "object"
+      },
       "ResourceCleanupAttempt": {
         "additionalProperties": false,
         "description": "Safe append-only cleanup attempt without the provider locator.",
@@ -14187,6 +14321,350 @@
         "title": "TaskRunRerunSelectionMode",
         "type": "string"
       },
+      "TaskSchedule": {
+        "additionalProperties": false,
+        "description": "Database-authoritative Task Schedule and Temporal sync projection.",
+        "properties": {
+          "calendar": {
+            "$ref": "#/components/schemas/TaskScheduleCalendar"
+          },
+          "catchupPolicy": {
+            "$ref": "#/components/schemas/TaskScheduleCatchupPolicy"
+          },
+          "catchupWindowSeconds": {
+            "maximum": 604800.0,
+            "minimum": 60.0,
+            "title": "Catchupwindowseconds",
+            "type": "integer"
+          },
+          "contentDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Contentdigest",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "createdBy": {
+            "format": "uuid",
+            "title": "Createdby",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "iterationId": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iterationid"
+          },
+          "jitterSeconds": {
+            "maximum": 3600.0,
+            "minimum": 0.0,
+            "title": "Jitterseconds",
+            "type": "integer"
+          },
+          "lastSyncErrorCode": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastsyncerrorcode"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "nextFireTimesUtc": {
+            "items": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Nextfiretimesutc",
+            "type": "array"
+          },
+          "overlapPolicy": {
+            "$ref": "#/components/schemas/TaskScheduleOverlapPolicy"
+          },
+          "pauseReason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pausereason"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "retryPolicy": {
+            "$ref": "#/components/schemas/TaskRetryPolicy"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "scheduleKey": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$",
+            "title": "Schedulekey",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": "atlas.task-schedule/0.1",
+            "default": "atlas.task-schedule/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskScheduleStatus"
+          },
+          "syncStatus": {
+            "$ref": "#/components/schemas/TaskScheduleSyncStatus"
+          },
+          "syncedRevision": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syncedrevision"
+          },
+          "taskPlanVersionId": {
+            "format": "uuid",
+            "title": "Taskplanversionid",
+            "type": "string"
+          },
+          "temporalNamespace": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+            "title": "Temporalnamespace",
+            "type": "string"
+          },
+          "temporalScheduleId": {
+            "maxLength": 320,
+            "minLength": 16,
+            "pattern": "^atlas-task/schedule/[0-9a-f]{32}/[0-9a-f]{32}$",
+            "title": "Temporalscheduleid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "timeZoneName": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*(?:/[A-Za-z0-9._+-]+){0,7}$",
+            "title": "Timezonename",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "updatedBy": {
+            "format": "uuid",
+            "title": "Updatedby",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskPlanVersionId",
+          "scheduleKey",
+          "name",
+          "calendar",
+          "timeZoneName",
+          "overlapPolicy",
+          "catchupPolicy",
+          "catchupWindowSeconds",
+          "jitterSeconds",
+          "retryPolicy",
+          "temporalNamespace",
+          "temporalScheduleId",
+          "contentDigest",
+          "status",
+          "syncStatus",
+          "nextFireTimesUtc",
+          "createdBy",
+          "updatedBy",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "TaskSchedule",
+        "type": "object"
+      },
+      "TaskScheduleCalendar": {
+        "additionalProperties": false,
+        "description": "Structured minute-resolution calendar mapped directly to Temporal.",
+        "properties": {
+          "daysOfMonth": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 31,
+            "title": "Daysofmonth",
+            "type": "array"
+          },
+          "hours": {
+            "default": [
+              0
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 24,
+            "minItems": 1,
+            "title": "Hours",
+            "type": "array"
+          },
+          "isoDaysOfWeek": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 7,
+            "title": "Isodaysofweek",
+            "type": "array"
+          },
+          "minutes": {
+            "default": [
+              0
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 60,
+            "minItems": 1,
+            "title": "Minutes",
+            "type": "array"
+          },
+          "months": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 12,
+            "title": "Months",
+            "type": "array"
+          },
+          "schemaVersion": {
+            "const": "atlas.task-schedule-calendar/0.1",
+            "default": "atlas.task-schedule-calendar/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          }
+        },
+        "title": "TaskScheduleCalendar",
+        "type": "object"
+      },
+      "TaskScheduleCatchupPolicy": {
+        "description": "Missed fires can be discarded or collapsed to one bounded action.",
+        "enum": [
+          "RUN_ONCE",
+          "SKIP"
+        ],
+        "title": "TaskScheduleCatchupPolicy",
+        "type": "string"
+      },
+      "TaskScheduleOverlapPolicy": {
+        "description": "Only the two bounded V1 overlap policies are accepted.",
+        "enum": [
+          "QUEUE_ONE",
+          "SKIP"
+        ],
+        "title": "TaskScheduleOverlapPolicy",
+        "type": "string"
+      },
+      "TaskSchedulePage": {
+        "additionalProperties": false,
+        "description": "Keyset page of schedules bound to one TaskPlanVersion.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskSchedule"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TaskSchedulePage",
+        "type": "object"
+      },
+      "TaskScheduleStatus": {
+        "description": "Desired product state; pausing never mutates an already started TaskRun.",
+        "enum": [
+          "ACTIVE",
+          "PAUSED"
+        ],
+        "title": "TaskScheduleStatus",
+        "type": "string"
+      },
+      "TaskScheduleSyncStatus": {
+        "description": "Public projection of durable Temporal Schedule synchronization.",
+        "enum": [
+          "PENDING",
+          "SYNCED",
+          "RETRY_WAIT",
+          "FAILED"
+        ],
+        "title": "TaskScheduleSyncStatus",
+        "type": "string"
+      },
       "TaskStabilityCounts": {
         "additionalProperties": false,
         "description": "Task-level distribution of the Stability axis.",
@@ -16007,6 +16485,16 @@
               }
             ],
             "title": "Allowedorigins"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EnvironmentKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "name": {
             "anyOf": [
@@ -30607,6 +31095,473 @@
         ]
       }
     },
+    "/v1/schedules/{scheduleId}": {
+      "get": {
+        "operationId": "get_task_schedule_v1_schedules__scheduleId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scheduleid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskSchedule"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 请求或分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 或 TaskPlanVersion 不存在"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 Schedule desired state 与 Temporal sync 投影",
+        "tags": [
+          "task-schedules"
+        ]
+      }
+    },
+    "/v1/schedules/{scheduleId}:pause": {
+      "post": {
+        "operationId": "pause_task_schedule_v1_schedules__scheduleId__pause_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scheduleid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTaskSchedulePause"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskSchedule"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 请求或分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能管理 Schedule"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 或 TaskPlanVersion 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 当前状态不允许暂停"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule Revision 已变化"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "暂停 Schedule 的未来触发，不影响已启动 TaskRun",
+        "tags": [
+          "task-schedules"
+        ]
+      }
+    },
+    "/v1/schedules/{scheduleId}:resume": {
+      "post": {
+        "operationId": "resume_task_schedule_v1_schedules__scheduleId__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scheduleid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTaskScheduleResume"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskSchedule"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 请求或分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能管理 Schedule"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 或 TaskPlanVersion 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 当前状态不允许恢复"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule Revision 已变化"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "恢复 Schedule 的未来触发",
+        "tags": [
+          "task-schedules"
+        ]
+      }
+    },
     "/v1/session": {
       "get": {
         "description": "实时复核主体、成员关系和 Workspace Context。",
@@ -30977,6 +31932,304 @@
         "summary": "按 ID 读取精确 TaskPlanVersion",
         "tags": [
           "task-plans"
+        ]
+      }
+    },
+    "/v1/task-plan-versions/{taskPlanVersionId}/schedules": {
+      "get": {
+        "operationId": "list_task_schedules_v1_task_plan_versions__taskPlanVersionId__schedules_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskPlanVersionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Taskplanversionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskSchedulePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 请求或分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 或 TaskPlanVersion 不存在"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "列出 exact TaskPlanVersion 的 Schedule",
+        "tags": [
+          "task-schedules"
+        ]
+      },
+      "post": {
+        "operationId": "create_task_schedule_v1_task_plan_versions__taskPlanVersionId__schedules_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskPlanVersionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Taskplanversionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskSchedule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskSchedule"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 请求或分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能管理 Schedule"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule 或 TaskPlanVersion 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Schedule Key、环境、策略或依赖门禁冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "为 exact TaskPlanVersion 创建 Temporal Schedule desired state",
+        "tags": [
+          "task-schedules"
         ]
       }
     },

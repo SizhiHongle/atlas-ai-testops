@@ -1,0 +1,380 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-schedule/0.1/schema.json",
+  "$defs": {
+    "TaskRetryPolicy": {
+      "additionalProperties": false,
+      "description": "Frozen bounded policy for safe, explicitly classified infrastructure retries.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.task-retry-policy/0.1",
+          "default": "atlas.task-retry-policy/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "infraRetryAttempts": {
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Infraretryattempts",
+          "type": "integer"
+        },
+        "maxTotalInfraRetries": {
+          "maximum": 256,
+          "minimum": 0,
+          "title": "Maxtotalinfraretries",
+          "type": "integer"
+        },
+        "initialBackoffSeconds": {
+          "maximum": 300,
+          "minimum": 1,
+          "title": "Initialbackoffseconds",
+          "type": "integer"
+        },
+        "maximumBackoffSeconds": {
+          "maximum": 3600,
+          "minimum": 1,
+          "title": "Maximumbackoffseconds",
+          "type": "integer"
+        },
+        "jitterPercent": {
+          "maximum": 50,
+          "minimum": 0,
+          "title": "Jitterpercent",
+          "type": "integer"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "infraRetryAttempts",
+        "maxTotalInfraRetries",
+        "initialBackoffSeconds",
+        "maximumBackoffSeconds",
+        "jitterPercent",
+        "contentDigest"
+      ],
+      "title": "TaskRetryPolicy",
+      "type": "object"
+    },
+    "TaskScheduleCalendar": {
+      "additionalProperties": false,
+      "description": "Structured minute-resolution calendar mapped directly to Temporal.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.task-schedule-calendar/0.1",
+          "default": "atlas.task-schedule-calendar/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "minutes": {
+          "default": [
+            0
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 60,
+          "minItems": 1,
+          "title": "Minutes",
+          "type": "array"
+        },
+        "hours": {
+          "default": [
+            0
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 24,
+          "minItems": 1,
+          "title": "Hours",
+          "type": "array"
+        },
+        "daysOfMonth": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 31,
+          "title": "Daysofmonth",
+          "type": "array"
+        },
+        "months": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 12,
+          "title": "Months",
+          "type": "array"
+        },
+        "isoDaysOfWeek": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 7,
+          "title": "Isodaysofweek",
+          "type": "array"
+        }
+      },
+      "title": "TaskScheduleCalendar",
+      "type": "object"
+    },
+    "TaskScheduleCatchupPolicy": {
+      "description": "Missed fires can be discarded or collapsed to one bounded action.",
+      "enum": [
+        "RUN_ONCE",
+        "SKIP"
+      ],
+      "title": "TaskScheduleCatchupPolicy",
+      "type": "string"
+    },
+    "TaskScheduleOverlapPolicy": {
+      "description": "Only the two bounded V1 overlap policies are accepted.",
+      "enum": [
+        "QUEUE_ONE",
+        "SKIP"
+      ],
+      "title": "TaskScheduleOverlapPolicy",
+      "type": "string"
+    },
+    "TaskScheduleStatus": {
+      "description": "Desired product state; pausing never mutates an already started TaskRun.",
+      "enum": [
+        "ACTIVE",
+        "PAUSED"
+      ],
+      "title": "TaskScheduleStatus",
+      "type": "string"
+    },
+    "TaskScheduleSyncStatus": {
+      "description": "Public projection of durable Temporal Schedule synchronization.",
+      "enum": [
+        "PENDING",
+        "SYNCED",
+        "RETRY_WAIT",
+        "FAILED"
+      ],
+      "title": "TaskScheduleSyncStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Database-authoritative Task Schedule and Temporal sync projection.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.task-schedule/0.1",
+      "default": "atlas.task-schedule/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskPlanVersionId": {
+      "format": "uuid",
+      "title": "Taskplanversionid",
+      "type": "string"
+    },
+    "scheduleKey": {
+      "maxLength": 160,
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$",
+      "title": "Schedulekey",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "calendar": {
+      "$ref": "#/$defs/TaskScheduleCalendar"
+    },
+    "timeZoneName": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*(?:/[A-Za-z0-9._+-]+){0,7}$",
+      "title": "Timezonename",
+      "type": "string"
+    },
+    "overlapPolicy": {
+      "$ref": "#/$defs/TaskScheduleOverlapPolicy"
+    },
+    "catchupPolicy": {
+      "$ref": "#/$defs/TaskScheduleCatchupPolicy"
+    },
+    "catchupWindowSeconds": {
+      "maximum": 604800,
+      "minimum": 60,
+      "title": "Catchupwindowseconds",
+      "type": "integer"
+    },
+    "jitterSeconds": {
+      "maximum": 3600,
+      "minimum": 0,
+      "title": "Jitterseconds",
+      "type": "integer"
+    },
+    "iterationId": {
+      "anyOf": [
+        {
+          "maxLength": 160,
+          "minLength": 3,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Iterationid"
+    },
+    "retryPolicy": {
+      "$ref": "#/$defs/TaskRetryPolicy"
+    },
+    "temporalNamespace": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+      "title": "Temporalnamespace",
+      "type": "string"
+    },
+    "temporalScheduleId": {
+      "maxLength": 320,
+      "minLength": 16,
+      "pattern": "^atlas-task/schedule/[0-9a-f]{32}/[0-9a-f]{32}$",
+      "title": "Temporalscheduleid",
+      "type": "string"
+    },
+    "contentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Contentdigest",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/TaskScheduleStatus"
+    },
+    "pauseReason": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pausereason"
+    },
+    "syncStatus": {
+      "$ref": "#/$defs/TaskScheduleSyncStatus"
+    },
+    "syncedRevision": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Syncedrevision"
+    },
+    "lastSyncErrorCode": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lastsyncerrorcode"
+    },
+    "nextFireTimesUtc": {
+      "items": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "maxItems": 5,
+      "title": "Nextfiretimesutc",
+      "type": "array"
+    },
+    "createdBy": {
+      "format": "uuid",
+      "title": "Createdby",
+      "type": "string"
+    },
+    "updatedBy": {
+      "format": "uuid",
+      "title": "Updatedby",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "title": "Updatedat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskPlanVersionId",
+    "scheduleKey",
+    "name",
+    "calendar",
+    "timeZoneName",
+    "overlapPolicy",
+    "catchupPolicy",
+    "catchupWindowSeconds",
+    "jitterSeconds",
+    "retryPolicy",
+    "temporalNamespace",
+    "temporalScheduleId",
+    "contentDigest",
+    "status",
+    "syncStatus",
+    "nextFireTimesUtc",
+    "createdBy",
+    "updatedBy",
+    "revision",
+    "createdAt",
+    "updatedAt"
+  ],
+  "title": "TaskSchedule",
+  "type": "object"
+}

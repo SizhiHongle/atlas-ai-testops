@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-schedule-create/0.1/schema.json",
+  "$defs": {
+    "TaskRetryPolicy": {
+      "additionalProperties": false,
+      "description": "Frozen bounded policy for safe, explicitly classified infrastructure retries.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.task-retry-policy/0.1",
+          "default": "atlas.task-retry-policy/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "infraRetryAttempts": {
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Infraretryattempts",
+          "type": "integer"
+        },
+        "maxTotalInfraRetries": {
+          "maximum": 256,
+          "minimum": 0,
+          "title": "Maxtotalinfraretries",
+          "type": "integer"
+        },
+        "initialBackoffSeconds": {
+          "maximum": 300,
+          "minimum": 1,
+          "title": "Initialbackoffseconds",
+          "type": "integer"
+        },
+        "maximumBackoffSeconds": {
+          "maximum": 3600,
+          "minimum": 1,
+          "title": "Maximumbackoffseconds",
+          "type": "integer"
+        },
+        "jitterPercent": {
+          "maximum": 50,
+          "minimum": 0,
+          "title": "Jitterpercent",
+          "type": "integer"
+        },
+        "contentDigest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Contentdigest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "infraRetryAttempts",
+        "maxTotalInfraRetries",
+        "initialBackoffSeconds",
+        "maximumBackoffSeconds",
+        "jitterPercent",
+        "contentDigest"
+      ],
+      "title": "TaskRetryPolicy",
+      "type": "object"
+    },
+    "TaskScheduleCalendar": {
+      "additionalProperties": false,
+      "description": "Structured minute-resolution calendar mapped directly to Temporal.",
+      "properties": {
+        "schemaVersion": {
+          "const": "atlas.task-schedule-calendar/0.1",
+          "default": "atlas.task-schedule-calendar/0.1",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "minutes": {
+          "default": [
+            0
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 60,
+          "minItems": 1,
+          "title": "Minutes",
+          "type": "array"
+        },
+        "hours": {
+          "default": [
+            0
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 24,
+          "minItems": 1,
+          "title": "Hours",
+          "type": "array"
+        },
+        "daysOfMonth": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 31,
+          "title": "Daysofmonth",
+          "type": "array"
+        },
+        "months": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 12,
+          "title": "Months",
+          "type": "array"
+        },
+        "isoDaysOfWeek": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 7,
+          "title": "Isodaysofweek",
+          "type": "array"
+        }
+      },
+      "title": "TaskScheduleCalendar",
+      "type": "object"
+    },
+    "TaskScheduleCatchupPolicy": {
+      "description": "Missed fires can be discarded or collapsed to one bounded action.",
+      "enum": [
+        "RUN_ONCE",
+        "SKIP"
+      ],
+      "title": "TaskScheduleCatchupPolicy",
+      "type": "string"
+    },
+    "TaskScheduleOverlapPolicy": {
+      "description": "Only the two bounded V1 overlap policies are accepted.",
+      "enum": [
+        "QUEUE_ONE",
+        "SKIP"
+      ],
+      "title": "TaskScheduleOverlapPolicy",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Create one immutable schedule definition for an exact Plan Version.",
+  "properties": {
+    "scheduleKey": {
+      "maxLength": 160,
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$",
+      "title": "Schedulekey",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "calendar": {
+      "$ref": "#/$defs/TaskScheduleCalendar"
+    },
+    "timeZoneName": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*(?:/[A-Za-z0-9._+-]+){0,7}$",
+      "title": "Timezonename",
+      "type": "string"
+    },
+    "overlapPolicy": {
+      "$ref": "#/$defs/TaskScheduleOverlapPolicy",
+      "default": "QUEUE_ONE"
+    },
+    "catchupPolicy": {
+      "$ref": "#/$defs/TaskScheduleCatchupPolicy",
+      "default": "RUN_ONCE"
+    },
+    "catchupWindowSeconds": {
+      "default": 3600,
+      "maximum": 604800,
+      "minimum": 60,
+      "title": "Catchupwindowseconds",
+      "type": "integer"
+    },
+    "jitterSeconds": {
+      "default": 0,
+      "maximum": 3600,
+      "minimum": 0,
+      "title": "Jitterseconds",
+      "type": "integer"
+    },
+    "iterationId": {
+      "anyOf": [
+        {
+          "maxLength": 160,
+          "minLength": 3,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Iterationid"
+    },
+    "retryPolicy": {
+      "$ref": "#/$defs/TaskRetryPolicy"
+    },
+    "clientMutationId": {
+      "maxLength": 200,
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+      "title": "Clientmutationid",
+      "type": "string"
+    }
+  },
+  "required": [
+    "scheduleKey",
+    "name",
+    "calendar",
+    "timeZoneName",
+    "retryPolicy",
+    "clientMutationId"
+  ],
+  "title": "CreateTaskSchedule",
+  "type": "object"
+}

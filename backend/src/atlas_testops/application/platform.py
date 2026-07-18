@@ -407,13 +407,14 @@ class PlatformService:
                 raise self._not_found("Environment 不存在")
             if not actor.can_manage_project(current.project_id):
                 raise self._forbidden("当前角色不能修改该 Environment。")
-            if (
-                current.kind is EnvironmentKind.PRODUCTION
-                and command.allowed_origins is not None
-                and any(
-                    not origin.startswith("https://")
-                    for origin in command.allowed_origins
-                )
+            target_kind = command.kind or current.kind
+            target_origins = (
+                command.allowed_origins
+                if command.allowed_origins is not None
+                else current.allowed_origins
+            )
+            if target_kind is EnvironmentKind.PRODUCTION and any(
+                not origin.startswith("https://") for origin in target_origins
             ):
                 raise ApplicationError(
                     error_code=ErrorCode.INVALID_REQUEST,
@@ -516,6 +517,7 @@ class PlatformService:
             "environmentId": str(environment.id),
             "projectId": str(environment.project_id),
             "revision": environment.revision,
+            "kind": environment.kind.value,
             "status": environment.status.value,
         }
         await self._audit.append(

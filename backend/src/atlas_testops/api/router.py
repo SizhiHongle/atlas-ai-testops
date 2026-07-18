@@ -20,6 +20,7 @@ from atlas_testops.api.v1.platform import router as platform_router
 from atlas_testops.api.v1.results import router as results_router
 from atlas_testops.api.v1.task_plans import router as task_plans_router
 from atlas_testops.api.v1.task_runs import router as task_runs_router
+from atlas_testops.api.v1.task_schedules import router as task_schedules_router
 from atlas_testops.api.v1.unit_attempts import router as unit_attempts_router
 
 api_router = APIRouter(
@@ -36,6 +37,7 @@ api_router.include_router(case_versions_router, tags=["case-versions"])
 api_router.include_router(debug_runs_router, tags=["debug-runs"])
 api_router.include_router(task_plans_router, tags=["task-plans"])
 api_router.include_router(task_runs_router, tags=["task-runs"])
+api_router.include_router(task_schedules_router, tags=["task-schedules"])
 api_router.include_router(unit_attempts_router, tags=["unit-attempt-live-control"])
 api_router.include_router(results_router, tags=["results"])
 api_router.include_router(insights_router, tags=["insights"])

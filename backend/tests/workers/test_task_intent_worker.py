@@ -26,7 +26,7 @@ def _enabled_settings() -> TaskIntentConsumerSettings:
         task_intent_temporal_namespace="task-namespace",
         task_intent_worker_identity="task-dispatcher-test",
         task_intent_poll_interval_seconds=2,
-        task_intent_lease_seconds=45,
+        task_intent_lease_seconds=60,
         task_intent_batch_size=12,
         task_intent_max_attempts=6,
         task_intent_retry_initial_seconds=3,
@@ -134,6 +134,28 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
             events.append("materialization-run")
             captured["materialization_stop_event"] = stop_event
 
+    class FakeScheduleSynchronizer:
+        def __init__(self, client: object, **kwargs: object) -> None:
+            events.append("schedule-synchronizer")
+            captured["schedule_synchronizer_client"] = client
+            captured["schedule_synchronizer_options"] = kwargs
+
+    class FakeScheduleConsumer:
+        def __init__(
+            self,
+            database: object,
+            synchronizer: object,
+            **kwargs: object,
+        ) -> None:
+            events.append("schedule-consumer")
+            captured["schedule_database"] = database
+            captured["schedule_synchronizer"] = synchronizer
+            captured["schedule_options"] = kwargs
+
+        async def run_forever(self, stop_event: object) -> None:
+            events.append("schedule-run")
+            captured["schedule_stop_event"] = stop_event
+
     monkeypatch.setattr(task_intent, "TaskIntentDispatcherDatabase", FakeDatabase)
     monkeypatch.setattr(task_intent, "Client", FakeClient)
     monkeypatch.setattr(task_intent, "TemporalTaskIntentStarter", FakeStarter)
@@ -144,6 +166,16 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
         task_intent,
         "TaskMaterializationConsumer",
         FakeMaterializationConsumer,
+    )
+    monkeypatch.setattr(
+        task_intent,
+        "TemporalTaskScheduleSynchronizer",
+        FakeScheduleSynchronizer,
+    )
+    monkeypatch.setattr(
+        task_intent,
+        "TaskScheduleSyncConsumer",
+        FakeScheduleConsumer,
     )
     settings = _enabled_settings()
 
@@ -157,10 +189,13 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
         "signaler",
         "command-consumer",
         "materialization-consumer",
+        "schedule-synchronizer",
+        "schedule-consumer",
         "open",
         "materialization-run",
         "run",
         "command-run",
+        "schedule-run",
         "close",
     ]
     assert captured["database_url"] == (
@@ -182,7 +217,7 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
     assert consumer_options["dispatcher_id"] == "task-dispatcher-test"
     assert consumer_options["temporal_namespace"] == "task-namespace"
     assert consumer_options["batch_size"] == 12
-    assert consumer_options["lease_duration"].total_seconds() == 45
+    assert consumer_options["lease_duration"].total_seconds() == 60
     assert consumer_options["poll_interval"].total_seconds() == 2
     retry_policy = consumer_options["retry_policy"]
     assert isinstance(retry_policy, TaskIntentRetryPolicy)
@@ -201,6 +236,10 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
         "poll_interval": consumer_options["poll_interval"],
         "retry_policy": consumer_options["retry_policy"],
     }
+    assert captured["schedule_stop_event"] is captured["stop_event"]
+    assert captured["schedule_database"] is captured["consumer_database"]
+    assert captured["schedule_options"] == consumer_options
+    assert captured["schedule_synchronizer_options"] == starter_options
 
 
 @pytest.mark.anyio
@@ -261,6 +300,21 @@ async def test_consumer_closes_database_when_polling_fails(
                 events.append("materialization-canceled")
                 raise
 
+    class FakeScheduleSynchronizer:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+    class WaitingScheduleConsumer:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def run_forever(self, _stop_event: object) -> None:
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                events.append("schedule-canceled")
+                raise
+
     monkeypatch.setattr(task_intent, "TaskIntentDispatcherDatabase", FakeDatabase)
     monkeypatch.setattr(task_intent, "Client", FakeClient)
     monkeypatch.setattr(task_intent, "TemporalTaskIntentStarter", FakeStarter)
@@ -276,6 +330,16 @@ async def test_consumer_closes_database_when_polling_fails(
         "TaskMaterializationConsumer",
         WaitingMaterializationConsumer,
     )
+    monkeypatch.setattr(
+        task_intent,
+        "TemporalTaskScheduleSynchronizer",
+        FakeScheduleSynchronizer,
+    )
+    monkeypatch.setattr(
+        task_intent,
+        "TaskScheduleSyncConsumer",
+        WaitingScheduleConsumer,
+    )
     stop_event = asyncio.Event()
 
     with pytest.raises(ExceptionGroup) as failure:
@@ -283,7 +347,11 @@ async def test_consumer_closes_database_when_polling_fails(
 
     assert "poll failed" in str(failure.value.exceptions[0])
     assert events[0] == "open"
-    assert set(events[1:-1]) == {"command-canceled", "materialization-canceled"}
+    assert set(events[1:-1]) == {
+        "command-canceled",
+        "materialization-canceled",
+        "schedule-canceled",
+    }
     assert events[-1] == "close"
     assert stop_event.is_set()
 

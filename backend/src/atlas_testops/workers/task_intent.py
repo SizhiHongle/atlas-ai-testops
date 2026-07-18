@@ -16,12 +16,18 @@ from atlas_testops.application.task_intents import (
 from atlas_testops.application.task_materialization import (
     TaskMaterializationConsumer,
 )
+from atlas_testops.application.task_schedule_sync import (
+    TaskScheduleSyncConsumer,
+)
 from atlas_testops.core.config import TaskIntentConsumerSettings
 from atlas_testops.infrastructure.task_intents import TaskIntentDispatcherDatabase
 from atlas_testops.orchestration.task_commands import TemporalTaskCommandSignaler
 from atlas_testops.orchestration.task_intents import (
     TASK_RUN_TASK_QUEUE,
     TemporalTaskIntentStarter,
+)
+from atlas_testops.orchestration.task_schedules import (
+    TemporalTaskScheduleSynchronizer,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -47,9 +53,7 @@ async def run_consumer(
         database_url,
         pool_min_size=settings.task_dispatcher_database_pool_min_size,
         pool_max_size=settings.task_dispatcher_database_pool_max_size,
-        connect_timeout_seconds=(
-            settings.task_dispatcher_database_connect_timeout_seconds
-        ),
+        connect_timeout_seconds=(settings.task_dispatcher_database_connect_timeout_seconds),
         statement_timeout_ms=settings.task_dispatcher_database_statement_timeout_ms,
     )
     client = await Client.connect(
@@ -114,6 +118,25 @@ async def run_consumer(
         ),
         retry_policy=retry_policy,
     )
+    schedule_consumer = TaskScheduleSyncConsumer(
+        database,
+        TemporalTaskScheduleSynchronizer(
+            client,
+            rpc_attempts=settings.task_intent_rpc_attempts,
+            rpc_timeout=timedelta(seconds=settings.task_intent_rpc_timeout_seconds),
+            retry_delay=timedelta(
+                seconds=settings.task_intent_rpc_retry_delay_seconds,
+            ),
+        ),
+        dispatcher_id=settings.task_intent_worker_identity,
+        temporal_namespace=settings.task_intent_temporal_namespace,
+        batch_size=settings.task_intent_batch_size,
+        lease_duration=timedelta(seconds=settings.task_intent_lease_seconds),
+        poll_interval=timedelta(
+            seconds=settings.task_intent_poll_interval_seconds,
+        ),
+        retry_policy=retry_policy,
+    )
     selected_stop_event = stop_event or asyncio.Event()
     await database.open()
     try:
@@ -127,11 +150,10 @@ async def run_consumer(
             },
         )
         async with asyncio.TaskGroup() as group:
-            group.create_task(
-                materialization_consumer.run_forever(selected_stop_event)
-            )
+            group.create_task(materialization_consumer.run_forever(selected_stop_event))
             group.create_task(consumer.run_forever(selected_stop_event))
             group.create_task(command_consumer.run_forever(selected_stop_event))
+            group.create_task(schedule_consumer.run_forever(selected_stop_event))
     finally:
         selected_stop_event.set()
         await database.close()

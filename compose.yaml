@@ -107,7 +107,7 @@ services:
       ATLAS_TASK_INTENT_TASK_QUEUE: atlas-task-run
       ATLAS_TASK_INTENT_WORKER_IDENTITY: task-intent-consumer-local
       ATLAS_TASK_INTENT_POLL_INTERVAL_SECONDS: 1
-      ATLAS_TASK_INTENT_LEASE_SECONDS: 90
+      ATLAS_TASK_INTENT_LEASE_SECONDS: 180
       ATLAS_TASK_INTENT_BATCH_SIZE: 32
       ATLAS_TASK_INTENT_MAX_ATTEMPTS: 8
       ATLAS_TASK_INTENT_RETRY_INITIAL_SECONDS: 5
@@ -143,6 +143,26 @@ services:
       ATLAS_TASK_EXECUTION_HTTP_TIMEOUT_SECONDS: ${ATLAS_TASK_EXECUTION_HTTP_TIMEOUT_SECONDS:-120}
       ATLAS_TASK_EXECUTION_CLOCK_SKEW_SECONDS: ${ATLAS_TASK_EXECUTION_CLOCK_SKEW_SECONDS:-30}
       ATLAS_TASK_EXECUTION_RESPONSE_MAXIMUM_BYTES: ${ATLAS_TASK_EXECUTION_RESPONSE_MAXIMUM_BYTES:-16384}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    restart: "no"
+
+  task-schedule-worker:
+    profiles: ["task-schedule-worker"]
+    build:
+      context: ./backend
+      target: task-schedule-worker
+    environment:
+      ATLAS_ENVIRONMENT: local
+      ATLAS_TASK_SCHEDULE_WORKER_ENABLED: ${ATLAS_TASK_SCHEDULE_WORKER_ENABLED:-false}
+      ATLAS_DATABASE_URL: postgresql://atlas_app:atlas_app@postgres:5432/atlas
+      ATLAS_TEMPORAL_ADDRESS: temporal:7233
+      ATLAS_TEMPORAL_NAMESPACE: default
+      ATLAS_TASK_SCHEDULE_TASK_QUEUE: atlas-task-schedule
+      ATLAS_TASK_SCHEDULE_WORKER_MAX_CONCURRENCY: 8
     depends_on:
       postgres:
         condition: service_healthy

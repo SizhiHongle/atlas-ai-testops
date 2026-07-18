@@ -44,6 +44,7 @@ from atlas_testops.domain.runtime import (
 )
 from atlas_testops.domain.task import (
     BrowserProfileVersion,
+    CreateTaskSchedule,
     DataProfileVersion,
     ExecutionProfileVersion,
     ExecutionUnit,
@@ -55,6 +56,7 @@ from atlas_testops.domain.task import (
     TaskRun,
     TaskRunCommandIntent,
     TaskRunManifest,
+    TaskSchedule,
     TaskUnitExecutionTicket,
     TriggerTaskPlanVersionRun,
     UnitAttempt,
@@ -98,6 +100,8 @@ TASK_UNIT_EXECUTION_TICKET_SCHEMA = (
     REPOSITORY_ROOT / "contracts" / "task-unit-execution-ticket.schema.json"
 )
 TASK_RUN_COMMAND_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-run-command.schema.json"
+TASK_SCHEDULE_CREATE_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-schedule-create.schema.json"
+TASK_SCHEDULE_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-schedule.schema.json"
 ATTEMPT_SEAL_SCHEMA = REPOSITORY_ROOT / "contracts" / "attempt-seal.schema.json"
 RESULT_REF_SCHEMA = REPOSITORY_ROOT / "contracts" / "result-ref.schema.json"
 ATTEMPT_CLOSURE_NOTICE_SCHEMA = REPOSITORY_ROOT / "contracts" / "attempt-closure-notice.schema.json"
@@ -273,6 +277,14 @@ def main() -> None:
         TASK_RUN_COMMAND_SCHEMA: render_schema(
             TaskRunCommandIntent,
             "https://atlas.test/contracts/task-run-command/0.1/schema.json",
+        ),
+        TASK_SCHEDULE_CREATE_SCHEMA: render_schema(
+            CreateTaskSchedule,
+            "https://atlas.test/contracts/task-schedule-create/0.1/schema.json",
+        ),
+        TASK_SCHEDULE_SCHEMA: render_schema(
+            TaskSchedule,
+            "https://atlas.test/contracts/task-schedule/0.1/schema.json",
         ),
         ATTEMPT_SEAL_SCHEMA: render_schema(
             AttemptSeal,
