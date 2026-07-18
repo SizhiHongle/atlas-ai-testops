@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Protocol, runtime_checkable
 
 from temporalio.client import Client
 from temporalio.worker import Worker
@@ -15,6 +16,9 @@ from atlas_testops.application.task_orchestration import (
 )
 from atlas_testops.core.config import Settings, get_settings
 from atlas_testops.infrastructure.database import Database
+from atlas_testops.infrastructure.task_execution import (
+    build_optional_task_unit_execution_port,
+)
 from atlas_testops.orchestration.task_intents import TASK_RUN_TASK_QUEUE
 from atlas_testops.orchestration.tasks import (
     TASK_UNIT_ATTEMPT_TASK_QUEUE,
@@ -24,6 +28,13 @@ from atlas_testops.orchestration.tasks import (
 )
 
 LOGGER = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class _CloseableTaskUnitExecutionPort(Protocol):
+    """Optional lifecycle implemented by pooled production adapters."""
+
+    async def aclose(self) -> None: ...
 
 
 async def run_worker(
@@ -44,44 +55,44 @@ async def run_worker(
         raise RuntimeError("Task Attempt queue does not match the trusted workflow contract")
 
     database = Database(settings)
-    service = TaskWorkerService(
-        database,
-        result_hygiene_projection_service=ResultHygieneProjectionService(),
-    )
-    activities = TaskOrchestrationActivities(service, executor)
-    client = await Client.connect(
-        settings.temporal_address,
-        namespace=settings.temporal_namespace,
-    )
-    root_worker = Worker(
-        client,
-        task_queue=settings.task_run_task_queue,
-        workflows=[AtlasTaskRunWorkflow],
-        activities=[
-            activities.load_dispatch_plan,
-            activities.prepare_batch,
-            activities.checkpoint_control,
-            activities.settle_attempt_batch,
-            activities.finish_run,
-            activities.finish_partitioned_run,
-        ],
-        max_concurrent_workflow_tasks=settings.task_run_worker_max_concurrency,
-        max_concurrent_activities=settings.task_run_worker_max_concurrency,
-    )
-    attempt_worker = Worker(
-        client,
-        task_queue=settings.task_attempt_task_queue,
-        workflows=[AtlasUnitAttemptWorkflow],
-        activities=[
-            activities.prepare_attempt,
-            activities.begin_attempt,
-            activities.execute_attempt,
-            activities.finish_attempt,
-        ],
-        max_concurrent_workflow_tasks=settings.task_attempt_worker_max_concurrency,
-        max_concurrent_activities=settings.task_attempt_worker_max_concurrency,
-    )
     try:
+        service = TaskWorkerService(
+            database,
+            result_hygiene_projection_service=ResultHygieneProjectionService(),
+        )
+        activities = TaskOrchestrationActivities(service, executor)
+        client = await Client.connect(
+            settings.temporal_address,
+            namespace=settings.temporal_namespace,
+        )
+        root_worker = Worker(
+            client,
+            task_queue=settings.task_run_task_queue,
+            workflows=[AtlasTaskRunWorkflow],
+            activities=[
+                activities.load_dispatch_plan,
+                activities.prepare_batch,
+                activities.checkpoint_control,
+                activities.settle_attempt_batch,
+                activities.finish_run,
+                activities.finish_partitioned_run,
+            ],
+            max_concurrent_workflow_tasks=settings.task_run_worker_max_concurrency,
+            max_concurrent_activities=settings.task_run_worker_max_concurrency,
+        )
+        attempt_worker = Worker(
+            client,
+            task_queue=settings.task_attempt_task_queue,
+            workflows=[AtlasUnitAttemptWorkflow],
+            activities=[
+                activities.prepare_attempt,
+                activities.begin_attempt,
+                activities.execute_attempt,
+                activities.finish_attempt,
+            ],
+            max_concurrent_workflow_tasks=settings.task_attempt_worker_max_concurrency,
+            max_concurrent_activities=settings.task_attempt_worker_max_concurrency,
+        )
         await database.open()
         LOGGER.info(
             "Task Worker started",
@@ -94,7 +105,11 @@ async def run_worker(
         )
         await _run_workers(root_worker, attempt_worker)
     finally:
-        await database.close()
+        try:
+            await database.close()
+        finally:
+            if isinstance(executor, _CloseableTaskUnitExecutionPort):
+                await executor.aclose()
 
 
 async def _run_workers(root_worker: Worker, attempt_worker: Worker) -> None:
@@ -114,11 +129,12 @@ async def _run_workers(root_worker: Worker, attempt_worker: Worker) -> None:
 
 
 def main() -> None:
-    """Start the opt-in Task Worker without manufacturing an execution adapter."""
+    """Start the opt-in Task Worker with its configured reviewed execution adapter."""
 
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
-    asyncio.run(run_worker(settings))
+    executor = build_optional_task_unit_execution_port(settings)
+    asyncio.run(run_worker(settings, executor=executor))
 
 
 if __name__ == "__main__":

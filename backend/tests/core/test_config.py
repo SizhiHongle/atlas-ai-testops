@@ -246,6 +246,51 @@ def test_task_worker_rejects_untrusted_queues_and_unbounded_concurrency(
         Settings.model_validate({"environment": "test", **overrides})
 
 
+def test_task_execution_adapter_configuration_is_complete_secret_and_tls_safe() -> None:
+    key = b64encode(b"t" * 32).decode()
+    settings = Settings(
+        environment="test",
+        task_execution_api_base_url="http://executor.test/",
+        task_execution_hmac_key_base64=SecretStr(key),
+        task_execution_worker_identity="task-worker-test",
+    )
+
+    assert settings.task_execution_adapter_configured
+    assert settings.task_execution_allow_insecure_http
+    assert settings.task_execution_api_base_url == "http://executor.test"
+    assert key not in repr(settings)
+    assert not Settings.model_validate(
+        {
+            "environment": "test",
+            "task_execution_api_base_url": "",
+            "task_execution_hmac_key_base64": "",
+        }
+    ).task_execution_adapter_configured
+
+    with pytest.raises(ValidationError, match="configuration must be complete"):
+        Settings(
+            environment="test",
+            task_execution_api_base_url="http://executor.test",
+        )
+    with pytest.raises(ValidationError, match="configuration must be complete"):
+        Settings(
+            environment="test",
+            task_execution_hmac_key_base64=SecretStr(key),
+        )
+    with pytest.raises(ValidationError, match="requires HTTPS"):
+        Settings(
+            environment="production",
+            task_execution_api_base_url="http://executor.internal",
+            task_execution_hmac_key_base64=SecretStr(key),
+        )
+    with pytest.raises(ValidationError, match="HTTP\\(S\\) origin"):
+        Settings(
+            environment="test",
+            task_execution_api_base_url="https://executor.test/path",
+            task_execution_hmac_key_base64=SecretStr(key),
+        )
+
+
 def test_enabled_task_intent_consumer_requires_and_protects_dispatcher_dsn() -> None:
     with pytest.raises(ValidationError, match="dedicated dispatcher DSN"):
         TaskIntentConsumerSettings(

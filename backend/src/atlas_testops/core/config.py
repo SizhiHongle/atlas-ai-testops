@@ -58,6 +58,21 @@ class Settings(BaseSettings):
     task_attempt_task_queue: Literal["atlas-unit-attempt"] = "atlas-unit-attempt"
     task_run_worker_max_concurrency: int = Field(default=8, ge=1, le=64)
     task_attempt_worker_max_concurrency: int = Field(default=8, ge=1, le=64)
+    task_execution_api_base_url: str | None = Field(default=None, max_length=2_048)
+    task_execution_hmac_key_base64: SecretStr | None = None
+    task_execution_worker_identity: str = Field(
+        default="task-worker",
+        min_length=3,
+        max_length=160,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,159}$",
+    )
+    task_execution_http_timeout_seconds: int = Field(default=120, ge=1, le=300)
+    task_execution_clock_skew_seconds: int = Field(default=30, ge=5, le=300)
+    task_execution_response_maximum_bytes: int = Field(
+        default=16 * 1024,
+        ge=1_024,
+        le=64 * 1024,
+    )
     auth_session_dispatch_enabled: bool = False
     auth_session_task_queue: str = "atlas-auth-session"
     auth_session_workflow_timeout_seconds: int = Field(default=90, ge=10, le=600)
@@ -132,6 +147,24 @@ class Settings(BaseSettings):
             raise ValueError("api_v1_prefix must not be empty")
         return normalized
 
+    @field_validator("task_execution_api_base_url", mode="before")
+    @classmethod
+    def normalize_optional_task_execution_origin(cls, value: object) -> object:
+        """Treat an unset Compose passthrough as no configured adapter."""
+
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("task_execution_hmac_key_base64", mode="before")
+    @classmethod
+    def normalize_optional_task_execution_key(cls, value: object) -> object:
+        """Treat an unset secret passthrough as no configured adapter."""
+
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
     @model_validator(mode="after")
     def protect_production_docs(self) -> Self:
         """生产环境禁止暴露交互式 API 文档。"""
@@ -173,6 +206,42 @@ class Settings(BaseSettings):
         if self.fixture_retry_maximum_seconds < self.fixture_retry_initial_seconds:
             raise ValueError(
                 "fixture_retry_maximum_seconds must be >= fixture_retry_initial_seconds"
+            )
+        task_execution_values = (
+            self.task_execution_api_base_url,
+            self.task_execution_hmac_key_base64,
+        )
+        configured_task_execution = [
+            value is not None for value in task_execution_values
+        ]
+        if any(configured_task_execution) and not all(configured_task_execution):
+            raise ValueError("Task execution adapter configuration must be complete")
+        if self.task_execution_api_base_url is not None:
+            normalized_url = self.task_execution_api_base_url.rstrip("/")
+            parsed = urlsplit(normalized_url)
+            if (
+                parsed.scheme not in {"http", "https"}
+                or parsed.hostname is None
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.path not in {"", "/"}
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError("Task execution API base URL must be an HTTP(S) origin")
+            if (
+                parsed.scheme == "http"
+                and self.environment in {"staging", "production"}
+            ):
+                raise ValueError(
+                    "Task execution API requires HTTPS in staging and production"
+                )
+            object.__setattr__(self, "task_execution_api_base_url", normalized_url)
+        if self.task_execution_hmac_key_base64 is not None:
+            _decode_base64_key(
+                self.task_execution_hmac_key_base64,
+                label="Task execution HMAC",
+                exact_length=None,
             )
         browser_runtime_secrets = (
             self.browser_runtime_permit_key_base64,
@@ -274,6 +343,18 @@ class Settings(BaseSettings):
         """Return whether the API can independently verify retained evidence bytes."""
 
         return self.evidence_object_store_endpoint is not None
+
+    @property
+    def task_execution_adapter_configured(self) -> bool:
+        """Return whether the Task Worker can build its reviewed HTTP execution Port."""
+
+        return self.task_execution_api_base_url is not None
+
+    @property
+    def task_execution_allow_insecure_http(self) -> bool:
+        """Allow plaintext Task executor traffic only in local development and tests."""
+
+        return self.environment in {"local", "test", "development"}
 
 
 @lru_cache

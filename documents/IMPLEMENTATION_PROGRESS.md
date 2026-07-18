@@ -14,10 +14,10 @@
 ## 当前状态
 
 - 当前阶段：`P5 Task 生产执行闭环（基础中）`
-- 当前切片：`P5-00E4 100,000-Unit 分区物化 / Temporal 分页续跑`
-- 总体状态：P5 已建立正式执行宿主、统一 Manual / Schedule / CI / Webhook Trigger、100,000-Unit 可恢复分区物化与有界 Temporal History；P6 已建立可信 Browser / Evidence / Attempt Result 事实链、DebugRun 只读 Live 和 UnitAttempt-scoped Live Control；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate、公开查询 API 与既有 Results 槽位接线。P8 V1 已实现固定 MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums current/baseline、可复现 DatasetCut、不可变 InsightSnapshot 与既有 Insights 槽位接线。Worker / Consumer 仍默认关闭，仓库仍不内置真实 SaaS production Adapter；Temporal Schedule 管理、签名回调和 P9 生产硬化继续按后续阶段落地
+- 当前切片：`P5-00E5 签名 HTTPS production TaskUnitExecutionPort`
+- 总体状态：P5 已建立正式执行宿主、统一 Manual / Schedule / CI / Webhook Trigger、100,000-Unit 可恢复分区物化、有界 Temporal History，以及可由 CLI / Compose 正式装配的 ticket-bound 签名 HTTPS production Port；P6 已建立可信 Browser / Evidence / Attempt Result 事实链、DebugRun 只读 Live 和 UnitAttempt-scoped Live Control；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate、公开查询 API 与既有 Results 槽位接线。P8 V1 已实现固定 MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums current/baseline、可复现 DatasetCut、不可变 InsightSnapshot 与既有 Insights 槽位接线。Worker / Consumer 仍默认关闭，真实 SaaS executor 仍需部署输入；Temporal Schedule 管理、签名回调和 P9 生产硬化继续按后续阶段落地
 - 当前分支：`main`
-- 当前进入基线提交：`00823f3`
+- 当前进入基线提交：`8f26beb`
 
 ## 阶段看板
 
@@ -28,7 +28,7 @@
 | P2 | TestRole、AccountPool、TestAccount、Lease 与 Auth Session | 已完成 | P2-01 至 P2-06 已验收；身份、租约、Secret Grant、加密 Session 与清理链已闭环 |
 | P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 已完成 | P3-00 至 P3-03 已验收；资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与三类发布证据闭环 |
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 后端完成 | P4-00 至 P4-03 已验收；作者态、不可变 DebugRun、精确绑定、Reviewer 发布门禁与 CaseVersion 冻结闭环已落地 |
-| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00E4 已验收；不可变 Ticket、ticket-bound Port、durable command、自动 infra retry、manual infra-failure child Run、TaskPlan 公共 API、Manual / Schedule / CI / Webhook Trigger、100,000-Unit 分区物化 / 分页 Workflow 与 P6-02B2 UnitAttempt Takeover 均有 PostgreSQL / Temporal 证据。Temporal Schedule 管理、签名回调与 production Adapter 待后续 |
+| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00E5 已验收；不可变 Ticket、签名 HTTPS production Port、durable command、自动 infra retry、manual infra-failure child Run、TaskPlan 公共 API、Manual / Schedule / CI / Webhook Trigger、100,000-Unit 分区物化 / 分页 Workflow 与 P6-02B2 UnitAttempt Takeover 均有 PostgreSQL / Temporal 证据。Temporal Schedule 管理、签名回调与部署端真实 SaaS executor 待后续 |
 | P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面、P6-02A 可信截图写入 / 受控读取、P6-02B1 DebugRun Live 安全观察流、P6-02B2 UnitAttempt 控制权、P6-03A AttemptSeal / ResultRef 与 P6-03B ClosureNotice / UnitResolutionRevision 均已验收；真实 SaaS Operation、网络沙箱与 Multi-actor 仍需部署输入或后续实现 |
 | P7 | Result Fact、Snapshot、Classification 与 Gate | 已完成 | P6-03A/P6-03B 与 P7-01A 至 P7-03 已实现三阶段 Snapshot、FailureCluster / Classification、`0039` TaskGateDecision、公开 Result API、ETag 与既有 Results 槽位真实数据映射 |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 基础中 | V1 fixed MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums、DatasetCut、`0040` immutable InsightSnapshot、preview/pin/exact API 与既有 Insights 槽位映射已实现；Projector generation、Signal/Review 与异步 Export 待扩展 |
@@ -541,6 +541,27 @@
 - 本切片解决的是大 Run 的耐久物化和 History 上界，不提供真实 SaaS production `TaskUnitExecutionPort`、Temporal Schedule catalog / overlap / catch-up 管理或外部 Webhook 签名验证；这些能力继续独立落地。
 - 100,000 是协议与数据库硬上限，不代表未经容量基准即可把单 Tenant 并发、Worker 并发或数据库连接池同步放大。生产容量门禁与 P9 长稳压测仍需完成。
 
+## P5-00E5 范围
+
+### 已实现
+
+- 新增正式 `HttpTaskUnitExecutionPort`，CLI Task Worker 可从完整配置直接装配，不再要求 Python 调用方手工注入 Adapter。禁用状态仍不连接 PostgreSQL / Temporal；启用但 URL / HMAC Key 缺失时在任何外部连接前 fail-closed。
+- 线协议只发送 `atlas.task-unit-executor-request/0.1` secret-free envelope，内含已由数据库 Prepare 的 exact Attempt、`ticketId` 与 `ticketDigest`。请求 HMAC 同时绑定固定 Path、Worker、Tenant、Attempt、Ticket、时间戳、Nonce、Body SHA-256 与 `Idempotency-Key == unitAttemptId`。
+- executor 响应必须使用 `atlas.task-unit-executor-result/0.1`，并以独立响应签名回绑原 Request Nonce / Digest、Worker / Tenant / Attempt / Ticket、HTTP Status、Response Timestamp 与 Response Body Digest；同时要求 `Cache-Control: no-store`、`application/json` 和 16 KiB 默认上限。
+- Staging / Production 强制 HTTPS；Client 禁止 redirect、环境代理和隐式 transport retry。一次 Temporal side-effect Activity 只发起一次 HTTP 调用；Transport timeout、响应丢失、非 200、超限、签名或 payload 异常全部按 `INCONCLUSIVE` 的结果未知收敛，不会触发 `INFRA_ERROR` 自动业务重试。
+- Port 只在 executor 已产生数据库可复核的 exact ResultRef 时接受 `RESULT_FINALIZED`；Task Worker 的 Finish Activity 仍会重读 AttemptSeal / ResultRef，远端响应本身不能伪造 `PASSED`。真实 SaaS 登录、业务 Operation、凭据和 Seal 签发仍由部署端 executor 负责。
+
+### 已验证
+
+- HMAC 双向协议测试覆盖 Request/Response exact scope、Body 篡改、Nonce、时钟窗口、幂等键、ResultRef；HTTP Adapter 测试覆盖 signed success、transport ambiguity、非 200、unsigned / invalid / oversized response、deadline、secret-free body、TLS 与配置完整性。
+- Task Worker 测试覆盖 CLI 自动注入、缺少 Adapter 时外部连接前拒绝、双 Queue 装配和 pooled Adapter 关闭；`.env.example` 与 Compose profile 已同步可选配置。当前环境没有 Docker CLI，无法重复执行本地 `docker compose config`。
+- 真实 PostgreSQL + Temporal 完整后端门禁通过：1114 tests、coverage 90.04%；Ruff、strict mypy 368 files、Contracts / OpenAPI 漂移、Python sdist / wheel、前端 API / TypeScript / production build 全部通过；前端原型源码未改。
+
+### 后续边界
+
+- 本切片完成平台侧 production Port 与安全传输，不伪造一个不存在的目标 SaaS executor。部署方必须提供受审 executor endpoint、同一 Attempt 的业务幂等、Secret / Session / Network 隔离，以及签名 AttemptSeal / ResultRef 写入链。
+- Temporal Schedule catalog、Overlap / Catchup / Jitter、签名 Webhook callback 和 P9 容量 / 故障注入仍按后续切片完成。
+
 ## P6-00 范围
 
 ### 已完成
@@ -740,6 +761,7 @@
 | 2026-07-18 | P5-00E2 Manual Launch | compatible-only matrix compiler、Manifest v0.2、最多 64 Units、首 Attempt、Seal、durable Start Intent | 真实 PostgreSQL API 已验证 sealed aggregate、Event、replay 与 `PENDING` Start Intent；完整门禁 921 tests / coverage 90.15%、严格 mypy 301 files、契约与双端构建全部成功；前端原型未改 |
 | 2026-07-18 | P5-00E3 Unified Task Trigger | Schedule / CI / Webhook 强类型入口、永久事件身份、统一编译 / Seal / Start Intent 与 exact replay | 真实 PostgreSQL API 与完整门禁通过：1082 tests / coverage 90.23%、Ruff、严格 mypy 361 files、契约与双端构建全部成功；前端原型未改 |
 | 2026-07-18 | P5-00E4 Partitioned Materialization / Execution | `0042` 64-Unit fenced partitions、100,000 上限、Consumer、分页 Root、safe Continue-As-New、DB projected finish / cancel drain | 真实 65-Unit PostgreSQL 两分区全链与真实 Temporal 64 + 1 Child 续跑通过；完整门禁 1100 tests / coverage 90.02%、Ruff、严格 mypy 366 files、Contracts / OpenAPI、Python 包与前端 API / TypeScript / production build 全部成功；前端原型未改 |
+| 2026-07-18 | P5-00E5 Signed production execution Port | ticket-bound secret-free HTTPS、双向 HMAC / Nonce / Digest、single-call unknown-outcome、CLI / Compose 装配与资源回收 | 真实 PostgreSQL + Temporal 完整后端门禁 1114 tests / coverage 90.04%；Ruff、strict mypy 368 files、Contracts / OpenAPI、Python package 与前端 API / TypeScript / production build 全部通过；签名、TLS、超时、非 200、无签名 / 篡改 / 超限响应与 deadline 均 fail-closed，前端原型源码未改 |
 | 2026-07-18 | P6-03A AttemptSeal / ResultRef | Ed25519 contract、Finalize exact replay / conflict、Task trusted PASS recovery、repository、真实 PostgreSQL 与 migration | 通过；70 项定向测试与 1 项真实 PostgreSQL 全链通过，`0032` 有 Fact downgrade 拒绝及清理后 `0032 → 0031 → 0032` 往返成功；完整门禁 937 tests / coverage 90.09%、Ruff、严格 mypy 311 files、Schema / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
 | 2026-07-18 | P6-03B ClosureNotice / UnitResolutionRevision | 无 Seal 终态事实、完整 Attempt 覆盖、append-only Unit Resolution、重试 Stability、Task / Finalize 事务投影、真实 PostgreSQL 与 migration | 通过；37 项 Result 定向测试与 4 项真实 PostgreSQL 全链通过，`0033` 有 Projection Fact downgrade 拒绝，独立空库 `0033 → 0032 → 0033` 往返成功；干净数据库完整门禁 969 tests / coverage 90.13%、Ruff、严格 mypy 316 files、Schema / OpenAPI 漂移与 Python sdist / wheel 全部通过；前端原型未改 |
 | 2026-07-18 | P7-01A TaskResultSnapshot Truth | Manifest-ordered latest Resolution Set、Closure-compatible input root、固定 Snapshot Policy / Watermark、Verdict 守恒、各轴分布、四类精确通过率、Task close 原子 Snapshot / Outbox、`0034` append-only guard | 切片完成时本地门禁为 879 passed / 108 skipped；后续 P7-01B0 已在真实 PostgreSQL 完成 `0033 → 0034 → 0035`，AttemptSeal 全链复核 Snapshot Insert Guard，并以 1000 tests / coverage 90.08% 跑通完整 PostgreSQL / Temporal 门禁。`0034` standalone populated downgrade 未单独重复，因为现存 `0035` Cleanup Fact 会按设计先阻止链式降级；前端原型未改 |
@@ -905,6 +927,6 @@
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
 - P3-03 已完成取消后补偿、Reconcile、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Evidence；生产环境仍需按 Tenant 配置 Temporal Schedule 和真实 Provider，缺失时继续 fail-closed。
-- P5-00B1 至 P5-00E4 已建立正式 Profile、Seal / CAS、durable Start、100,000-Unit 分区物化与分页 Root / Attempt 编排、查询、immutable Ticket、reliable Cancel / Pause / Resume、有界基础设施自动重试、exact infra-failure child Run、TaskPlan Catalog / immutable publication，以及统一 Manual / Schedule / CI / Webhook Trigger。P6 已提供完整 Attempt Fact、Unit Resolution 和 UnitAttempt-scoped Live Control，P7 已完成三阶段 TaskResultSnapshot、FailureCluster / Classification、TaskGateDecision 与公共 Result 查询，P8 V1 已完成 comparable Brief / DatasetCut / immutable Snapshot；仓库仍无正式 production `TaskUnitExecutionPort`、Temporal Schedule 管理和签名外部回调。只有数据库中存在 exact Seal Fact 时才允许 Task Workflow 表达 `PASSED`，ClosureNotice 只能使 Resolution 得到 `INCONCLUSIVE / NOT_EVALUATED`。
+- P5-00B1 至 P5-00E5 已建立正式 Profile、Seal / CAS、durable Start、100,000-Unit 分区物化与分页 Root / Attempt 编排、查询、immutable Ticket、可靠控制 / retry / rerun、TaskPlan Catalog / immutable publication、统一 Manual / Schedule / CI / Webhook Trigger，以及签名 HTTPS production `TaskUnitExecutionPort`。P6 已提供完整 Attempt Fact、Unit Resolution 和 UnitAttempt-scoped Live Control，P7 已完成三阶段 TaskResultSnapshot、FailureCluster / Classification、TaskGateDecision 与公共 Result 查询，P8 V1 已完成 comparable Brief / DatasetCut / immutable Snapshot；部署端真实 SaaS executor、Temporal Schedule 管理和签名外部回调仍未提供。只有数据库中存在 exact Seal Fact 时才允许 Task Workflow 表达 `PASSED`，ClosureNotice 只能使 Resolution 得到 `INCONCLUSIVE / NOT_EVALUATED`。
 - P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；P6-02A Evidence Writer / 受控读取、P6-02B1 DebugRun Live Snapshot / SSE 与 P6-02B2 UnitAttempt LiveSession / ControlLease / Epoch / Fence / Human Takeover / ActionGrant 已完成。真实 SaaS Operation / Route Registry、生产 Bucket Object Lock / Versioning、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
 - 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

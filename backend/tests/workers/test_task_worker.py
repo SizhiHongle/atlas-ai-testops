@@ -282,14 +282,116 @@ def test_main_loads_settings_without_manufacturing_executor(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = Settings(environment="test")
-    observed: list[Settings] = []
+    observed: list[tuple[Settings, TaskUnitExecutionPort | None]] = []
 
-    async def fake_run_worker(received: Settings) -> None:
-        observed.append(received)
+    async def fake_run_worker(
+        received: Settings,
+        *,
+        executor: TaskUnitExecutionPort | None = None,
+    ) -> None:
+        observed.append((received, executor))
 
     monkeypatch.setattr(task, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        task,
+        "build_optional_task_unit_execution_port",
+        lambda received: None if received is settings else object(),
+    )
     monkeypatch.setattr(task, "run_worker", fake_run_worker)
 
     task.main()
 
-    assert observed == [settings]
+    assert observed == [(settings, None)]
+
+
+def test_main_injects_configured_production_executor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(environment="test")
+    executor = cast(TaskUnitExecutionPort, object())
+    observed: list[tuple[Settings, TaskUnitExecutionPort | None]] = []
+
+    async def fake_run_worker(
+        received: Settings,
+        *,
+        executor: TaskUnitExecutionPort | None = None,
+    ) -> None:
+        observed.append((received, executor))
+
+    monkeypatch.setattr(task, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        task,
+        "build_optional_task_unit_execution_port",
+        lambda received: executor if received is settings else None,
+    )
+    monkeypatch.setattr(task, "run_worker", fake_run_worker)
+
+    task.main()
+
+    assert observed == [(settings, executor)]
+
+
+@pytest.mark.anyio
+async def test_worker_closes_closeable_executor_after_pollers_exit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events: list[str] = []
+
+    class CloseableExecutor:
+        async def execute(self, _request: object) -> object:
+            raise AssertionError("worker assembly must not execute a Unit")
+
+        async def aclose(self) -> None:
+            events.append("executor-close")
+
+    class FakeDatabase:
+        def __init__(self, _settings: Settings) -> None:
+            pass
+
+        async def open(self) -> None:
+            events.append("database-open")
+
+        async def close(self) -> None:
+            events.append("database-close")
+
+    class FakeService:
+        def __init__(self, _database: object, **_kwargs: object) -> None:
+            pass
+
+    class FakeActivities:
+        def __init__(self, _service: object, _executor: object) -> None:
+            self.load_dispatch_plan = object()
+            self.prepare_batch = object()
+            self.checkpoint_control = object()
+            self.settle_attempt_batch = object()
+            self.finish_run = object()
+            self.finish_partitioned_run = object()
+            self.prepare_attempt = object()
+            self.begin_attempt = object()
+            self.execute_attempt = object()
+            self.finish_attempt = object()
+
+    class FakeClient:
+        @classmethod
+        async def connect(cls, *_args: object, **_kwargs: object) -> object:
+            return object()
+
+    class FakeWorker:
+        def __init__(self, _client: object, **_kwargs: object) -> None:
+            pass
+
+        async def run(self) -> None:
+            pass
+
+    monkeypatch.setattr(task, "Database", FakeDatabase)
+    monkeypatch.setattr(task, "TaskWorkerService", FakeService)
+    monkeypatch.setattr(task, "TaskOrchestrationActivities", FakeActivities)
+    monkeypatch.setattr(task, "Client", FakeClient)
+    monkeypatch.setattr(task, "Worker", FakeWorker)
+
+    await task.run_worker(
+        _enabled_settings(),
+        executor=cast(TaskUnitExecutionPort, CloseableExecutor()),
+    )
+
+    assert events == ["database-open", "database-close", "executor-close"]
