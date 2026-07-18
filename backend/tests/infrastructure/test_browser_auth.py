@@ -82,7 +82,8 @@ def test_permit_and_signature_expire_fail_closed() -> None:
     )
     with pytest.raises(BrowserRuntimeAuthenticationError, match="expired"):
         signer.verify(permit, now=now + timedelta(minutes=5))
-    tampered = f"{permit[:-1]}{'A' if permit[-1] != 'A' else 'B'}"
+    payload, signature = permit.split(".", 1)
+    tampered = f"{payload}.{'A' if signature[0] != 'A' else 'B'}{signature[1:]}"
     with pytest.raises(BrowserRuntimeAuthenticationError, match="invalid"):
         signer.verify(tampered, now=now)
 

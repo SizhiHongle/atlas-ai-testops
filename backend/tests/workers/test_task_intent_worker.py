@@ -86,6 +86,12 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
             captured["starter_client"] = client
             captured["starter_options"] = kwargs
 
+    class FakeSignaler:
+        def __init__(self, client: object, **kwargs: object) -> None:
+            events.append("signaler")
+            captured["signaler_client"] = client
+            captured["signaler_options"] = kwargs
+
     class FakeConsumer:
         def __init__(
             self,
@@ -102,10 +108,28 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
             events.append("run")
             captured["stop_event"] = stop_event
 
+    class FakeCommandConsumer:
+        def __init__(
+            self,
+            database: object,
+            signaler: object,
+            **kwargs: object,
+        ) -> None:
+            events.append("command-consumer")
+            captured["command_database"] = database
+            captured["command_signaler"] = signaler
+            captured["command_options"] = kwargs
+
+        async def run_forever(self, stop_event: object) -> None:
+            events.append("command-run")
+            captured["command_stop_event"] = stop_event
+
     monkeypatch.setattr(task_intent, "TaskIntentDispatcherDatabase", FakeDatabase)
     monkeypatch.setattr(task_intent, "Client", FakeClient)
     monkeypatch.setattr(task_intent, "TemporalTaskIntentStarter", FakeStarter)
+    monkeypatch.setattr(task_intent, "TemporalTaskCommandSignaler", FakeSignaler)
     monkeypatch.setattr(task_intent, "TaskWorkflowIntentConsumer", FakeConsumer)
+    monkeypatch.setattr(task_intent, "TaskRunCommandIntentConsumer", FakeCommandConsumer)
     settings = _enabled_settings()
 
     await task_intent.run_consumer(settings)
@@ -115,8 +139,11 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
         "client",
         "starter",
         "consumer",
+        "signaler",
+        "command-consumer",
         "open",
         "run",
+        "command-run",
         "close",
     ]
     assert captured["database_url"] == (
@@ -133,6 +160,7 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
     assert starter_options["rpc_attempts"] == 2
     assert starter_options["rpc_timeout"].total_seconds() == 8
     assert starter_options["retry_delay"].total_seconds() == 0.5
+    assert captured["signaler_options"] == starter_options
     consumer_options = captured["consumer_options"]
     assert consumer_options["dispatcher_id"] == "task-dispatcher-test"
     assert consumer_options["temporal_namespace"] == "task-namespace"
@@ -145,6 +173,8 @@ async def test_consumer_wires_isolated_database_temporal_and_retry_policy(
     assert retry_policy.initial_backoff.total_seconds() == 3
     assert retry_policy.maximum_backoff.total_seconds() == 90
     assert captured["stop_event"].is_set()
+    assert captured["command_stop_event"] is captured["stop_event"]
+    assert captured["command_options"] == consumer_options
 
 
 @pytest.mark.anyio
@@ -172,6 +202,10 @@ async def test_consumer_closes_database_when_polling_fails(
         def __init__(self, *_args: object, **_kwargs: object) -> None:
             pass
 
+    class FakeSignaler:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
     class FailingConsumer:
         def __init__(self, *_args: object, **_kwargs: object) -> None:
             pass
@@ -179,16 +213,34 @@ async def test_consumer_closes_database_when_polling_fails(
         async def run_forever(self, _stop_event: object) -> None:
             raise RuntimeError("poll failed")
 
+    class WaitingCommandConsumer:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def run_forever(self, _stop_event: object) -> None:
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                events.append("command-canceled")
+                raise
+
     monkeypatch.setattr(task_intent, "TaskIntentDispatcherDatabase", FakeDatabase)
     monkeypatch.setattr(task_intent, "Client", FakeClient)
     monkeypatch.setattr(task_intent, "TemporalTaskIntentStarter", FakeStarter)
+    monkeypatch.setattr(task_intent, "TemporalTaskCommandSignaler", FakeSignaler)
     monkeypatch.setattr(task_intent, "TaskWorkflowIntentConsumer", FailingConsumer)
+    monkeypatch.setattr(
+        task_intent,
+        "TaskRunCommandIntentConsumer",
+        WaitingCommandConsumer,
+    )
     stop_event = asyncio.Event()
 
-    with pytest.raises(RuntimeError, match="poll failed"):
+    with pytest.raises(ExceptionGroup) as failure:
         await task_intent.run_consumer(_enabled_settings(), stop_event=stop_event)
 
-    assert events == ["open", "close"]
+    assert "poll failed" in str(failure.value.exceptions[0])
+    assert events == ["open", "command-canceled", "close"]
     assert stop_event.is_set()
 
 

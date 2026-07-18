@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-run-command/0.1/schema.json",
+  "$defs": {
+    "TaskRunCommandStatus": {
+      "description": "Public delivery state without exposing dispatcher lease internals.",
+      "enum": [
+        "PENDING",
+        "DELIVERED",
+        "APPLIED",
+        "FAILED",
+        "SUPERSEDED"
+      ],
+      "title": "TaskRunCommandStatus",
+      "type": "string"
+    },
+    "TaskRunCommandType": {
+      "description": "Durable TaskRun control commands accepted by the public control plane.",
+      "enum": [
+        "CANCEL",
+        "PAUSE",
+        "RESUME"
+      ],
+      "title": "TaskRunCommandType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Public projection of one durable secret-free TaskRun control command.",
+  "properties": {
+    "schemaVersion": {
+      "default": "atlas.task-run-command/0.2",
+      "enum": [
+        "atlas.task-run-command/0.1",
+        "atlas.task-run-command/0.2"
+      ],
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "commandType": {
+      "$ref": "#/$defs/TaskRunCommandType"
+    },
+    "clientMutationId": {
+      "maxLength": 200,
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+      "title": "Clientmutationid",
+      "type": "string"
+    },
+    "commandDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Commanddigest",
+      "type": "string"
+    },
+    "expectedRunRevision": {
+      "minimum": 1,
+      "title": "Expectedrunrevision",
+      "type": "integer"
+    },
+    "acceptedRunRevision": {
+      "minimum": 2,
+      "title": "Acceptedrunrevision",
+      "type": "integer"
+    },
+    "requestDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Requestdigest",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "temporalNamespace": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+      "title": "Temporalnamespace",
+      "type": "string"
+    },
+    "temporalWorkflowId": {
+      "maxLength": 320,
+      "minLength": 12,
+      "pattern": "^atlas-task/[A-Za-z0-9/_-]+$",
+      "title": "Temporalworkflowid",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/TaskRunCommandStatus"
+    },
+    "dispatchAttempts": {
+      "minimum": 0,
+      "title": "Dispatchattempts",
+      "type": "integer"
+    },
+    "lastErrorCode": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lasterrorcode"
+    },
+    "deliveredAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deliveredat"
+    },
+    "appliedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Appliedat"
+    },
+    "failedAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failedat"
+    },
+    "supersededAt": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersededat"
+    },
+    "supersededByCommandId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersededbycommandid"
+    },
+    "createdBy": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Createdby"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "title": "Updatedat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "commandType",
+    "clientMutationId",
+    "commandDigest",
+    "expectedRunRevision",
+    "acceptedRunRevision",
+    "requestDigest",
+    "manifestHash",
+    "temporalNamespace",
+    "temporalWorkflowId",
+    "status",
+    "dispatchAttempts",
+    "createdAt",
+    "updatedAt"
+  ],
+  "title": "TaskRunCommandIntent",
+  "type": "object"
+}

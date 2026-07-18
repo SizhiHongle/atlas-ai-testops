@@ -1090,6 +1090,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/{projectId}/task-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 Project 的 TaskRun */
+        get: operations["list_task_runs_v1_projects__projectId__task_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{projectId}/test-cases": {
         parameters: {
             query?: never;
@@ -1146,6 +1163,176 @@ export interface paths {
         get: operations["current_session_v1_session_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 TaskRun 状态快照 */
+        get: operations["get_task_run_v1_task_runs__runId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}/commands/{commandId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 TaskRun 控制命令状态 */
+        get: operations["get_task_run_command_v1_task_runs__runId__commands__commandId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 增量读取 TaskRun 单调事件 */
+        get: operations["list_task_run_events_v1_task_runs__runId__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 TaskRun 的不可变 Run Manifest */
+        get: operations["get_task_run_manifest_v1_task_runs__runId__manifest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}/units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 按 Manifest 顺序列出 ExecutionUnit */
+        get: operations["list_execution_units_v1_task_runs__runId__units_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}/units/{unitId}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 列出 ExecutionUnit 的 UnitAttempt */
+        get: operations["list_unit_attempts_v1_task_runs__runId__units__unitId__attempts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}:cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 可靠请求取消 TaskRun */
+        post: operations["cancel_task_run_v1_task_runs__runId__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}:pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 在安全批次边界暂停 TaskRun 派发 */
+        post: operations["pause_task_run_v1_task_runs__runId__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}:rerun-infra-failures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建仅包含环境失败单元的子 TaskRun */
+        post: operations["rerun_task_run_infrastructure_failures_v1_task_runs__runId__rerun_infra_failures_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-runs/{runId}:resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 继续派发已暂停的 TaskRun */
+        post: operations["resume_task_run_v1_task_runs__runId__resume_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4217,6 +4404,177 @@ export interface components {
             workerIdentity: string;
         };
         /**
+         * ExecutionHygiene
+         * @description Shared resource-cleanup axis independent of result quality.
+         * @enum {string}
+         */
+        ExecutionHygiene: "NOT_REQUIRED" | "PENDING" | "RUNNING" | "CLEANED" | "CLEANUP_FAILED" | "LEAKED";
+        /**
+         * ExecutionLifecycle
+         * @description Shared TaskRun, ExecutionUnit, and UnitAttempt lifecycle axis.
+         * @enum {string}
+         */
+        ExecutionLifecycle: "QUEUED" | "RUNNING" | "PAUSE_REQUESTED" | "PAUSED" | "CANCELING" | "FINALIZING" | "CLOSED";
+        /**
+         * ExecutionQuality
+         * @description Shared Oracle-owned result axis independent of lifecycle.
+         * @enum {string}
+         */
+        ExecutionQuality: "PENDING" | "PASSED" | "FAILED" | "BLOCKED" | "INCONCLUSIVE" | "INFRA_ERROR" | "CANCELED";
+        /**
+         * ExecutionUnit
+         * @description Logical immutable manifest cell whose retries append UnitAttempts.
+         */
+        ExecutionUnit: {
+            /**
+             * Browserprofileversionid
+             * Format: uuid
+             */
+            browserProfileVersionId: string;
+            /**
+             * Caseversionid
+             * Format: uuid
+             */
+            caseVersionId: string;
+            /** Cleanupresolvedat */
+            cleanupResolvedAt?: string | null;
+            /** Closedat */
+            closedAt?: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Dataprofileversionid
+             * Format: uuid
+             */
+            dataProfileVersionId: string;
+            /** Dependencydigest */
+            dependencyDigest: string;
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /**
+             * Executionprofileversionid
+             * Format: uuid
+             */
+            executionProfileVersionId: string;
+            /** Finalizedat */
+            finalizedAt?: string | null;
+            /**
+             * Fixtureblueprintversionid
+             * Format: uuid
+             */
+            fixtureBlueprintVersionId: string;
+            hygiene: components["schemas"]["ExecutionHygiene"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Identityprofileversionid
+             * Format: uuid
+             */
+            identityProfileVersionId: string;
+            lifecycle: components["schemas"]["ExecutionLifecycle"];
+            /** Manifesthash */
+            manifestHash: string;
+            /** Ordinal */
+            ordinal: number;
+            /** Parameterdigest */
+            parameterDigest: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            quality: components["schemas"]["ExecutionQuality"];
+            /** Revision */
+            revision: number;
+            /** Startedat */
+            startedAt?: string | null;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Unitkey */
+            unitKey: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * ExecutionUnitManifest
+         * @description One exact CaseVersion and matrix cell frozen into a Run Manifest.
+         */
+        ExecutionUnitManifest: {
+            /**
+             * Browserprofileversionid
+             * Format: uuid
+             */
+            browserProfileVersionId: string;
+            /**
+             * Caseversionid
+             * Format: uuid
+             */
+            caseVersionId: string;
+            /**
+             * Dataprofileversionid
+             * Format: uuid
+             */
+            dataProfileVersionId: string;
+            /** Dependencydigest */
+            dependencyDigest: string;
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /**
+             * Executionprofileversionid
+             * Format: uuid
+             */
+            executionProfileVersionId: string;
+            /**
+             * Fixtureblueprintversionid
+             * Format: uuid
+             */
+            fixtureBlueprintVersionId: string;
+            /**
+             * Identityprofileversionid
+             * Format: uuid
+             */
+            identityProfileVersionId: string;
+            /** Ordinal */
+            ordinal: number;
+            /** Parameterdigest */
+            parameterDigest: string;
+            /** Unitkey */
+            unitKey: string;
+        };
+        /**
+         * ExecutionUnitPage
+         * @description Ordinal page of ExecutionUnits for one TaskRun.
+         */
+        ExecutionUnitPage: {
+            /** Items */
+            items: components["schemas"]["ExecutionUnit"][];
+            /** Nextafterordinal */
+            nextAfterOrdinal?: number | null;
+        };
+        /**
          * FieldViolation
          * @description 请求字段的单个校验问题。
          */
@@ -5276,6 +5634,38 @@ export interface components {
             reason: string;
         };
         /**
+         * RequestTaskRunCancel
+         * @description Idempotent public request to cancel one exact TaskRun revision.
+         */
+        RequestTaskRunCancel: {
+            /** Clientmutationid */
+            clientMutationId: string;
+        };
+        /**
+         * RequestTaskRunInfraFailureRerun
+         * @description Idempotent public request to create a child Run for infra-failed Units.
+         */
+        RequestTaskRunInfraFailureRerun: {
+            /** Clientmutationid */
+            clientMutationId: string;
+        };
+        /**
+         * RequestTaskRunPause
+         * @description Idempotent public request to pause dispatch for one exact TaskRun revision.
+         */
+        RequestTaskRunPause: {
+            /** Clientmutationid */
+            clientMutationId: string;
+        };
+        /**
+         * RequestTaskRunResume
+         * @description Idempotent public request to resume dispatch for one exact TaskRun revision.
+         */
+        RequestTaskRunResume: {
+            /** Clientmutationid */
+            clientMutationId: string;
+        };
+        /**
          * ResourceCleanupAttempt
          * @description Safe append-only cleanup attempt without the provider locator.
          */
@@ -5552,6 +5942,345 @@ export interface components {
             /** Versionref */
             versionRef: string;
         };
+        /**
+         * TaskExecutionEvent
+         * @description Append-only monotonic event projection for Task execution replay.
+         */
+        TaskExecutionEvent: {
+            /** Eventtype */
+            eventType: string;
+            /** Executionunitid */
+            executionUnitId?: string | null;
+            hygiene: components["schemas"]["ExecutionHygiene"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            lifecycle: components["schemas"]["ExecutionLifecycle"];
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt: string;
+            /** Payload */
+            payload?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            quality: components["schemas"]["ExecutionQuality"];
+            /**
+             * Schemaversion
+             * @default atlas.execution-event/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.execution-event/0.1";
+            /** Seq */
+            seq: number;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Unitattemptid */
+            unitAttemptId?: string | null;
+        };
+        /**
+         * TaskExecutionEventPage
+         * @description Monotonic event page resumed with afterSeq.
+         */
+        TaskExecutionEventPage: {
+            /** Items */
+            items: components["schemas"]["TaskExecutionEvent"][];
+            /** Nextafterseq */
+            nextAfterSeq?: number | null;
+        };
+        /**
+         * TaskMaterializationState
+         * @description Completeness gate for a TaskRun aggregate before dispatch.
+         * @enum {string}
+         */
+        TaskMaterializationState: "MATERIALIZING" | "SEALED";
+        /**
+         * TaskRetryPolicy
+         * @description Frozen bounded policy for safe, explicitly classified infrastructure retries.
+         */
+        TaskRetryPolicy: {
+            /** Contentdigest */
+            contentDigest: string;
+            /** Infraretryattempts */
+            infraRetryAttempts: number;
+            /** Initialbackoffseconds */
+            initialBackoffSeconds: number;
+            /** Jitterpercent */
+            jitterPercent: number;
+            /** Maxtotalinfraretries */
+            maxTotalInfraRetries: number;
+            /** Maximumbackoffseconds */
+            maximumBackoffSeconds: number;
+            /**
+             * Schemaversion
+             * @default atlas.task-retry-policy/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.task-retry-policy/0.1";
+        };
+        /**
+         * TaskRun
+         * @description Durable execution batch bound to one immutable Run Manifest.
+         */
+        TaskRun: {
+            /** Cleanupresolvedat */
+            cleanupResolvedAt?: string | null;
+            /** Closedat */
+            closedAt?: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Finalizedat */
+            finalizedAt?: string | null;
+            hygiene: components["schemas"]["ExecutionHygiene"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            lifecycle: components["schemas"]["ExecutionLifecycle"];
+            /** Manifesthash */
+            manifestHash: string;
+            /** Materializationsealedat */
+            materializationSealedAt?: string | null;
+            /** @default MATERIALIZING */
+            materializationState: components["schemas"]["TaskMaterializationState"];
+            /** Materializedfirstattemptcount */
+            materializedFirstAttemptCount?: number | null;
+            /** Materializedunitcount */
+            materializedUnitCount?: number | null;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            quality: components["schemas"]["ExecutionQuality"];
+            /**
+             * Queuedat
+             * Format: date-time
+             */
+            queuedAt: string;
+            /** Requestdigest */
+            requestDigest?: string | null;
+            /**
+             * Requestedat
+             * Format: date-time
+             */
+            requestedAt: string;
+            /** Requestedby */
+            requestedBy: string | null;
+            /** Rerunoftaskrunid */
+            rerunOfTaskRunId?: string | null;
+            rerunSelectionMode?: components["schemas"]["TaskRunRerunSelectionMode"] | null;
+            /** Revision */
+            revision: number;
+            /** Startedat */
+            startedAt?: string | null;
+            /**
+             * Taskplanversionid
+             * Format: uuid
+             */
+            taskPlanVersionId: string;
+            /** Temporalnamespace */
+            temporalNamespace?: string | null;
+            /** Temporalworkflowid */
+            temporalWorkflowId?: string | null;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Triggerfingerprint */
+            triggerFingerprint: string;
+            triggerSource: components["schemas"]["TaskTriggerSource"];
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        } & (unknown & ({
+            temporalNamespace: string;
+            temporalWorkflowId: string;
+        } | {
+            temporalNamespace?: null;
+            temporalWorkflowId?: null;
+        }));
+        /**
+         * TaskRunCommandIntent
+         * @description Public projection of one durable secret-free TaskRun control command.
+         */
+        TaskRunCommandIntent: {
+            /** Acceptedrunrevision */
+            acceptedRunRevision: number;
+            /** Appliedat */
+            appliedAt?: string | null;
+            /** Clientmutationid */
+            clientMutationId: string;
+            /** Commanddigest */
+            commandDigest: string;
+            commandType: components["schemas"]["TaskRunCommandType"];
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Createdby */
+            createdBy?: string | null;
+            /** Deliveredat */
+            deliveredAt?: string | null;
+            /** Dispatchattempts */
+            dispatchAttempts: number;
+            /** Expectedrunrevision */
+            expectedRunRevision: number;
+            /** Failedat */
+            failedAt?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lasterrorcode */
+            lastErrorCode?: string | null;
+            /** Manifesthash */
+            manifestHash: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /** Requestdigest */
+            requestDigest: string;
+            /**
+             * Schemaversion
+             * @default atlas.task-run-command/0.2
+             * @enum {string}
+             */
+            schemaVersion: "atlas.task-run-command/0.1" | "atlas.task-run-command/0.2";
+            status: components["schemas"]["TaskRunCommandStatus"];
+            /** Supersededat */
+            supersededAt?: string | null;
+            /** Supersededbycommandid */
+            supersededByCommandId?: string | null;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /** Temporalnamespace */
+            temporalNamespace: string;
+            /** Temporalworkflowid */
+            temporalWorkflowId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * TaskRunCommandStatus
+         * @description Public delivery state without exposing dispatcher lease internals.
+         * @enum {string}
+         */
+        TaskRunCommandStatus: "PENDING" | "DELIVERED" | "APPLIED" | "FAILED" | "SUPERSEDED";
+        /**
+         * TaskRunCommandType
+         * @description Durable TaskRun control commands accepted by the public control plane.
+         * @enum {string}
+         */
+        TaskRunCommandType: "CANCEL" | "PAUSE" | "RESUME";
+        /**
+         * TaskRunManifest
+         * @description Complete immutable execution input for one TaskRun.
+         */
+        TaskRunManifest: {
+            /** Compilerversion */
+            compilerVersion: string;
+            /** Iterationid */
+            iterationId?: string | null;
+            /** Manifesthash */
+            manifestHash: string;
+            /** Policydigests */
+            policyDigests: {
+                [key: string]: string;
+            };
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            retryPolicy?: components["schemas"]["TaskRetryPolicy"] | null;
+            /**
+             * Schemaversion
+             * @default atlas.task-run-manifest/0.1
+             * @enum {string}
+             */
+            schemaVersion: "atlas.task-run-manifest/0.1" | "atlas.task-run-manifest/0.2";
+            /**
+             * Taskplanversionid
+             * Format: uuid
+             */
+            taskPlanVersionId: string;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Triggerfingerprint */
+            triggerFingerprint: string;
+            triggerSource: components["schemas"]["TaskTriggerSource"];
+            /** Units */
+            units: components["schemas"]["ExecutionUnitManifest"][];
+        };
+        /**
+         * TaskRunPage
+         * @description Cursor page of TaskRuns for one Project.
+         */
+        TaskRunPage: {
+            /** Items */
+            items: components["schemas"]["TaskRun"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /**
+         * TaskRunRerunSelectionMode
+         * @description Database-proven source selection used to materialize a child TaskRun.
+         * @enum {string}
+         */
+        TaskRunRerunSelectionMode: "INFRA_FAILURES";
+        /**
+         * TaskTriggerSource
+         * @description Bounded trigger origins used in TaskRun idempotency scope.
+         * @enum {string}
+         */
+        TaskTriggerSource: "MANUAL" | "SCHEDULE" | "CI" | "WEBHOOK" | "API";
         /**
          * Tenant
          * @description 多租户隔离根。
@@ -5974,6 +6703,101 @@ export interface components {
             toolCatalogRef: string;
             /** Toolschemadigest */
             toolSchemaDigest: string;
+        };
+        /**
+         * UnitAttempt
+         * @description One append-only physical execution attempt for an ExecutionUnit.
+         */
+        UnitAttempt: {
+            /** Attemptnumber */
+            attemptNumber: number;
+            /**
+             * Caseversionid
+             * Format: uuid
+             */
+            caseVersionId: string;
+            /** Cleanupresolvedat */
+            cleanupResolvedAt?: string | null;
+            /** Closedat */
+            closedAt?: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Executiondeadline
+             * Format: date-time
+             */
+            executionDeadline: string;
+            /**
+             * Executionunitid
+             * Format: uuid
+             */
+            executionUnitId: string;
+            /** Finalizedat */
+            finalizedAt?: string | null;
+            hygiene: components["schemas"]["ExecutionHygiene"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            lifecycle: components["schemas"]["ExecutionLifecycle"];
+            /** Manifesthash */
+            manifestHash: string;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            quality: components["schemas"]["ExecutionQuality"];
+            /**
+             * Queuedat
+             * Format: date-time
+             */
+            queuedAt: string;
+            /** Revision */
+            revision: number;
+            /** Startedat */
+            startedAt?: string | null;
+            /**
+             * Taskrunid
+             * Format: uuid
+             */
+            taskRunId: string;
+            /** Temporalnamespace */
+            temporalNamespace?: string | null;
+            /** Temporalworkflowid */
+            temporalWorkflowId?: string | null;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Unitkey */
+            unitKey: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        } & ({
+            temporalNamespace: string;
+            temporalWorkflowId: string;
+        } | {
+            temporalNamespace?: null;
+            temporalWorkflowId?: null;
+        });
+        /**
+         * UnitAttemptPage
+         * @description Attempt-number page for one ExecutionUnit.
+         */
+        UnitAttemptPage: {
+            /** Items */
+            items: components["schemas"]["UnitAttempt"][];
+            /** Nextafterattemptnumber */
+            nextAfterAttemptNumber?: number | null;
         };
         /**
          * UpdateAccountPool
@@ -13255,6 +14079,79 @@ export interface operations {
             };
         };
     };
+    list_task_runs_v1_projects__projectId__task_runs_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskRunPage"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     list_test_cases_v1_projects__projectId__test_cases_get: {
         parameters: {
             query?: {
@@ -13715,6 +14612,849 @@ export interface operations {
             };
             /** @description PlatformPrincipal 已存在 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_task_run_v1_task_runs__runId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskRun"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_task_run_command_v1_task_runs__runId__commands__commandId__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+                commandId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskRunCommandIntent"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_task_run_events_v1_task_runs__runId__events_get: {
+        parameters: {
+            query?: {
+                afterSeq?: number;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskExecutionEventPage"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_task_run_manifest_v1_task_runs__runId__manifest_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskRunManifest"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_execution_units_v1_task_runs__runId__units_get: {
+        parameters: {
+            query?: {
+                afterOrdinal?: number;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExecutionUnitPage"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_unit_attempts_v1_task_runs__runId__units__unitId__attempts_get: {
+        parameters: {
+            query?: {
+                afterAttemptNumber?: number;
+                limit?: number;
+            };
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitAttemptPage"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    cancel_task_run_v1_task_runs__runId__cancel_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestTaskRunCancel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskRunCommandIntent"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能控制该 TaskRun */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 状态或幂等键冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    pause_task_run_v1_task_runs__runId__pause_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestTaskRunPause"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskRunCommandIntent"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能控制该 TaskRun */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 状态或幂等键冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    rerun_task_run_infrastructure_failures_v1_task_runs__runId__rerun_infra_failures_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestTaskRunInfraFailureRerun"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskRun"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能运行该 TaskRun */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 父 TaskRun 状态或环境失败选择冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 父 TaskRun Revision 前置条件失败 */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    resume_task_run_v1_task_runs__runId__resume_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestTaskRunResume"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskRunCommandIntent"];
+                };
+            };
+            /** @description 分页 Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 当前角色不能控制该 TaskRun */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 或 ExecutionUnit 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun 状态或幂等键冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description TaskRun Revision 前置条件失败 */
+            412: {
                 headers: {
                     [name: string]: unknown;
                 };

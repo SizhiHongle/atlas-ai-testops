@@ -52,6 +52,14 @@
       "title": "TaskMaterializationState",
       "type": "string"
     },
+    "TaskRunRerunSelectionMode": {
+      "description": "Database-proven source selection used to materialize a child TaskRun.",
+      "enum": [
+        "INFRA_FAILURES"
+      ],
+      "title": "TaskRunRerunSelectionMode",
+      "type": "string"
+    },
     "TaskTriggerSource": {
       "description": "Bounded trigger origins used in TaskRun idempotency scope.",
       "enum": [
@@ -260,6 +268,17 @@
       ],
       "default": null,
       "title": "Rerunoftaskrunid"
+    },
+    "rerunSelectionMode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TaskRunRerunSelectionMode"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "lifecycle": {
       "$ref": "#/$defs/ExecutionLifecycle"

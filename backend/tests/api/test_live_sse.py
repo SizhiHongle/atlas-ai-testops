@@ -405,14 +405,15 @@ async def test_stream_hard_deadline_releases_capacity_when_send_stalls(
             body_send_started.set()
             await asyncio.Event().wait()
 
-    await asyncio.wait_for(
+    application_task = asyncio.create_task(
         application(
             _stream_scope(spec_version="2.4"),
             _receive_forever,
             stall_on_body,
-        ),
-        timeout=0.5,
+        )
     )
+    await asyncio.wait_for(body_send_started.wait(), timeout=1.0)
+    await asyncio.wait_for(application_task, timeout=0.5)
 
     assert body_send_started.is_set()
     assert limiter.acquire_calls == 1

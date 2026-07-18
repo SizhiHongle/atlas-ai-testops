@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
 from math import isfinite
 from re import fullmatch
 from typing import Annotated, Literal, Self
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import (
     AwareDatetime,
@@ -26,17 +27,42 @@ from atlas_testops.domain.case.models import (
     SemanticVersion,
     canonical_digest,
 )
+from atlas_testops.domain.platform.models import normalize_origins
 
 TASK_PLAN_SCHEMA_VERSION: Literal["atlas.task-plan/0.1"] = "atlas.task-plan/0.1"
-TASK_RUN_MANIFEST_SCHEMA_VERSION: Literal["atlas.task-run-manifest/0.1"] = (
+TASK_RUN_MANIFEST_LEGACY_SCHEMA_VERSION: Literal["atlas.task-run-manifest/0.1"] = (
     "atlas.task-run-manifest/0.1"
 )
+TASK_RUN_MANIFEST_SCHEMA_VERSION: Literal["atlas.task-run-manifest/0.2"] = (
+    "atlas.task-run-manifest/0.2"
+)
+TaskRunManifestSchemaVersion = Literal[
+    "atlas.task-run-manifest/0.1",
+    "atlas.task-run-manifest/0.2",
+]
+TASK_RETRY_POLICY_SCHEMA_VERSION: Literal["atlas.task-retry-policy/0.1"] = (
+    "atlas.task-retry-policy/0.1"
+)
+TASK_RETRY_POLICY_DIGEST_KEY = "infra-retry"
 TASK_EXECUTION_EVENT_SCHEMA_VERSION: Literal["atlas.execution-event/0.1"] = (
     "atlas.execution-event/0.1"
 )
 TASK_RUN_REQUEST_SCHEMA_VERSION: Literal["atlas.task-run-request/0.1"] = (
     "atlas.task-run-request/0.1"
 )
+TASK_UNIT_EXECUTION_TICKET_SCHEMA_VERSION: Literal[
+    "atlas.task-unit-execution-ticket/0.1"
+] = "atlas.task-unit-execution-ticket/0.1"
+TASK_RUN_COMMAND_LEGACY_SCHEMA_VERSION: Literal["atlas.task-run-command/0.1"] = (
+    "atlas.task-run-command/0.1"
+)
+TASK_RUN_COMMAND_SCHEMA_VERSION: Literal["atlas.task-run-command/0.2"] = (
+    "atlas.task-run-command/0.2"
+)
+TaskRunCommandSchemaVersion = Literal[
+    "atlas.task-run-command/0.1",
+    "atlas.task-run-command/0.2",
+]
 
 TASK_KEY_PATTERN = r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$"
 REFERENCE_KEY_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$"
@@ -44,6 +70,8 @@ POLICY_KEY_PATTERN = r"^[a-z][a-z0-9_.-]{1,127}$"
 TEMPORAL_WORKFLOW_ID_PATTERN = r"^atlas-task/[A-Za-z0-9/_-]+$"
 TEMPORAL_NAMESPACE_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
 EVENT_TYPE_PATTERN = r"^[a-z][a-z0-9_.-]+$"
+CLIENT_MUTATION_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$"
+SAFE_ERROR_CODE_PATTERN = r"^[A-Z][A-Z0-9_]{0,63}$"
 TASK_EXECUTION_EVENT_PAYLOAD_MAX_BYTES = 32_768
 
 PolicyKey = Annotated[str, StringConstraints(pattern=POLICY_KEY_PATTERN)]
@@ -107,6 +135,30 @@ class TaskMaterializationState(StrEnum):
 
     MATERIALIZING = "MATERIALIZING"
     SEALED = "SEALED"
+
+
+class TaskRunRerunSelectionMode(StrEnum):
+    """Database-proven source selection used to materialize a child TaskRun."""
+
+    INFRA_FAILURES = "INFRA_FAILURES"
+
+
+class TaskRunCommandType(StrEnum):
+    """Durable TaskRun control commands accepted by the public control plane."""
+
+    CANCEL = "CANCEL"
+    PAUSE = "PAUSE"
+    RESUME = "RESUME"
+
+
+class TaskRunCommandStatus(StrEnum):
+    """Public delivery state without exposing dispatcher lease internals."""
+
+    PENDING = "PENDING"
+    DELIVERED = "DELIVERED"
+    APPLIED = "APPLIED"
+    FAILED = "FAILED"
+    SUPERSEDED = "SUPERSEDED"
 
 
 class ExecutionLifecycle(StrEnum):
@@ -243,6 +295,17 @@ def unit_attempt_workflow_id(*, tenant_id: UUID, unit_attempt_id: UUID) -> str:
     """Derive the namespace-global Temporal identity for one UnitAttempt."""
 
     return f"atlas-task/attempt/{tenant_id.hex}/{unit_attempt_id.hex}"
+
+
+def unit_retry_attempt_id(*, execution_unit_id: UUID, attempt_number: int) -> UUID:
+    """Derive a stable retry Attempt identity for database Activity replay."""
+
+    if attempt_number <= 1:
+        raise ValueError("retry Attempt number must be greater than one")
+    return uuid5(
+        NAMESPACE_URL,
+        f"atlas-task/retry/{execution_unit_id.hex}/{attempt_number}",
+    )
 
 
 def task_plan_version_content_digest(
@@ -451,11 +514,15 @@ def task_run_manifest_hash(
     units: tuple[ExecutionUnitManifest, ...],
     policy_digests: dict[str, str],
     compiler_version: str,
+    schema_version: TaskRunManifestSchemaVersion = (
+        TASK_RUN_MANIFEST_LEGACY_SCHEMA_VERSION
+    ),
+    retry_policy: TaskRetryPolicy | None = None,
 ) -> str:
     """Recompute the canonical hash of a complete immutable Run Manifest."""
 
     body: dict[str, JsonValue] = {
-        "schemaVersion": TASK_RUN_MANIFEST_SCHEMA_VERSION,
+        "schemaVersion": schema_version,
         "taskRunId": str(task_run_id),
         "taskPlanVersionId": str(task_plan_version_id),
         "triggerSource": trigger_source.value,
@@ -470,13 +537,73 @@ def task_run_manifest_hash(
         "policyDigests": dict(sorted(policy_digests.items())),
         "compilerVersion": compiler_version,
     }
+    if schema_version == TASK_RUN_MANIFEST_SCHEMA_VERSION:
+        if retry_policy is None:
+            raise ValueError("current Run Manifest requires retryPolicy")
+    elif retry_policy is not None:
+        raise ValueError("legacy Run Manifest cannot contain retryPolicy")
     return canonical_digest(body)
+
+
+def task_retry_policy_digest(
+    *,
+    infra_retry_attempts: int,
+    max_total_infra_retries: int,
+    initial_backoff_seconds: int,
+    maximum_backoff_seconds: int,
+    jitter_percent: int,
+) -> str:
+    """Hash the exact bounded infrastructure retry policy."""
+
+    return canonical_digest(
+        {
+            "schemaVersion": TASK_RETRY_POLICY_SCHEMA_VERSION,
+            "infraRetryAttempts": infra_retry_attempts,
+            "maxTotalInfraRetries": max_total_infra_retries,
+            "initialBackoffSeconds": initial_backoff_seconds,
+            "maximumBackoffSeconds": maximum_backoff_seconds,
+            "jitterPercent": jitter_percent,
+        }
+    )
+
+
+class TaskRetryPolicy(FrozenWireModel):
+    """Frozen bounded policy for safe, explicitly classified infrastructure retries."""
+
+    schema_version: Literal["atlas.task-retry-policy/0.1"] = (
+        TASK_RETRY_POLICY_SCHEMA_VERSION
+    )
+    infra_retry_attempts: int = Field(ge=0, le=4)
+    max_total_infra_retries: int = Field(ge=0, le=256)
+    initial_backoff_seconds: int = Field(ge=1, le=300)
+    maximum_backoff_seconds: int = Field(ge=1, le=3_600)
+    jitter_percent: int = Field(ge=0, le=50)
+    content_digest: str = Field(pattern=DIGEST_PATTERN)
+
+    @model_validator(mode="after")
+    def validate_policy(self) -> Self:
+        """Reject an altered digest or a decreasing backoff ceiling."""
+
+        if self.maximum_backoff_seconds < self.initial_backoff_seconds:
+            raise ValueError("maximumBackoffSeconds cannot be below initialBackoffSeconds")
+        expected_digest = task_retry_policy_digest(
+            infra_retry_attempts=self.infra_retry_attempts,
+            max_total_infra_retries=self.max_total_infra_retries,
+            initial_backoff_seconds=self.initial_backoff_seconds,
+            maximum_backoff_seconds=self.maximum_backoff_seconds,
+            jitter_percent=self.jitter_percent,
+        )
+        if self.content_digest != expected_digest:
+            raise ValueError("contentDigest must match the complete TaskRetryPolicy")
+        return self
 
 
 class TaskRunManifest(FrozenWireModel):
     """Complete immutable execution input for one TaskRun."""
 
-    schema_version: Literal["atlas.task-run-manifest/0.1"] = TASK_RUN_MANIFEST_SCHEMA_VERSION
+    schema_version: TaskRunManifestSchemaVersion = (
+        TASK_RUN_MANIFEST_LEGACY_SCHEMA_VERSION
+    )
     task_run_id: UUID
     task_plan_version_id: UUID
     trigger_source: TaskTriggerSource
@@ -502,6 +629,7 @@ class TaskRunManifest(FrozenWireModel):
         max_length=64,
         json_schema_extra={"additionalProperties": False},
     )
+    retry_policy: TaskRetryPolicy | None = None
     compiler_version: SemanticVersion
     manifest_hash: str = Field(pattern=DIGEST_PATTERN)
 
@@ -528,6 +656,17 @@ class TaskRunManifest(FrozenWireModel):
             raise ValueError("Run Manifest units must be sorted by unitKey")
         if tuple(unit.ordinal for unit in self.units) != tuple(range(1, len(self.units) + 1)):
             raise ValueError("Run Manifest Unit ordinals must be contiguous")
+        if self.schema_version == TASK_RUN_MANIFEST_LEGACY_SCHEMA_VERSION:
+            if self.retry_policy is not None:
+                raise ValueError("legacy Run Manifest cannot contain retryPolicy")
+        elif (
+            self.retry_policy is None
+            or self.policy_digests.get(TASK_RETRY_POLICY_DIGEST_KEY)
+            != self.retry_policy.content_digest
+        ):
+            raise ValueError(
+                "current Run Manifest requires retryPolicy and its exact policy digest"
+            )
         expected_hash = task_run_manifest_hash(
             task_run_id=self.task_run_id,
             task_plan_version_id=self.task_plan_version_id,
@@ -539,6 +678,8 @@ class TaskRunManifest(FrozenWireModel):
             units=self.units,
             policy_digests=self.policy_digests,
             compiler_version=self.compiler_version,
+            schema_version=self.schema_version,
+            retry_policy=self.retry_policy,
         )
         if self.manifest_hash != expected_hash:
             raise ValueError("manifestHash must match the complete Run Manifest")
@@ -558,6 +699,8 @@ class TaskRunManifest(FrozenWireModel):
             units=self.units,
             policy_digests=self.policy_digests,
             compiler_version=self.compiler_version,
+            schema_version=self.schema_version,
+            retry_policy=self.retry_policy,
         )
 
     def recompute_request_digest(self) -> str:
@@ -765,6 +908,7 @@ class TaskRun(FrozenWireModel):
     materialized_first_attempt_count: int | None = Field(default=None, ge=1)
     materialization_sealed_at: AwareDatetime | None = None
     rerun_of_task_run_id: UUID | None = None
+    rerun_selection_mode: TaskRunRerunSelectionMode | None = None
     lifecycle: ExecutionLifecycle
     quality: ExecutionQuality
     hygiene: ExecutionHygiene
@@ -797,6 +941,8 @@ class TaskRun(FrozenWireModel):
 
         if self.rerun_of_task_run_id == self.id:
             raise ValueError("rerunOfTaskRunId cannot reference the same TaskRun")
+        if self.rerun_selection_mode is not None and self.rerun_of_task_run_id is None:
+            raise ValueError("rerunSelectionMode requires rerunOfTaskRunId")
         if (self.temporal_namespace is None) != (self.temporal_workflow_id is None):
             raise ValueError("temporalNamespace and temporalWorkflowId must be set together")
         if self.temporal_workflow_id is not None and self.temporal_workflow_id != (
@@ -1012,6 +1158,397 @@ class UnitAttempt(FrozenWireModel):
         return self
 
 
+def task_run_command_digest(
+    *,
+    tenant_id: UUID,
+    project_id: UUID,
+    task_run_id: UUID,
+    command_type: TaskRunCommandType,
+    client_mutation_id: str,
+    expected_run_revision: int,
+    request_digest: str,
+    manifest_hash: str,
+    temporal_namespace: str,
+    temporal_workflow_id: str,
+    schema_version: TaskRunCommandSchemaVersion = TASK_RUN_COMMAND_SCHEMA_VERSION,
+) -> str:
+    """Hash the exact secret-free control command accepted by the API."""
+
+    return canonical_digest(
+        {
+            "schemaVersion": schema_version,
+            "tenantId": str(tenant_id),
+            "projectId": str(project_id),
+            "taskRunId": str(task_run_id),
+            "commandType": command_type,
+            "clientMutationId": client_mutation_id,
+            "expectedRunRevision": expected_run_revision,
+            "requestDigest": request_digest,
+            "manifestHash": manifest_hash,
+            "temporalNamespace": temporal_namespace,
+            "temporalWorkflowId": temporal_workflow_id,
+        }
+    )
+
+
+def task_run_infra_rerun_trigger_fingerprint(
+    *,
+    parent_task_run_id: UUID,
+    client_mutation_id: str,
+) -> str:
+    """Derive the permanent idempotency identity for one manual infra rerun."""
+
+    digest = canonical_digest(
+        {
+            "schemaVersion": "atlas.task-run-infra-rerun-request/0.1",
+            "parentTaskRunId": str(parent_task_run_id),
+            "clientMutationId": client_mutation_id,
+        }
+    )
+    return f"api:infra-rerun:{parent_task_run_id}:{digest.removeprefix('sha256:')}"
+
+
+class RequestTaskRunCancel(FrozenWireModel):
+    """Idempotent public request to cancel one exact TaskRun revision."""
+
+    client_mutation_id: str = Field(
+        min_length=8,
+        max_length=200,
+        pattern=CLIENT_MUTATION_ID_PATTERN,
+    )
+
+
+class RequestTaskRunPause(FrozenWireModel):
+    """Idempotent public request to pause dispatch for one exact TaskRun revision."""
+
+    client_mutation_id: str = Field(
+        min_length=8,
+        max_length=200,
+        pattern=CLIENT_MUTATION_ID_PATTERN,
+    )
+
+
+class RequestTaskRunResume(FrozenWireModel):
+    """Idempotent public request to resume dispatch for one exact TaskRun revision."""
+
+    client_mutation_id: str = Field(
+        min_length=8,
+        max_length=200,
+        pattern=CLIENT_MUTATION_ID_PATTERN,
+    )
+
+
+class RequestTaskRunInfraFailureRerun(FrozenWireModel):
+    """Idempotent public request to create a child Run for infra-failed Units."""
+
+    client_mutation_id: str = Field(
+        min_length=8,
+        max_length=200,
+        pattern=CLIENT_MUTATION_ID_PATTERN,
+    )
+
+
+class TaskRunCommandIntent(FrozenWireModel):
+    """Public projection of one durable secret-free TaskRun control command."""
+
+    schema_version: TaskRunCommandSchemaVersion = TASK_RUN_COMMAND_SCHEMA_VERSION
+    id: UUID
+    tenant_id: UUID
+    project_id: UUID
+    task_run_id: UUID
+    command_type: TaskRunCommandType
+    client_mutation_id: str = Field(
+        min_length=8,
+        max_length=200,
+        pattern=CLIENT_MUTATION_ID_PATTERN,
+    )
+    command_digest: str = Field(pattern=DIGEST_PATTERN)
+    expected_run_revision: int = Field(ge=1)
+    accepted_run_revision: int = Field(ge=2)
+    request_digest: str = Field(pattern=DIGEST_PATTERN)
+    manifest_hash: str = Field(pattern=DIGEST_PATTERN)
+    temporal_namespace: str = Field(
+        min_length=1,
+        max_length=128,
+        pattern=TEMPORAL_NAMESPACE_PATTERN,
+    )
+    temporal_workflow_id: str = Field(
+        min_length=12,
+        max_length=320,
+        pattern=TEMPORAL_WORKFLOW_ID_PATTERN,
+    )
+    status: TaskRunCommandStatus
+    dispatch_attempts: int = Field(ge=0)
+    last_error_code: str | None = Field(default=None, pattern=SAFE_ERROR_CODE_PATTERN)
+    delivered_at: AwareDatetime | None = None
+    applied_at: AwareDatetime | None = None
+    failed_at: AwareDatetime | None = None
+    superseded_at: AwareDatetime | None = None
+    superseded_by_command_id: UUID | None = None
+    created_by: UUID | None = None
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_command(self) -> Self:
+        """Reject altered identity, impossible revisions, or contradictory status times."""
+
+        if self.accepted_run_revision != self.expected_run_revision + 1:
+            raise ValueError("acceptedRunRevision must follow expectedRunRevision")
+        if self.temporal_workflow_id != task_run_workflow_id(
+            tenant_id=self.tenant_id,
+            task_run_id=self.task_run_id,
+        ):
+            raise ValueError("temporalWorkflowId must match the deterministic TaskRun identity")
+        expected_digest = task_run_command_digest(
+            tenant_id=self.tenant_id,
+            project_id=self.project_id,
+            task_run_id=self.task_run_id,
+            command_type=self.command_type,
+            client_mutation_id=self.client_mutation_id,
+            expected_run_revision=self.expected_run_revision,
+            request_digest=self.request_digest,
+            manifest_hash=self.manifest_hash,
+            temporal_namespace=self.temporal_namespace,
+            temporal_workflow_id=self.temporal_workflow_id,
+            schema_version=self.schema_version,
+        )
+        if self.command_digest != expected_digest:
+            raise ValueError("commandDigest must match every accepted command fact")
+        if self.updated_at < self.created_at:
+            raise ValueError("updatedAt cannot predate createdAt")
+        for field_name, value in (
+            ("deliveredAt", self.delivered_at),
+            ("appliedAt", self.applied_at),
+            ("failedAt", self.failed_at),
+            ("supersededAt", self.superseded_at),
+        ):
+            if value is not None and not self.created_at <= value <= self.updated_at:
+                raise ValueError(f"{field_name} must be within the command lifetime")
+        if self.status is TaskRunCommandStatus.PENDING:
+            if (
+                self.applied_at is not None
+                or self.failed_at is not None
+                or self.superseded_at is not None
+                or self.superseded_by_command_id is not None
+            ):
+                raise ValueError("PENDING command cannot be terminal")
+        elif self.status is TaskRunCommandStatus.DELIVERED:
+            if (
+                self.delivered_at is None
+                or self.applied_at is not None
+                or self.failed_at is not None
+                or self.superseded_at is not None
+                or self.superseded_by_command_id is not None
+            ):
+                raise ValueError("DELIVERED command requires only deliveredAt")
+        elif self.status is TaskRunCommandStatus.APPLIED:
+            if (
+                self.applied_at is None
+                or self.failed_at is not None
+                or self.superseded_at is not None
+                or self.superseded_by_command_id is not None
+            ):
+                raise ValueError("APPLIED command requires appliedAt and cannot fail")
+        elif self.status is TaskRunCommandStatus.FAILED:
+            if (
+                self.applied_at is not None
+                or self.failed_at is None
+                or self.superseded_at is not None
+                or self.superseded_by_command_id is not None
+            ):
+                raise ValueError("FAILED command requires failedAt and cannot be applied")
+        elif (
+            self.applied_at is not None
+            or self.failed_at is not None
+            or self.superseded_at is None
+            or self.superseded_by_command_id is None
+            or self.superseded_by_command_id == self.id
+        ):
+            raise ValueError(
+                "SUPERSEDED command requires a different superseding command"
+            )
+        if (
+            self.schema_version == TASK_RUN_COMMAND_LEGACY_SCHEMA_VERSION
+            and self.command_type is not TaskRunCommandType.CANCEL
+        ):
+            raise ValueError("legacy TaskRun command schema supports only CANCEL")
+        return self
+
+
+def task_unit_execution_ticket_digest(
+    *,
+    tenant_id: UUID,
+    project_id: UUID,
+    task_run_id: UUID,
+    execution_unit_id: UUID,
+    unit_attempt_id: UUID,
+    request_digest: str,
+    manifest_hash: str,
+    ordinal: int,
+    unit_key: str,
+    case_version_id: UUID,
+    case_content_digest: str,
+    test_ir_digest: str,
+    plan_digest: str,
+    compiled_digest: str,
+    attempt_number: int,
+    execution_profile_version_id: UUID,
+    execution_profile_digest: str,
+    identity_profile_version_id: UUID,
+    identity_profile_digest: str,
+    browser_profile_version_id: UUID,
+    browser_profile_digest: str,
+    data_profile_version_id: UUID,
+    data_profile_digest: str,
+    fixture_blueprint_version_id: UUID,
+    fixture_blueprint_digest: str,
+    environment_id: UUID,
+    environment_revision: int,
+    allowed_origins: tuple[str, ...],
+    execution_deadline: datetime,
+) -> str:
+    """Digest every secret-free fact authorized for one physical attempt."""
+
+    return canonical_digest(
+        {
+            "schemaVersion": TASK_UNIT_EXECUTION_TICKET_SCHEMA_VERSION,
+            "tenantId": str(tenant_id),
+            "projectId": str(project_id),
+            "taskRunId": str(task_run_id),
+            "executionUnitId": str(execution_unit_id),
+            "unitAttemptId": str(unit_attempt_id),
+            "requestDigest": request_digest,
+            "manifestHash": manifest_hash,
+            "ordinal": ordinal,
+            "unitKey": unit_key,
+            "caseVersionId": str(case_version_id),
+            "caseContentDigest": case_content_digest,
+            "testIrDigest": test_ir_digest,
+            "planDigest": plan_digest,
+            "compiledDigest": compiled_digest,
+            "attemptNumber": attempt_number,
+            "executionProfileVersionId": str(execution_profile_version_id),
+            "executionProfileDigest": execution_profile_digest,
+            "identityProfileVersionId": str(identity_profile_version_id),
+            "identityProfileDigest": identity_profile_digest,
+            "browserProfileVersionId": str(browser_profile_version_id),
+            "browserProfileDigest": browser_profile_digest,
+            "dataProfileVersionId": str(data_profile_version_id),
+            "dataProfileDigest": data_profile_digest,
+            "fixtureBlueprintVersionId": str(fixture_blueprint_version_id),
+            "fixtureBlueprintDigest": fixture_blueprint_digest,
+            "environmentId": str(environment_id),
+            "environmentRevision": environment_revision,
+            "allowedOrigins": list(allowed_origins),
+            "executionDeadline": _postgres_timestamptz_json_text(
+                execution_deadline
+            ),
+        }
+    )
+
+
+def _postgres_timestamptz_json_text(value: datetime) -> str:
+    """Match PostgreSQL's UTC timestamptz-to-JSON text, including trimmed fractions."""
+
+    normalized = value.astimezone(UTC)
+    rendered = (
+        f"{normalized.year:04d}-{normalized.month:02d}-{normalized.day:02d}"
+        f"T{normalized.hour:02d}:{normalized.minute:02d}:{normalized.second:02d}"
+    )
+    if normalized.microsecond:
+        rendered += f".{normalized.microsecond:06d}".rstrip("0")
+    return f"{rendered}+00:00"
+
+
+class TaskUnitExecutionTicket(FrozenWireModel):
+    """Immutable, secret-free authority prepared before one execution side effect."""
+
+    schema_version: Literal["atlas.task-unit-execution-ticket/0.1"] = (
+        TASK_UNIT_EXECUTION_TICKET_SCHEMA_VERSION
+    )
+    id: UUID
+    tenant_id: UUID
+    project_id: UUID
+    task_run_id: UUID
+    execution_unit_id: UUID
+    unit_attempt_id: UUID
+    request_digest: str = Field(pattern=DIGEST_PATTERN)
+    manifest_hash: str = Field(pattern=DIGEST_PATTERN)
+    ordinal: int = Field(ge=1)
+    unit_key: str = Field(pattern=DIGEST_PATTERN)
+    case_version_id: UUID
+    case_content_digest: str = Field(pattern=DIGEST_PATTERN)
+    test_ir_digest: str = Field(pattern=DIGEST_PATTERN)
+    plan_digest: str = Field(pattern=DIGEST_PATTERN)
+    compiled_digest: str = Field(pattern=DIGEST_PATTERN)
+    attempt_number: int = Field(ge=1)
+    execution_profile_version_id: UUID
+    execution_profile_digest: str = Field(pattern=DIGEST_PATTERN)
+    identity_profile_version_id: UUID
+    identity_profile_digest: str = Field(pattern=DIGEST_PATTERN)
+    browser_profile_version_id: UUID
+    browser_profile_digest: str = Field(pattern=DIGEST_PATTERN)
+    data_profile_version_id: UUID
+    data_profile_digest: str = Field(pattern=DIGEST_PATTERN)
+    fixture_blueprint_version_id: UUID
+    fixture_blueprint_digest: str = Field(pattern=DIGEST_PATTERN)
+    environment_id: UUID
+    environment_revision: int = Field(ge=1)
+    allowed_origins: tuple[str, ...] = Field(min_length=1, max_length=32)
+    execution_deadline: AwareDatetime
+    ticket_digest: str = Field(pattern=DIGEST_PATTERN)
+    created_at: AwareDatetime
+
+    @field_validator("allowed_origins")
+    @classmethod
+    def normalize_allowed_origins(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        """Keep the network boundary deterministic without carrying credentials."""
+
+        return normalize_origins(values)
+
+    @model_validator(mode="after")
+    def validate_ticket(self) -> Self:
+        """Reject stale time order or any alteration of the frozen authority."""
+
+        if self.created_at >= self.execution_deadline:
+            raise ValueError("executionDeadline must follow ticket creation")
+        expected = task_unit_execution_ticket_digest(
+            tenant_id=self.tenant_id,
+            project_id=self.project_id,
+            task_run_id=self.task_run_id,
+            execution_unit_id=self.execution_unit_id,
+            unit_attempt_id=self.unit_attempt_id,
+            request_digest=self.request_digest,
+            manifest_hash=self.manifest_hash,
+            ordinal=self.ordinal,
+            unit_key=self.unit_key,
+            case_version_id=self.case_version_id,
+            case_content_digest=self.case_content_digest,
+            test_ir_digest=self.test_ir_digest,
+            plan_digest=self.plan_digest,
+            compiled_digest=self.compiled_digest,
+            attempt_number=self.attempt_number,
+            execution_profile_version_id=self.execution_profile_version_id,
+            execution_profile_digest=self.execution_profile_digest,
+            identity_profile_version_id=self.identity_profile_version_id,
+            identity_profile_digest=self.identity_profile_digest,
+            browser_profile_version_id=self.browser_profile_version_id,
+            browser_profile_digest=self.browser_profile_digest,
+            data_profile_version_id=self.data_profile_version_id,
+            data_profile_digest=self.data_profile_digest,
+            fixture_blueprint_version_id=self.fixture_blueprint_version_id,
+            fixture_blueprint_digest=self.fixture_blueprint_digest,
+            environment_id=self.environment_id,
+            environment_revision=self.environment_revision,
+            allowed_origins=self.allowed_origins,
+            execution_deadline=self.execution_deadline,
+        )
+        if self.ticket_digest != expected:
+            raise ValueError("ticketDigest must match every frozen execution fact")
+        return self
+
+
 class TaskExecutionEvent(FrozenWireModel):
     """Append-only monotonic event projection for Task execution replay."""
 
@@ -1062,3 +1599,31 @@ class TaskExecutionEvent(FrozenWireModel):
         if self.unit_attempt_id is not None and self.execution_unit_id is None:
             raise ValueError("unitAttemptId requires executionUnitId scope")
         return self
+
+
+class TaskRunPage(FrozenWireModel):
+    """Cursor page of TaskRuns for one Project."""
+
+    items: tuple[TaskRun, ...]
+    next_cursor: str | None = None
+
+
+class ExecutionUnitPage(FrozenWireModel):
+    """Ordinal page of ExecutionUnits for one TaskRun."""
+
+    items: tuple[ExecutionUnit, ...]
+    next_after_ordinal: int | None = Field(default=None, ge=1)
+
+
+class UnitAttemptPage(FrozenWireModel):
+    """Attempt-number page for one ExecutionUnit."""
+
+    items: tuple[UnitAttempt, ...]
+    next_after_attempt_number: int | None = Field(default=None, ge=1)
+
+
+class TaskExecutionEventPage(FrozenWireModel):
+    """Monotonic event page resumed with afterSeq."""
+
+    items: tuple[TaskExecutionEvent, ...]
+    next_after_seq: int | None = Field(default=None, ge=1)

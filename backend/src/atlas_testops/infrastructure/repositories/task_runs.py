@@ -10,6 +10,7 @@ from psycopg import AsyncConnection, AsyncCursor
 from psycopg.rows import DictRow
 from psycopg.types.json import Jsonb
 
+from atlas_testops.core.pagination import TimeCursor
 from atlas_testops.domain.task import (
     ExecutionLifecycle,
     ExecutionQuality,
@@ -41,14 +42,14 @@ TASK_RUN_COLUMNS = (
     "id, tenant_id, project_id, task_plan_version_id, manifest_hash, trigger_source, "
     "trigger_fingerprint, request_digest, materialization_state, materialized_unit_count, "
     "materialized_first_attempt_count, materialization_sealed_at, rerun_of_task_run_id, "
-    "lifecycle, quality, hygiene, requested_by, temporal_namespace, temporal_workflow_id, "
-    "requested_at, queued_at, started_at, finalized_at, cleanup_resolved_at, closed_at, "
-    "revision, created_at, updated_at"
+    "rerun_selection_mode, lifecycle, quality, hygiene, requested_by, temporal_namespace, "
+    "temporal_workflow_id, requested_at, queued_at, started_at, finalized_at, "
+    "cleanup_resolved_at, closed_at, revision, created_at, updated_at"
 )
 TASK_RUN_MANIFEST_COLUMNS = (
     "task_run_id, tenant_id, project_id, task_plan_version_id, schema_version, "
     "trigger_source, trigger_fingerprint, iteration_id, units, policy_digests, "
-    "compiler_version, manifest_hash"
+    "retry_policy, compiler_version, manifest_hash"
 )
 EXECUTION_UNIT_COLUMNS = (
     "id, tenant_id, project_id, task_run_id, manifest_hash, unit_key, ordinal, "
@@ -272,18 +273,18 @@ class TaskRunRepository:
               trigger_source, trigger_fingerprint, request_digest,
               materialization_state, materialized_unit_count,
               materialized_first_attempt_count, materialization_sealed_at,
-              rerun_of_task_run_id, lifecycle, quality, hygiene, requested_by,
-              temporal_namespace, temporal_workflow_id, requested_at, queued_at,
-              started_at, finalized_at, cleanup_resolved_at, closed_at,
-              revision, created_at, updated_at
+              rerun_of_task_run_id, rerun_selection_mode, lifecycle, quality,
+              hygiene, requested_by, temporal_namespace, temporal_workflow_id,
+              requested_at, queued_at, started_at, finalized_at,
+              cleanup_resolved_at, closed_at, revision, created_at, updated_at
             ) values (
               %s, %s, %s, %s, %s,
               %s, %s, %s,
               %s, %s, %s, %s,
               %s, %s, %s, %s, %s,
-              %s, %s, %s, %s,
-              %s, %s, %s, %s,
-              %s, %s, %s
+              %s, %s, %s, %s, %s,
+              %s, %s, %s, %s, %s,
+              %s, %s
             )
             on conflict (tenant_id, trigger_source, trigger_fingerprint) do nothing
             returning {TASK_RUN_COLUMNS}
@@ -302,6 +303,7 @@ class TaskRunRepository:
                 task_run.materialized_first_attempt_count,
                 task_run.materialization_sealed_at,
                 task_run.rerun_of_task_run_id,
+                task_run.rerun_selection_mode,
                 task_run.lifecycle,
                 task_run.quality,
                 task_run.hygiene,
@@ -331,6 +333,7 @@ class TaskRunRepository:
                 existing_run.request_digest != expected_request_digest
                 or existing_manifest.recompute_request_digest() != expected_request_digest
                 or existing_run.rerun_of_task_run_id != task_run.rerun_of_task_run_id
+                or existing_run.rerun_selection_mode != task_run.rerun_selection_mode
             ):
                 raise ImmutableFactConflictError(
                     "task run identity already stores different immutable run input"
@@ -404,6 +407,71 @@ class TaskRunRepository:
         row = await cursor.fetchone()
         return TaskRun.model_validate(row) if row is not None else None
 
+    async def list_runs(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        project_id: UUID,
+        cursor: TimeCursor | None,
+        limit: int,
+    ) -> tuple[TaskRun, ...]:
+        """List one Project's TaskRuns with stable requested-time keyset pagination."""
+
+        params: tuple[object, ...]
+        if cursor is None:
+            query = f"""
+                select {TASK_RUN_COLUMNS}
+                from atlas.task_run
+                where project_id = %s
+                order by requested_at desc, id desc
+                limit %s
+            """
+            params = (project_id, limit)
+        else:
+            query = f"""
+                select {TASK_RUN_COLUMNS}
+                from atlas.task_run
+                where project_id = %s
+                  and (requested_at, id) < (%s, %s)
+                order by requested_at desc, id desc
+                limit %s
+            """
+            params = (project_id, cursor.created_at, cursor.id, limit)
+        result = await connection.execute(query, params)
+        return tuple(TaskRun.model_validate(row) for row in await result.fetchall())
+
+    async def get_run_for_update(
+        self,
+        connection: AsyncConnection[DictRow],
+        task_run_id: UUID,
+    ) -> TaskRun | None:
+        """Lock one TaskRun before any Unit or Attempt in a worker transaction."""
+
+        await self.lock_execution_chain(
+            connection,
+            task_run_id=task_run_id,
+        )
+        return await self.get_run(connection, task_run_id)
+
+    async def lock_execution_chain(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        task_run_id: UUID,
+        execution_unit_id: UUID | None = None,
+        unit_attempt_id: UUID | None = None,
+    ) -> None:
+        """Acquire the trusted tenant-scoped Run-to-Attempt lock chain."""
+
+        cursor = await connection.execute(
+            """
+            select atlas.lock_task_execution_chain(%s, %s, %s)
+            """,
+            (task_run_id, execution_unit_id, unit_attempt_id),
+        )
+        if await cursor.fetchone() is None:
+            raise RuntimeError("trusted Task execution lock function returned no row")
+
     async def get_manifest(
         self,
         connection: AsyncConnection[DictRow],
@@ -432,6 +500,23 @@ class TaskRunRepository:
         row = await cursor.fetchone()
         return ExecutionUnit.model_validate(row) if row is not None else None
 
+    async def get_unit_for_update(
+        self,
+        connection: AsyncConnection[DictRow],
+        execution_unit_id: UUID,
+    ) -> ExecutionUnit | None:
+        """Lock one ExecutionUnit after its parent TaskRun is locked."""
+
+        candidate = await self.get_unit(connection, execution_unit_id)
+        if candidate is None:
+            return None
+        await self.lock_execution_chain(
+            connection,
+            task_run_id=candidate.task_run_id,
+            execution_unit_id=execution_unit_id,
+        )
+        return await self.get_unit(connection, execution_unit_id)
+
     async def list_units(
         self,
         connection: AsyncConnection[DictRow],
@@ -448,6 +533,26 @@ class TaskRunRepository:
         )
         return tuple(ExecutionUnit.model_validate(row) for row in await cursor.fetchall())
 
+    async def list_units_page(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        task_run_id: UUID,
+        after_ordinal: int,
+        limit: int,
+    ) -> tuple[ExecutionUnit, ...]:
+        cursor = await connection.execute(
+            f"""
+            select {EXECUTION_UNIT_COLUMNS}
+            from atlas.execution_unit
+            where task_run_id = %s and ordinal > %s
+            order by ordinal, id
+            limit %s
+            """,
+            (task_run_id, after_ordinal, limit),
+        )
+        return tuple(ExecutionUnit.model_validate(row) for row in await cursor.fetchall())
+
     async def get_attempt(
         self,
         connection: AsyncConnection[DictRow],
@@ -459,6 +564,51 @@ class TaskRunRepository:
         )
         row = await cursor.fetchone()
         return UnitAttempt.model_validate(row) if row is not None else None
+
+    async def get_attempt_for_update(
+        self,
+        connection: AsyncConnection[DictRow],
+        unit_attempt_id: UUID,
+    ) -> UnitAttempt | None:
+        """Lock one UnitAttempt after its TaskRun and ExecutionUnit are locked."""
+
+        candidate = await self.get_attempt(connection, unit_attempt_id)
+        if candidate is None:
+            return None
+        await self.lock_execution_chain(
+            connection,
+            task_run_id=candidate.task_run_id,
+            execution_unit_id=candidate.execution_unit_id,
+            unit_attempt_id=unit_attempt_id,
+        )
+        return await self.get_attempt(connection, unit_attempt_id)
+
+    async def list_first_attempts(
+        self,
+        connection: AsyncConnection[DictRow],
+        task_run_id: UUID,
+    ) -> tuple[UnitAttempt, ...]:
+        """Load every first Attempt in its immutable Unit ordinal order."""
+
+        cursor = await connection.execute(
+            f"""
+            select {UNIT_ATTEMPT_COLUMNS}
+            from (
+              select attempt.*, unit.ordinal as dispatch_ordinal
+              from atlas.unit_attempt attempt
+              join atlas.execution_unit unit
+                on unit.id = attempt.execution_unit_id
+               and unit.task_run_id = attempt.task_run_id
+               and unit.tenant_id = attempt.tenant_id
+               and unit.project_id = attempt.project_id
+              where attempt.task_run_id = %s
+                and attempt.attempt_number = 1
+            ) first_attempt
+            order by dispatch_ordinal, id
+            """,
+            (task_run_id,),
+        )
+        return tuple(UnitAttempt.model_validate(row) for row in await cursor.fetchall())
 
     async def create_attempt(
         self,
@@ -507,6 +657,85 @@ class TaskRunRepository:
             order by attempt_number, id
             """,
             (execution_unit_id,),
+        )
+        return tuple(UnitAttempt.model_validate(row) for row in await cursor.fetchall())
+
+    async def get_attempt_by_number(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        execution_unit_id: UUID,
+        attempt_number: int,
+    ) -> UnitAttempt | None:
+        """Read one exact physical Attempt number within a Unit."""
+
+        cursor = await connection.execute(
+            f"""
+            select {UNIT_ATTEMPT_COLUMNS}
+            from atlas.unit_attempt
+            where execution_unit_id = %s and attempt_number = %s
+            limit 1
+            """,
+            (execution_unit_id, attempt_number),
+        )
+        row = await cursor.fetchone()
+        return UnitAttempt.model_validate(row) if row is not None else None
+
+    async def list_attempts_for_run(
+        self,
+        connection: AsyncConnection[DictRow],
+        task_run_id: UUID,
+    ) -> tuple[UnitAttempt, ...]:
+        """List every immutable Attempt in deterministic Unit/Attempt order."""
+
+        cursor = await connection.execute(
+            f"""
+            select {UNIT_ATTEMPT_COLUMNS}
+            from atlas.unit_attempt
+            where task_run_id = %s
+            order by execution_unit_id, attempt_number, id
+            """,
+            (task_run_id,),
+        )
+        return tuple(UnitAttempt.model_validate(row) for row in await cursor.fetchall())
+
+    async def count_retry_attempts(
+        self,
+        connection: AsyncConnection[DictRow],
+        task_run_id: UUID,
+    ) -> int:
+        """Count physical Attempts beyond each Unit's immutable first Attempt."""
+
+        cursor = await connection.execute(
+            """
+            select count(*)::integer
+            from atlas.unit_attempt
+            where task_run_id = %s and attempt_number > 1
+            """,
+            (task_run_id,),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            raise RuntimeError("retry Attempt count query returned no row")
+        return int(row["count"])
+
+    async def list_attempts_page(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        execution_unit_id: UUID,
+        after_attempt_number: int,
+        limit: int,
+    ) -> tuple[UnitAttempt, ...]:
+        cursor = await connection.execute(
+            f"""
+            select {UNIT_ATTEMPT_COLUMNS}
+            from atlas.unit_attempt
+            where execution_unit_id = %s and attempt_number > %s
+            order by attempt_number, id
+            limit %s
+            """,
+            (execution_unit_id, after_attempt_number, limit),
         )
         return tuple(UnitAttempt.model_validate(row) for row in await cursor.fetchall())
 
@@ -665,11 +894,12 @@ class TaskRunRepository:
             insert into atlas.task_run_manifest (
               task_run_id, tenant_id, project_id, task_plan_version_id,
               schema_version, trigger_source, trigger_fingerprint, iteration_id,
-              units, policy_digests, compiler_version, manifest_hash, unit_count
+              units, policy_digests, retry_policy, compiler_version, manifest_hash,
+              unit_count
             ) values (
               %s, %s, %s, %s,
               %s, %s, %s, %s,
-              %s, %s, %s, %s, %s
+              %s, %s, %s, %s, %s, %s
             )
             returning {TASK_RUN_MANIFEST_COLUMNS}
             """,
@@ -684,6 +914,11 @@ class TaskRunRepository:
                 manifest.iteration_id,
                 Jsonb([unit.model_dump(mode="json", by_alias=True) for unit in manifest.units]),
                 Jsonb(manifest.policy_digests),
+                (
+                    Jsonb(manifest.retry_policy.model_dump(mode="json", by_alias=True))
+                    if manifest.retry_policy is not None
+                    else None
+                ),
                 manifest.compiler_version,
                 manifest.manifest_hash,
                 len(manifest.units),

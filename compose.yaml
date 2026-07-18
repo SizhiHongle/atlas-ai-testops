@@ -122,6 +122,28 @@ services:
         condition: service_healthy
     restart: "no"
 
+  task-worker:
+    profiles: ["task-worker"]
+    build:
+      context: ./backend
+      target: task-worker
+    environment:
+      ATLAS_ENVIRONMENT: local
+      ATLAS_TASK_WORKER_ENABLED: ${ATLAS_TASK_WORKER_ENABLED:-false}
+      ATLAS_DATABASE_URL: postgresql://atlas_app:atlas_app@postgres:5432/atlas
+      ATLAS_TEMPORAL_ADDRESS: temporal:7233
+      ATLAS_TEMPORAL_NAMESPACE: default
+      ATLAS_TASK_RUN_TASK_QUEUE: atlas-task-run
+      ATLAS_TASK_ATTEMPT_TASK_QUEUE: atlas-unit-attempt
+      ATLAS_TASK_RUN_WORKER_MAX_CONCURRENCY: 8
+      ATLAS_TASK_ATTEMPT_WORKER_MAX_CONCURRENCY: 8
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    restart: "no"
+
 volumes:
   atlas-postgres:
   atlas-minio:

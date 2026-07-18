@@ -36,7 +36,9 @@ from atlas_testops.domain.task import (
     TaskExecutionEvent,
     TaskPlanVersion,
     TaskRun,
+    TaskRunCommandIntent,
     TaskRunManifest,
+    TaskUnitExecutionTicket,
     UnitAttempt,
 )
 from atlas_testops.domain.workflow import WorkflowDraft, WorkflowGraph
@@ -79,6 +81,10 @@ EXECUTION_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "execution-profile.sc
 IDENTITY_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "identity-profile.schema.json"
 BROWSER_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "browser-profile.schema.json"
 DATA_PROFILE_SCHEMA = REPOSITORY_ROOT / "contracts" / "data-profile.schema.json"
+TASK_UNIT_EXECUTION_TICKET_SCHEMA = (
+    REPOSITORY_ROOT / "contracts" / "task-unit-execution-ticket.schema.json"
+)
+TASK_RUN_COMMAND_SCHEMA = REPOSITORY_ROOT / "contracts" / "task-run-command.schema.json"
 
 
 def render_schema(model: type[BaseModel], schema_id: str) -> str:
@@ -207,6 +213,14 @@ def main() -> None:
         DATA_PROFILE_SCHEMA: render_schema(
             DataProfileVersion,
             "https://atlas.test/contracts/data-profile/0.1/schema.json",
+        ),
+        TASK_UNIT_EXECUTION_TICKET_SCHEMA: render_schema(
+            TaskUnitExecutionTicket,
+            "https://atlas.test/contracts/task-unit-execution-ticket/0.1/schema.json",
+        ),
+        TASK_RUN_COMMAND_SCHEMA: render_schema(
+            TaskRunCommandIntent,
+            "https://atlas.test/contracts/task-run-command/0.1/schema.json",
         ),
     }
 

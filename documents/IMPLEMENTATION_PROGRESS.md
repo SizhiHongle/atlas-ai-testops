@@ -1,6 +1,6 @@
 # Atlas AI 测试平台实施进度
 
-更新时间：2026-07-16
+更新时间：2026-07-17
 
 ## 使用规则
 
@@ -14,10 +14,10 @@
 ## 当前状态
 
 - 当前阶段：`P5 Task Runtime（基础中）`
-- 当前切片：`P5-00B2A 可靠 Workflow Start Intent 交付层（已验收）`
-- 总体状态：P5 已建立正式执行宿主、四类 Profile Version、stable request digest、deterministic Temporal identity、materialization seal、Revision CAS，以及由独立 `atlas_dispatcher` 消费的 durable Start Intent 状态机；真实 `AtlasTaskRunWorkflow` / Activity、公共 Command API、大批次分区物化、AttemptSeal 和 P6-02B2 控制权仍待后续，Consumer 与 Compose 默认关闭，前端继续只按既有原型槽位接线
+- 当前切片：`P5-00D3B manual infrastructure-failure rerun（已验收）`
+- 总体状态：P5 已建立正式执行宿主、四类 Profile Version、stable request digest、deterministic Temporal identity、materialization seal、Revision CAS、durable Start Intent、最多 64 Units 的真实 Root / Attempt Workflow、P5-00C 查询与 P5-00D1 immutable Ticket。P5-00D2A/D2B 已新增 exact Revision 的 durable `CANCEL / PAUSE / RESUME`，P5-00D3A 已新增 frozen policy 驱动的有界 `INFRA_ERROR` 自动重试，P5-00D3B 已开放只从已关闭源 Run 精确选择最终环境失败 Unit 的新子 TaskRun。Worker 与 Consumer 仍默认关闭，仓库仍不内置真实 SaaS production Adapter。Task Plan authoring、Takeover、真实执行 Adapter、超过 64 Units 的分区物化、AttemptSeal / Result 和 P6-02B2 Live control 仍待后续；前端原型未改，仅同步生成 API 类型
 - 当前分支：`main`
-- 当前进入基线提交：`5e6372f`
+- 当前进入基线提交：`bf9e616`
 
 ## 阶段看板
 
@@ -28,7 +28,7 @@
 | P2 | TestRole、AccountPool、TestAccount、Lease 与 Auth Session | 已完成 | P2-01 至 P2-06 已验收；身份、租约、Secret Grant、加密 Session 与清理链已闭环 |
 | P3 | Atom、Blueprint、Fixture Run 与 Cleanup | 已完成 | P3-00 至 P3-03 已验收；资产、耐久运行、取消补偿、Reconcile、Cleanup Retry / Sweeper 与三类发布证据闭环 |
 | P4 | TestCase、WorkflowDraft、DebugRun 与 CaseVersion | 后端完成 | P4-00 至 P4-03 已验收；作者态、不可变 DebugRun、精确绑定、Reviewer 发布门禁与 CaseVersion 冻结闭环已落地 |
-| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 宿主、P5-00B1 Profile / request digest / Workflow identity / Seal / CAS，以及 P5-00B2A durable Intent Consumer 均已验收；真实 Task Workflow / Activity、大批次物化与公共控制面待后续 |
+| P5 | TaskPlan、TaskRun、ExecutionUnit 与 Temporal 编排 | 基础中 | P5-00A 至 P5-00D3B 已验收；不可变 Ticket、ticket-bound Port、durable command intent、Workflow Signal、自动 infra retry 与 manual infra-failure child Run 已有 PostgreSQL / Temporal 证据。真实 SaaS Adapter、超过 64 Units 分区化与 Takeover 待后续 |
 | P6 | Browser Worker、Live、Evidence 与 AttemptSeal | 基础中 | P6-00 可信事实层、P6-01 Browser 执行平面与 P6-02A 可信截图写入 / 受控读取已验收；P6-02B1 DebugRun Live 安全观察流已实现，P6-02B2 控制权与 AttemptSeal 可基于正式 UnitAttempt 继续落地 |
 | P7 | Result Fact、Snapshot、Classification 与 Gate | 未开始 | — |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 未开始 | — |
@@ -257,7 +257,7 @@
 ### 后续边界
 
 - P5-00A 只建立事实宿主和持久化边界，不伪造 Temporal 调度、Command API、Schedule / CI Adapter、AttemptSeal、LiveSession、ControlLease 或 Result Snapshot。
-- P5-00B1 已补齐原计划中的四类正式 Profile、稳定 request digest、Temporal Workflow identity、同步 materialization seal 与统一 Revision CAS；P5-00B2A 已实现 Intent Consumer 的可靠交付层。超过 64 Units 的可恢复分区物化、真实 Task Workflow / Activity、Schedule / CI / API 入口仍属于后续切片。随后 P6-02B2 的人工控制事实才能精确绑定 `UnitAttempt`。
+- P5-00B1 已补齐原计划中的四类正式 Profile、稳定 request digest、Temporal Workflow identity、同步 materialization seal 与统一 Revision CAS；P5-00B2A 已实现 Intent Consumer 的可靠交付层，P5-00B2B 已实现最多 64 Units 的真实 Root / Attempt Workflow。超过 64 Units 的可恢复分区物化、正式 `TaskUnitExecutionPort`、Schedule / CI / API 入口仍属于后续切片。随后 P6-02B2 的人工控制事实才能精确绑定 `UnitAttempt`。
 
 ## P5-00B1 范围
 
@@ -281,7 +281,7 @@
 
 ### 后续边界
 
-- `task_workflow_start_intent` 在 B1 中只允许不可变 `PENDING` 事实；P5-00B2A 已在后续 migration 中增加 Claim / Lease / Retry / Started / Failed 状态机和恢复领取，但真实 Temporal Task Workflow / Activity 仍未实现。
+- `task_workflow_start_intent` 在 B1 中只允许不可变 `PENDING` 事实；P5-00B2A 已在后续 migration 中增加 Claim / Lease / Retry / Started / Failed 状态机和恢复领取，P5-00B2B 已继续接入真实 Temporal Root / Attempt Workflow 与短 Activity 边界。
 - 超过 64 Units 的 Manifest 仍由数据库 fail-closed。后续必须实现可恢复分区物化、分片 checkpoint、Seal 恢复和容量测试，不能扩大当前同步事务。
 - 公共 Task Plan / Run / Command / Event API、Schedule / CI / Webhook Adapter、AttemptSeal、Result Snapshot、LiveSession 与 ControlLease 均未在 B1 中伪造完成。
 
@@ -301,9 +301,165 @@
 
 ### 后续边界
 
-- `AtlasTaskRunWorkflow`、Unit 调度 Activity、`AtlasUnitAttemptWorkflow` 和对应 Worker 尚未实现；在真实 Worker 就绪前，生产环境必须保持 Intent Consumer 关闭。B2A 不以接受到尚无人处理的 Task Queue 冒充 Task 执行能力。
-- 公共 Task Plan / Run / Command / Event API、Schedule / CI / Webhook Adapter、超过 64 Units 的可恢复分区物化、AttemptSeal、Result Snapshot、LiveSession 与 ControlLease 均未实现。
-- 下一 P5 执行切片应先落地最多 64 Units 的真实 `AtlasTaskRunWorkflow` 与可恢复 Unit 调度，再单独处理超过 64 Units 的分区物化、checkpoint / resume 与 Continue-As-New；不得通过放宽当前同步 Seal 或数据库事务伪装大批次能力。
+- B2A 当时只证明可靠交付，不包含真实 Task 执行；P5-00B2B 已在后续切片补齐 `AtlasTaskRunWorkflow`、Unit 调度 Activity、`AtlasUnitAttemptWorkflow` 与对应 Worker。生产启用仍必须显式配置正式 `TaskUnitExecutionPort`，不能把 Temporal 接受或无 Adapter 的 Queue 冒充可执行能力。
+- P5-00C 已在后续切片补齐 TaskRun / Manifest / Unit / Attempt / Event 只读 API；Task Plan authoring、Task Command、Schedule / CI / Webhook Adapter、超过 64 Units 的可恢复分区物化、AttemptSeal、Result Snapshot、LiveSession 与 ControlLease 仍未实现。
+- P5-00B2B 已完成最多 64 Units 的有界编排，P5-00C 已补充只读查询；下一 P5 执行切片应先提供正式 `TaskUnitExecutionPort`，控制命令则必须另建 durable command intent + Workflow signal 交付闭环，再单独处理超过 64 Units 的分区物化、checkpoint / resume 与 Continue-As-New。
+
+## P5-00B2B 范围
+
+### 已实现
+
+- `AtlasTaskRunWorkflow` 直接兼容 P5-00B2A 冻结的 Root Intent Input / Workflow Type，固定消费 `atlas-task-run`；它以短数据库 Activity 加载一个已 Seal、完整且不超过 64 Units 的首 Attempt 计划，并按固定 8-child batch 启动 `AtlasUnitAttemptWorkflow`。Child 只消费固定 `atlas-unit-attempt` Queue，Workflow ID 由 Tenant ID + UnitAttempt ID 确定性生成并使用 `REJECT_DUPLICATE`，不能由调用方改写或重复制造物理 Attempt。
+- `AtlasUnitAttemptWorkflow` 按 Begin DB Activity → Execute side-effect Activity → Finish DB Activity 推进。数据库 Activity 每次保持 30 秒短边界；瞬时基础设施错误以 1 秒到 60 秒退避耐久重试，确定性 Task 不变量立即以安全 non-retryable error 失败。真正执行副作用的 Activity 固定 `maximumAttempts=1`，避免未知提交结果被 Temporal 自动重做。每个首 Attempt 的冻结 `executionDeadline` 进入 Child Input，执行前由 PostgreSQL 时钟与 Workflow 时钟双重检查；`scheduleToClose` 覆盖 Queue 排队，`startToClose` 限制实际运行，两者都不越过 deadline。
+- Root 对 Child 异常、取消和不可信返回使用类型化安全 fallback，仍把已观察结果交给最终短数据库 Activity 收敛；Activity 在返回前解码、校验并归一化 adapter / 数据库结果，未知异常只写稳定安全码，敏感正文不进入 Temporal History。Attempt finalize 事件冻结 exact status / error code，Run finalize 事件冻结 exact status / counts，CLOSED replay 逐字段核对。固定 Root / Child identity、durable Temporal History、exact-event replay 和 Start Intent collision verification 共同保证 Worker / Consumer 重启后不重复执行已完成 side effect。副作用 Activity 持续 Heartbeat、等待取消完成；原生取消中的运行副作用收敛为 `INCONCLUSIVE / TASK_ATTEMPT_EXECUTION_CANCELED_UNKNOWN`，Root 停止后续 batch 但保留已完成 Child 的真实结果；已 CLOSED 的非取消 Attempt 不再返回 READY。
+- `TaskWorkerService` 将加载计划、Attempt Begin / Finish 与 Run Finish 分隔为独立 tenant-scoped 短事务；事务中只执行 PostgreSQL 复核、状态 CAS 与追加事件，不持锁等待 Temporal 或 execution port。`20260716_0025` 新增 tenant-scoped `SECURITY DEFINER atlas.lock_task_execution_chain(...)`，在数据库内按 Run → Unit → Attempt 固定顺序锁定同一 sealed 执行链；`atlas_app` 只有该受信函数和既有状态函数的 EXECUTE，仍无三张状态表的表级 UPDATE。
+- Root Worker 与 Attempt Worker 分别注册到固定双 Queue，并具有独立有界并发。`ATLAS_TASK_WORKER_ENABLED=false` 默认关闭；Intent Consumer 也保持独立开关和默认关闭。仓库没有内置或占位 production `TaskUnitExecutionPort`，启用 Worker 却未注入经评审的 Adapter 时会在建立数据库或 Temporal 连接前 fail-closed。
+- 当前没有 `AttemptSeal`，因此 Workflow Payload、execution port 协议和数据库收敛均不允许表达 `PASSED`。副作用报告成功只能得到 `EXECUTED_UNSEALED → FINISHED_UNSEALED`，并以 `INCONCLUSIVE` Quality 持久化；任何失败、歧义、跳过或不可信结果收敛为 `FAILED / INCONCLUSIVE / CANCELED`，绝不把“执行完成”冒充可信通过。
+
+### 已验证
+
+- 定向 Application / Worker / Workflow / Migration / PostgreSQL / Temporal 测试已通过；真实 PostgreSQL 验证 tenant scope、Run → Unit → Attempt 锁序、Revision CAS、状态 / exact-event replay、最小权限与 `20260716_0025` 升降级，真实 Temporal 验证两个 Worker、固定 Type / Queue、1 个与 9 个 Child 的跨 batch 调度、确定性 Child ID、同 Root replay 不重复执行、排队跨 deadline 不调用 execution port、数据库 Activity 连续三次瞬时失败后第 4 次恢复、Adapter 异常与非法返回不泄漏进 History、非 PASS 结果、原生 Child 取消的未知结果与 Root 取消后已完成 Child 结果保留。
+- 本切片没有修改任何前端页面、组件、DOM、布局、CSS 或既有交互；Launch、Task Control 与 Live Theatre 继续以前端已设计原型为唯一权威。
+- 完整 `make verify` 已通过：780 tests、coverage 90.15%、Ruff、严格 mypy 269 files、Schema / OpenAPI 漂移、Python sdist / wheel、前端 `check:api` / `tsc` / Vinext Production Build 全部成功。
+
+### 后续边界
+
+- P5-00C 已补充 TaskRun / Manifest / Unit / Attempt / Event 只读 API；Task Plan authoring、Task Command、正式 production `TaskUnitExecutionPort`、Schedule / CI / Webhook Adapter 与超过 64 Units 的可恢复分区物化仍未完成。
+- `AttemptSeal`、Result Snapshot / Gate，以及 UnitAttempt-scoped `LiveSession`、`ControlLease`、Epoch / Fence、Human Takeover 与持久化 `ActionGrant` 仍分别属于后续 P6 / P7 / P6-02B2；在这些事实就绪前，Task Runtime 不能产生 `PASSED` 或提供 Live control。
+
+## P5-00C 范围
+
+### 已实现
+
+- 新增 `GET /v1/projects/{projectId}/task-runs`、`GET /v1/task-runs/{runId}`、`GET /v1/task-runs/{runId}/manifest`、`GET /v1/task-runs/{runId}/units`、`GET /v1/task-runs/{runId}/units/{unitId}/attempts` 与 `GET /v1/task-runs/{runId}/events`。TaskRun 使用 Revision ETag；列表使用有界 keyset / ordinal / attemptNumber / seq pagination，所有 Repository 查询只多取一条判断下一页。
+- Application Service 先执行 Project 可见性校验，再在 tenant-scoped 短事务中读取；单资源不可见、跨 Tenant 或 Unit 不属于 Run 均返回同形 404。Run Manifest 缺失被视为持久化不变量破坏并 fail-closed，不能伪装成空结果。
+- `20260716_0026` 新增 `(tenant_id, project_id, requested_at desc, id desc)` 索引，匹配 Project TaskRun 列表的稳定排序。真实 PostgreSQL 已验证查询、父级归属和跨 Tenant RLS 隔离。
+- 本切片不暴露 pause / resume / retry / takeover。当前 Root Workflow 没有完整 pause signal 语义，API 到 Temporal 的可靠 command delivery 也尚未建立；只修改数据库 lifecycle 会产生“接口成功但执行未停”的假状态，因此保持 fail-closed。
+- OpenAPI 与前端 API TypeScript 类型已同步；未修改任何前端页面、组件、DOM、布局、CSS 或既有交互，继续以前端原型为唯一权威。
+
+### 已验证
+
+- Application / API / Repository / Migration 定向测试和真实 PostgreSQL 查询测试已通过，覆盖分页边界、Revision ETag、父级归属、不可见资源同形 404 与跨 Tenant RLS；`0026 → 0025 → 0026` 往返及最终索引存在性已验证。
+- 完整 `make verify` 已通过：789 tests、coverage 90.25%、Ruff、严格 mypy 275 files、Schema / OpenAPI 漂移、Python sdist / wheel、前端 `check:api` / `tsc` / Vinext Production Build 全部成功。
+
+### 后续边界
+
+- 正式 `TaskUnitExecutionPort` 需要部署侧真实 SaaS adapter 与凭据边界；仓库不会内置 no-op production executor。
+- P5-00D2A 已补齐 durable Cancel；Pause / Resume / Retry / Takeover 仍需要各自的安全点、幂等与最终状态协议，完成前不开放对应 HTTP endpoint。
+- Task Plan authoring、Schedule / CI / Webhook Adapter、超过 64 Units 的可恢复分区物化、AttemptSeal / Result 与 UnitAttempt-scoped Live control 继续分切片落地。
+
+## P5-00D1 范围
+
+### 已实现
+
+- 新增 `atlas.task-unit-execution-ticket/0.1` 机器契约。Ticket 对每个物理 `UnitAttempt` 唯一，冻结 Run request / Manifest、Unit / Case、四类 Profile、Fixture、Environment revision / allowed origins、deadline 与全部内容摘要；不保存账号、Credential、Lease、Session、Token 或 Secret。
+- `20260717_0027` 新增 `task_unit_execution_ticket`：完整 Scope FK、`unit_attempt_id` 唯一、不可 UPDATE / DELETE Trigger、`FORCE RLS`、`atlas_app` 仅 SELECT / INSERT、`atlas_dispatcher` 无权限。owner-owned `SECURITY DEFINER` Insert Guard 使用固定 search path，重读并锁定 exact Run / Unit / Attempt / Case / Profile / Fixture / Environment，重新核对当前发布态、状态、Origin 边界和 canonical ticket digest。
+- `AtlasUnitAttemptWorkflow` 在 Begin 与任何副作用前增加可耐久重试的 Prepare DB Activity；Port 的输入从裸 `UnitAttemptWorkflowInput` 改为 `TaskUnitExecutionRequest(attempt, ticketId, ticketDigest)`。Prepare 精确重放已存在 Ticket，不因后续 Profile 状态变化改写历史 Ticket；不同 scope / digest 或持久化篡改均 fail-closed。Execute Activity 仍固定 `maximumAttempts=1`。
+- 仓库仍不注册 no-op、placeholder 或假 SaaS Adapter；没有部署侧正式 `TaskUnitExecutionPort` 时 Task Worker 保持默认关闭并在外部连接前拒绝启动。本切片只建立执行授权边界，不伪装真实 SaaS 登录或业务操作已经完成。
+- 未修改任何前端页面、组件、DOM、布局、CSS 或交互；新增契约不要求 OpenAPI 或前端生成类型变化，前端原型继续是唯一权威。
+
+### 已验证
+
+- Domain、Repository、Application、Workflow、Worker 与 Migration 测试覆盖 Ticket digest / 时间 / Origin、exact replay、篡改拒绝、Port 只接收 prepared request、Prepare 的数据库耐久 retry 与 Worker 装配。
+- 真实 PostgreSQL 已验证 `0027 → 0026 → 0027` 往返、atlas_app 创建与精确重放、Trigger 拒绝依赖篡改、跨 Tenant RLS 不可见和无 UPDATE 权限；真实 Temporal 已验证 1 / 9 Child、Ticket-bound Port、History 安全字段、同 Root replay 不重复副作用与完整 PostgreSQL 执行链。
+- 完整 `make verify` 已通过：800 tests、coverage 90.25%、Ruff、严格 mypy 279 files、Schema / OpenAPI 漂移、Python sdist / wheel、前端 `check:api` / `tsc` / Vinext Production Build 全部成功。
+
+### 后续边界
+
+- P5-00D1 只完成正式 Port 的输入授权协议，不提供目标 SaaS、Login Flow、Operation Registry、生产 Secret Provider 或 KMS-backed Vault；这些部署能力明确后才能实现首个 production Adapter。
+- AttemptSeal、可信 Oracle / Evidence 终结、UnitAttempt-scoped Live control、Pause / Resume / Retry / Takeover 与超过 64 Units 分区物化仍按独立切片落地；当前成功执行继续只能收敛为 `FINISHED_UNSEALED / INCONCLUSIVE`，不能表达 `PASSED`。
+
+## P5-00D2A 范围
+
+### 已实现
+
+- 新增 `atlas.task-run-command/0.1`、`RequestTaskRunCancel` 与 canonical command digest。首期只允许 `CANCEL`，公开状态固定为 `PENDING / DELIVERED / APPLIED / FAILED`，不暴露 Claim Token、Dispatcher identity、Lease 或内部 Retry 状态。
+- `20260717_0028` 新增强制 RLS 的 `task_run_command_intent`、immutable identity、exact Run scope FK、mutation / digest unique、Claim / Retry 索引和严格状态形状。`atlas_app` 只有 SELECT / INSERT 与 apply function；独立 `atlas_dispatcher` 无表级 DML，只有 Claim / Delivered / Retry / Fail fenced function EXECUTE。
+- `POST /v1/task-runs/{runId}:cancel` 要求 `If-Match`、`Idempotency-Key == clientMutationId` 与 `RUN_OPERATOR+`。一个短事务内锁定 exact sealed Run revision、推进 `CANCELING`、写 PENDING command 并追加 Task Event / Audit / Outbox；同 mutation exact replay 返回同一命令，API 事务不调用 Temporal。`GET /v1/task-runs/{runId}/commands/{commandId}` 返回安全状态投影。
+- Intent Consumer 进程同时运行 Start Intent 与 Command Intent 两个有界 poller；两者复用独立 dispatcher DSN 和 retry policy，但分别 Claim / CAS。Command 投递在事务外验证 deterministic Workflow ID、namespace、Type、Queue 与 Start Memo，再发送 versioned secret-free Signal；`NOT_FOUND` 视为 Workflow 可能尚未 Start 并耐久重试。
+- Root 从 plan 读取已持久化的 `cancelRequested`，同时接收 exact command Signal 并按 ID + payload 去重。Cancel 停止新 batch、取消 active Child；已完成结果原样保留，尚未证明完成的副作用保持 `INCONCLUSIVE`。Run `CLOSED / CANCELED` 后，finish transaction 同时把 exact command 标为 `APPLIED`；若 Root 在 Signal 到达前已按 plan 关闭，Dispatcher terminal reconciliation 也只在确认该终态后转为 `APPLIED`。
+- OpenAPI、`task-run-command.schema.json` 与前端 TypeScript API 类型已同步；未修改前端页面、组件、DOM、布局、CSS 或既有原型交互。
+
+### 已验证
+
+- Domain、Application、Repository、API、Migration、Consumer、Signaler、Workflow 与 Worker 定向测试覆盖 digest / status shape、Revision / idempotency / RBAC、短事务 Claim、Token + Revision fence、safe error code、Signal identity / Memo、`NOT_FOUND` retry、duplicate Signal、active Child cancel、completed outcome preservation 和 APPLIED 原子边界。
+- Alembic 已完成真实 `0028 → 0027 → 0028` 往返。真实 PostgreSQL 已验证 API 接受、Run `CANCELING → CLOSED / CANCELED`、跨 Tenant RLS、atlas_app 无 UPDATE、dispatcher function-only 权限，以及 Workflow 先关闭时由 terminal reconciliation 转为 `APPLIED`。
+- 真实 Temporal 已验证 versioned command Signal 可反序列化、exact duplicate 只保留一个 command、active Child 被取消、已完成 Child 结果保持、未知副作用不伪装成已知完成，History 不携带 Secret。
+- 完整 `make verify` 已通过：872 tests、coverage 90.48%、Ruff、严格 mypy 289 files、Schema / OpenAPI 漂移、Python sdist / wheel、前端 `check:api` / `tsc` / Vinext Production Build 全部成功；前端原型未改。
+
+### 后续边界
+
+- P5-00D2B 已在后续切片把 Pause / Resume 定义为 Task 级批次边界派发控制；它不等同于浏览器 Safe Point / Quiesce。Retry 必须追加新 UnitAttempt，Takeover 必须绑定后续 ControlLease / Epoch / Fence，不能复用 Cancel 或 Task Pause 语义。
+- Task Plan authoring、正式 production `TaskUnitExecutionPort`、Schedule / CI / Webhook Adapter、超过 64 Units 的可恢复分区物化、AttemptSeal / Result 与 UnitAttempt-scoped Live control 继续按独立切片落地。
+
+## P5-00D2B 范围
+
+### 已实现
+
+- `atlas.task-run-command/0.2` 在兼容历史 `0.1` Cancel 的前提下新增 durable `PAUSE / RESUME` 与公共终态 `SUPERSEDED`。`POST /v1/task-runs/{runId}:pause|resume` 复用 exact Revision、`Idempotency-Key == clientMutationId`、`RUN_OPERATOR+`、Event / Audit / Outbox 与可靠 Signal 投递边界；Pause 只接受 `RUNNING`，Resume 只接受 `PAUSED`。
+- `20260717_0029` 扩展 command intent 的严格状态形状、单 Run 唯一未完成 Pause / Resume、command-specific Insert Guard、Pause / Resume apply function 与 Cancel supersession function。Resume 接受事务保持 Lifecycle 为 `PAUSED` 但推进 Revision；Cancel 从 `PAUSE_REQUESTED / PAUSED` 进入 `CANCELING` 时，同事务把未完成 Pause / Resume 标记 `SUPERSEDED` 并记录 superseding Cancel ID。
+- Root 在每个最多 8 个 Child 的批次前调用 `prepare_batch`，以一个短事务为整批创建或精确重放 immutable Execution Ticket。事务提交后的 Ticket 集合是不可追加的预授权边界，因此 Pause 到达后当前批次可以完成，但未授权的下一批不能启动。
+- 每个批次结束后 Root 调用 `checkpoint_control`。Pause checkpoint 同事务完成 `PAUSE_REQUESTED → PAUSED`、追加 `task_run.paused` Event 与 command `APPLIED`，随后使用 Temporal `workflow.wait_condition` 耐久等待；Resume Signal 唤醒后，Resume checkpoint 同事务完成 `PAUSED → RUNNING`、追加 `task_run.resumed` Event 与 command `APPLIED`，之后才准备下一批。
+- `start_attempt` 在 `PAUSE_REQUESTED` 下只接受已存在且身份完全匹配的 Ticket，从而允许已授权批次正常收敛；它不会让 Pause 后的新 Attempt 绕过批次门禁。最终批次与控制命令竞态由 `finish_run` 在关闭前收口，不留下未完成 Pause / Resume command。
+- OpenAPI、`task-run-command.schema.json` 与前端 TypeScript API 类型已同步；未修改前端页面、组件、DOM、布局、CSS 或既有原型交互。这里的 Pause 只对应前端既有“暂停派发 / 继续派发”，不是浏览器 Action Pause 或 Human Takeover。
+
+### 已验证
+
+- Domain、Application、Repository、API、Migration、Signaler、Workflow 与 Worker 定向测试覆盖 v0.1/v0.2 兼容、Pause / Resume digest、Revision / idempotency、单一 open command、batch gate、Ticket 预授权、durable wait / wake、Cancel supersession 与最终批次竞态。
+- Alembic 已完成真实 `0028 → 0029 → 0028 → 0029` 往返。真实 PostgreSQL 已验证 `RUNNING → PAUSE_REQUESTED → PAUSED → RUNNING`、Pause / Resume `APPLIED`、预授权 Ticket，以及第二次 Pause 被 Cancel 原子置为 `SUPERSEDED`。
+- 真实 Temporal 已验证 10 Units 场景中首批 8 个 Child 完成后停止派发，在 Resume Signal 与 checkpoint 之前第 9 / 10 个不会启动，Resume 后继续完成；Pause / Resume command 不会混入 Cancel finish command。
+- 完整 `make verify` 已通过：888 tests、coverage 90.24%、Ruff、严格 mypy 290 files、Schema / OpenAPI 漂移、Python sdist / wheel、前端 `check:api` / `tsc` / Vinext Production Build 全部成功；前端原型未改。
+
+### 后续边界
+
+- Task 级 Pause 不冻结已运行的 Browser Activity，也不授予人工控制权。UnitAttempt-scoped Browser Safe Point、ControlLease、Epoch / Fence、Human Takeover 与持久化 ActionGrant 仍属于 P6-02B2。
+- Retry 必须追加新的 UnitAttempt；Takeover 不能复用 Task Resume。Task Plan authoring、生产 `TaskUnitExecutionPort`、Schedule / CI / Webhook Adapter、超过 64 Units 的可恢复分区物化与 AttemptSeal / Result 仍待后续切片。
+
+## P5-00D3A 范围
+
+### 已实现
+
+- 新增 `atlas.task-run-manifest/0.2` 与 `atlas.task-retry-policy/0.1`。Manifest 冻结 `infraRetryAttempts`、`maxTotalInfraRetries`、初始 / 最大退避和 jitter，并要求 `policyDigests["infra-retry"]` 与 policy canonical digest 完全一致；历史 `0.1` Manifest 继续可读且自动重试次数为零。
+- `20260717_0030` 为 `task_run_manifest` 增加严格 `retry_policy` JSONB 形状、整数 / 上下界、精确键集合和数据库 canonical digest 校验；downgrade 在存在 v0.2 policy 事实时 fail-closed。Migration 同时收紧 execution ticket Insert Guard：首 Attempt 仍要求 `QUEUED` Unit，重试 Attempt 只接受仍为 `RUNNING` 的 Unit、gapless attempt number、前序 `CLOSED / INFRA_ERROR` 与已到达的 `queuedAt / notBefore`。
+- `TaskAttemptExecutionPayload` 与持久化 Attempt finalize 事件新增受限 `INFRA_ERROR` 和可选 `retryAfterSeconds`。Attempt Finish 现在只关闭一次物理 Attempt，不提前关闭逻辑 Unit；Assertion / 产品失败、非法返回、取消歧义与 `OUTCOME_UNKNOWN` 不会进入自动重试分支。
+- Root 新增最多 8 个结果的 `settle_attempt_batch` 短事务：锁定 exact Run，按 Unit ordinal 原子分配 per-Unit / Run 总预算，复核 frozen policy、显式分类和原始 deadline；满足条件时使用确定性 UUID、gapless `attemptNumber`、同一 Temporal namespace / Workflow ID 与原始 deadline 追加新 Attempt，否则关闭 Unit。Activity replay 只返回同一已存在事实，不重复追加 Attempt 或事件。
+- Root Workflow 从固定首 Attempt 列表演进为 wave 循环，维护每个 Unit 的 latest outcome。数据库返回 retry dispatch 后，Workflow 以 `notBefore` 使用 durable timer 等待；Pause / Resume / Cancel Signal 可中断等待并重新进入数据库控制 checkpoint。Pause / Cancel 结算竞态不会追加新的 Ticket 或重试决策；Cancel 在 retry backoff 中会安全关闭尚未派发的新 Attempt。
+- Retry Attempt 的 Prepare / Begin 同时经过 Application Admission 与数据库 Ticket Guard，不能仅凭 Workflow payload 绕过父链校验。最终 `finish_run` 按每个 Unit 的完整 gapless Attempt 历史和 latest Attempt 收敛，不覆盖旧 Attempt。当前仍无 AttemptSeal，因此 retry 成功也只能得到 `FINISHED_UNSEALED / INCONCLUSIVE`。
+- OpenAPI、TaskRun Manifest JSON Schema 与前端生成 TypeScript API 类型已同步；未修改任何前端页面、组件、DOM、布局、CSS 或既有原型交互，前端原型继续是唯一权威。
+
+### 已验证
+
+- Domain、Repository、Application、Workflow、Worker 与 Migration 定向测试覆盖 policy digest / 上界、legacy 零重试、明确 infra 分类、非 infra 禁止重试、预算耗尽、deterministic Attempt identity、exact replay、Pause / Cancel defer、durable backoff 与 failed Child safe reconciliation。
+- 真实 PostgreSQL 已验证 `20260717_0030` upgrade、downgrade / upgrade guard replacement、Python / PostgreSQL canonical policy digest 一致，以及完整 v0.2 Manifest → 首 Attempt `INFRA_ERROR` → 第二 Attempt Ticket / Admission → 成功收敛链。真实 Temporal 既有 Root / Attempt 套件已接入新的 batch settlement Activity。
+- 完整 `make verify` 已通过：900 tests、coverage 90.04%、Ruff、严格 mypy 291 files、Schema / OpenAPI 漂移、Python sdist / wheel、前端 `check:api` / `tsc` / Vinext Production Build 全部成功。破坏性的历史 Alembic 往返已改在独立临时数据库执行，重复验证不会触碰共享测试库中的 v0.2 不可变事实；前端只有自动生成 API 类型变化，原型未改。
+
+### 后续边界
+
+- P5-00D3A 不开放 RETRY HTTP command。P5-00D3B 已在后续切片把“仅重跑环境失败 / Rerun Failed”落为新子 TaskRun；它不复活旧 Run，也不覆盖旧 Attempt。
+- Adapter 必须明确且可信地返回 `INFRA_ERROR` 才会自动重试。无法证明副作用状态的 `OUTCOME_UNKNOWN` 保持 fail-closed；首个 production `TaskUnitExecutionPort`、真实 SaaS 错误分类表和运维预算仍需部署侧输入。
+- Task Plan authoring、Schedule / CI / Webhook Adapter、超过 64 Units 的可恢复分区物化、AttemptSeal / Result，以及 UnitAttempt-scoped Live control / Takeover 继续按独立切片落地。
+
+## P5-00D3B 范围
+
+### 已实现
+
+- 新增 `POST /v1/task-runs/{runId}:rerun-infra-failures`。请求只携带 `clientMutationId`，同时要求 source Run 的 exact `If-Match`、`Idempotency-Key == clientMutationId` 与 `RUN_OPERATOR+`；只有 `SEALED / CLOSED` 且非 legacy 的源 Run 可创建子 Run。
+- 子 Run 使用新的 `TaskRun / ExecutionUnit / UnitAttempt / Temporal Workflow` identity，绑定不可变 `rerunOfTaskRunId` 与 `rerunSelectionMode=INFRA_FAILURES`。它复制源 Manifest 的 exact Plan Version、schema、iteration、policy digests、retry policy 与 compiler version，只按稳定 `unitKey` 重编号并选择每个且仅有 `CLOSED / INFRA_ERROR` 的源 Unit。
+- `20260717_0031` 在 PostgreSQL 中把 selection mode 与 lineage 绑定并禁止更新。owner-owned、固定 `search_path` 且不可被应用角色直接执行的 Manifest Insert Guard 重读 sealed parent、重算完整预期 Unit JSONB，并拒绝遗漏、夹带、配置漂移或空选择；存在 child rerun 事实时 downgrade fail-closed。
+- 子 Run 复用源首 Attempt 的 execution-window 时长并平移到新的数据库排队时间，不延长冻结策略；现有 materialization repository 在同一短事务完成完整聚合、Seal 与唯一 `PENDING` Start Intent。首次创建追加 `task_run.rerun_requested` Event / Audit / Outbox，exact replay 返回同一子 Run 且不重复副作用。
+- TaskRun JSON Schema、OpenAPI 和前端自动生成 TypeScript API 类型已同步；没有修改前端页面、组件、DOM、布局、CSS 或既有原型交互。
+
+### 已验证
+
+- Domain、Application、Repository、API 与 Migration 测试覆盖 lineage / mode、Revision / RBAC / idempotency、无可选 Unit、exact source selection、全新物理 identity、事件与 exact replay。
+- 真实 PostgreSQL 已验证 `0031 → 0030 → 0031` 无事实往返、源 Run `INFRA_ERROR` 关闭后生成精确 child aggregate / Start Intent，以及存在 child fact 后拒绝降级。Manifest Guard 的 owner 权限、固定 search path 与最小执行权均已验证。
+- 完整验证期间修复了 Execution Ticket deadline 的跨语言 canonicalization：Python 现在与 PostgreSQL 一致地使用 UTC、去除小数秒尾零；修复前的随机 digest 冲突已连续 20 次真实 Ticket 创建验证不再复现。
+- 最终 `make verify` 全部通过：912 tests、coverage 90.06%、Ruff、严格 mypy 294 files、Schema / OpenAPI 漂移、Python sdist / wheel、前端 `check:api` / `tsc` / Vinext Production Build。
+
+### 后续边界
+
+- 该端点只按数据库最终事实选择 `INFRA_ERROR`，不接受客户端 Unit 列表，也不把 `FAILED / INCONCLUSIVE / CANCELED / OUTCOME_UNKNOWN` 解释成环境失败。它不是向旧 Workflow 发送的 RETRY command。
+- Takeover 仍必须等待 UnitAttempt-scoped `LiveSession / ControlLease / Epoch / Fence / ActionGrant`；Task Plan authoring、production Adapter、Schedule / CI / Webhook、超过 64 Units 的分区物化与 AttemptSeal / Result 继续独立落地。
 
 ## P6-00 范围
 
@@ -353,7 +509,7 @@
 1. 在 P6-02B2 基于 P5-00A 已建立的正式 UnitAttempt 落地 LiveSession、ControlLease、浏览器控制 Epoch / Fence、Human Takeover 与持久化 ActionGrant；P6-02B1 已提供的 DebugRun Live 只映射到前端现有 Debug / Live / Evidence 槽位，不重画或调整原型结构。
 2. 串联公共 DebugRun Start → Runtime Preparation → ExecutionContract Bind → Browser Dispatch，并保持同一命令的幂等恢复语义。
 3. 接入首个真实 SaaS Browser Operation / Published Route，并在部署层实施容器 Egress / DNS / UDP / WebRTC 策略与 Envelope Key Ring Rotation。
-4. P5-00B2A 已建立 durable Start Intent 交付层；下一 P5 切片落地最多 64 Units 的真实 `AtlasTaskRunWorkflow` / Activity 和 Unit 调度，随后再处理超过 64 Units 的分区物化。后续在 P6 创建 AttemptSeal，并在 P7 形成 Result Snapshot / Gate；Multi-actor 仍等待正式调度与控制权协议。
+4. P5-00D1 已建立 ticket-bound Port 输入，P5-00D2A/D2B 已落地 durable TaskRun Cancel 与 batch-boundary Pause / Resume；下一 P5 控制切片应让 Retry 追加新 Attempt，Takeover 等待 P6-02B2 ControlLease / Epoch / Fence，超过 64 Units 另做可恢复分区物化。
 5. 接入首个真实 SaaS Fixture Provider 与 `PasswordLoginFlow`、生产 Secret Provider 和 KMS-backed `SessionArtifactVault`；缺少受信部署配置时继续 fail-closed。
 6. 为各 Tenant 配置生产 Temporal Schedule，周期调度 Fixture Cleanup Sweep、`AccountHealthWorkflow`、Connector Reconcile、Credential Expiry Monitor 和 Session Janitor Workflow。
 
@@ -396,8 +552,8 @@
 
 ### P6-02B2 / P5 后续仍待落地
 
-- P5-00A 已建立 `TaskRun / ExecutionUnit / UnitAttempt` 正式宿主，P5-00B2A 已补充 durable Start Intent Consumer，但真实 Task Workflow / Activity 仍未接入。B2A 不创建 `LiveSession`、`AttemptSeal` 或其他现场事实；P6-02B2 将直接绑定正式 UnitAttempt，不能退回 DebugRun 多态宿主。
-- Browser `ControlLease`、控制权 Epoch / Fence、Pause / Resume / Takeover Command、Human Takeover、Safe Point / Quiesce、持久化且绑定 Epoch / Fence 的 `ActionGrant` 均未实现。当前 SSE 是只读 Observer 通道，不接受 Frame、Command、Action 或人工输入，也不把 P6-01 Worker 内部单次 Action 校验误称为持久化人工控制协议。
+- P5-00A 已建立 `TaskRun / ExecutionUnit / UnitAttempt` 正式宿主，P5-00B2A 已补充 durable Start Intent Consumer，P5-00B2B 已接入最多 64 Units 的真实 Root / Attempt Workflow 与短 Activity；正式 execution port 仍由部署侧后续提供。B2B 不创建 `LiveSession`、`AttemptSeal` 或其他现场事实；P6-02B2 将直接绑定正式 UnitAttempt，不能退回 DebugRun 多态宿主。
+- Browser `ControlLease`、控制权 Epoch / Fence、Action Safe Point Pause / Resume / Takeover Command、Human Takeover、Quiesce、持久化且绑定 Epoch / Fence 的 `ActionGrant` 均未实现。P5-00D2B 的 Task 级 Pause 只停止新 Unit 派发，不覆盖这些浏览器现场能力。当前 SSE 是只读 Observer 通道，不接受 Frame、Command、Action 或人工输入，也不把 P6-01 Worker 内部单次 Action 校验误称为持久化人工控制协议。
 - 首个真实 SaaS Operation / Published Route、容器级 Egress / DNS / UDP / WebRTC、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch、Multi-actor 和正式 AttemptSeal 仍按既有计划后续落地，缺少对应部署能力时继续 fail-closed。
 
 ## 验证记录
@@ -480,6 +636,12 @@
 | 2026-07-16 | P5-00A PostgreSQL / Migration | `20260716_0022`，`0021 → 0022 → 0021 → 0022` | 通过；复合 Scope、Manifest 绑定、Attempt / Event gapless、不可变 Trigger、`FORCE RLS`、最小权限和完整 downgrade 均已验证 |
 | 2026-07-16 | P5-00B1 调度前置 | 四类 Profile、stable request digest、Workflow identity registry、materialization Seal、Revision CAS | 通过；完整 `make verify` 651 tests / coverage 90.35%，真实 PostgreSQL、Chromium 与 `0023 ↔ 0022` populated roundtrip 均已验收 |
 | 2026-07-16 | P5-00B2A Intent 可靠交付 | `20260716_0024` 状态机、独立 `atlas_dispatcher`、三段式 Consumer、稳定 Temporal Start / collision verification | 通过；90 项定向及真实 PostgreSQL / Temporal 测试、`0024 → 0023 → 0024` 往返、Consumer 镜像构建与完整 `make verify` 均成功；全量 712 tests / coverage 90.46% |
+| 2026-07-16 | P5-00B2B Task 耐久编排 | 最多 64 Units 的真实 Root / Attempt Workflow、固定双 Queue、8-child batch、deadline、`maximumAttempts=1` 副作用 Activity、Heartbeat / 等待取消完成、`20260716_0025` tenant-scoped 执行链锁 | 通过；真实 PostgreSQL / Temporal 已验证锁序、最小权限、跨 batch、deadline 排队、瞬时数据库故障恢复、exact replay、History 脱敏、非 PASS 收敛、原生取消未知结果与已完成 Child 结果保留；`0025 → 0024 → 0025` 往返、Task Worker 镜像和默认关闭启动均成功；完整 `make verify` 通过，780 tests / coverage 90.15%、Ruff、严格 mypy 269 files、契约漂移、Python sdist / wheel 与前端生产构建全部成功 |
+| 2026-07-16 | P5-00C TaskRun 查询控制面 | Project TaskRun keyset、Run / Manifest、Unit / Attempt、Event 只读 API，RBAC + RLS、父级归属和 `20260716_0026` 查询索引 | 真实 PostgreSQL、`0026 → 0025 → 0026` 往返与完整 `make verify` 通过：789 tests / coverage 90.25%、Ruff、严格 mypy 275 files、契约漂移、Python build 和前端 production build；控制命令保持关闭，前端仅同步生成类型，原型未改 |
+| 2026-07-17 | P5-00D1 不可变 Execution Ticket | 每 Attempt 唯一 secret-free Ticket、owner-owned Insert Guard、不可变 Trigger、FORCE RLS、Prepare Activity 与 ticket-bound Port Protocol | 真实 PostgreSQL `0027 → 0026 → 0027`、跨 Tenant / 篡改 / replay、真实 Temporal 1 / 9 Child 与完整数据库执行链均通过；完整 `make verify` 800 tests / coverage 90.25%、Ruff、严格 mypy 279 files、契约漂移、Python build 与前端 production build 全部成功；前端原型未改 |
+| 2026-07-17 | P5-00D2A durable TaskRun Cancel | exact Revision + mutation idempotency、`20260717_0028` command intent、dispatcher fenced Signal、Root safe cancel、terminal reconciliation 与 command status | 真实 `0028 → 0027 → 0028`、PostgreSQL API / RLS / 最小权限 / APPLIED 收口和 Temporal duplicate / active Child / late-race 均通过；完整 `make verify` 872 tests / coverage 90.48%、Ruff、严格 mypy 289 files、契约漂移、Python build 与前端 production build 全部成功；前端原型未改 |
+| 2026-07-17 | P5-00D2B durable TaskRun Pause / Resume | `atlas.task-run-command/0.2`、`20260717_0029`、8-child batch 预授权门禁、durable checkpoint / wait / wake、Cancel supersession | 真实 `0028 ↔ 0029`、PostgreSQL lifecycle / command / Ticket、Temporal 10 Units 首批暂停和恢复均通过；完整 `make verify` 888 tests / coverage 90.24%、Ruff、严格 mypy 290 files、契约漂移、Python build 与前端 production build 全部成功；前端原型未改 |
+| 2026-07-17 | P5-00D3A automatic infrastructure retry | `task-run-manifest/0.2` frozen policy、显式 `INFRA_ERROR`、deterministic append-only Attempt、durable backoff、原 deadline 与双重 Admission / Ticket Guard | 真实 PostgreSQL 已验证 v0.2 Manifest → 首 Attempt `INFRA_ERROR` → 第二 Attempt Ticket / Admission → 成功收敛，以及 `0030` guard replacement 和 fail-closed downgrade；完整 `make verify` 900 tests / coverage 90.04%、Ruff、严格 mypy 291 files、契约漂移、Python build 与前端 production build 全部成功；历史迁移测试独立运行，前端原型未改 |
 
 ## 当前风险与外部输入
 
@@ -490,6 +652,6 @@
 - 生产对象存储和 Secret Manager 尚未指定；代码只依赖抽象接口，本地采用 S3-compatible 与不可逆的 Secret 引用。
 - 试点项目、黄金用例和真实业务 API 契约尚未提供；P0-P1 不依赖这些输入，P2 之后需要逐步补齐。
 - P3-03 已完成取消后补偿、Reconcile、Cleanup Retry / Sweeper、孤儿扫描与 Cleanup Evidence；生产环境仍需按 Tenant 配置 Temporal Schedule 和真实 Provider，缺失时继续 fail-closed。
-- P5-00B1 已建立正式 Profile、Seal、CAS 与 Pending Start Intent，P5-00B2A 已实现独立、默认关闭的 durable Intent Consumer 与 Claim / Lease / Retry / Started / Failed 恢复状态机；Task Temporal Root Workflow / Activity、Command API、Schedule / CI Adapter 和超过 64 Units 的可恢复分区物化尚未实现。`STARTED` 只表示 Temporal 接受，不能描述成 Task 已执行或成功。
+- P5-00B1 已建立正式 Profile、Seal、CAS 与 Pending Start Intent，P5-00B2A/B2B 已实现 durable Start 与最多 64 Units Root / Attempt 编排，P5-00C 已开放 TaskRun 查询，P5-00D1/D2A/D2B 已补齐 immutable Ticket、reliable Cancel 与 batch-boundary Pause / Resume，P5-00D3A 已补齐有界基础设施自动重试。Task Plan authoring、manual rerun / Takeover、正式 production `TaskUnitExecutionPort`、Schedule / CI Adapter、超过 64 Units 的可恢复分区物化、AttemptSeal / Result 与 Live control 尚未实现；`STARTED` 和 `FINISHED_UNSEALED` 都不能描述成 `PASSED`。
 - P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；P6-02A Evidence Writer / 受控读取与 P6-02B1 DebugRun Live Snapshot / SSE 已完成。P6-02B2 的 UnitAttempt-scoped LiveSession、ControlLease、控制 Epoch / Fence、Human Takeover 与持久化 ActionGrant，以及真实 SaaS Operation / Route Registry、生产 Bucket Object Lock / Versioning、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
 - 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。

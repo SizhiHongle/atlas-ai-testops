@@ -6163,6 +6163,337 @@
         "title": "ExecutionContract",
         "type": "object"
       },
+      "ExecutionHygiene": {
+        "description": "Shared resource-cleanup axis independent of result quality.",
+        "enum": [
+          "NOT_REQUIRED",
+          "PENDING",
+          "RUNNING",
+          "CLEANED",
+          "CLEANUP_FAILED",
+          "LEAKED"
+        ],
+        "title": "ExecutionHygiene",
+        "type": "string"
+      },
+      "ExecutionLifecycle": {
+        "description": "Shared TaskRun, ExecutionUnit, and UnitAttempt lifecycle axis.",
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "PAUSE_REQUESTED",
+          "PAUSED",
+          "CANCELING",
+          "FINALIZING",
+          "CLOSED"
+        ],
+        "title": "ExecutionLifecycle",
+        "type": "string"
+      },
+      "ExecutionQuality": {
+        "description": "Shared Oracle-owned result axis independent of lifecycle.",
+        "enum": [
+          "PENDING",
+          "PASSED",
+          "FAILED",
+          "BLOCKED",
+          "INCONCLUSIVE",
+          "INFRA_ERROR",
+          "CANCELED"
+        ],
+        "title": "ExecutionQuality",
+        "type": "string"
+      },
+      "ExecutionUnit": {
+        "additionalProperties": false,
+        "description": "Logical immutable manifest cell whose retries append UnitAttempts.",
+        "properties": {
+          "browserProfileVersionId": {
+            "format": "uuid",
+            "title": "Browserprofileversionid",
+            "type": "string"
+          },
+          "caseVersionId": {
+            "format": "uuid",
+            "title": "Caseversionid",
+            "type": "string"
+          },
+          "cleanupResolvedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cleanupresolvedat"
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closedat"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "dataProfileVersionId": {
+            "format": "uuid",
+            "title": "Dataprofileversionid",
+            "type": "string"
+          },
+          "dependencyDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Dependencydigest",
+            "type": "string"
+          },
+          "environmentId": {
+            "format": "uuid",
+            "title": "Environmentid",
+            "type": "string"
+          },
+          "executionProfileVersionId": {
+            "format": "uuid",
+            "title": "Executionprofileversionid",
+            "type": "string"
+          },
+          "finalizedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizedat"
+          },
+          "fixtureBlueprintVersionId": {
+            "format": "uuid",
+            "title": "Fixtureblueprintversionid",
+            "type": "string"
+          },
+          "hygiene": {
+            "$ref": "#/components/schemas/ExecutionHygiene"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "identityProfileVersionId": {
+            "format": "uuid",
+            "title": "Identityprofileversionid",
+            "type": "string"
+          },
+          "lifecycle": {
+            "$ref": "#/components/schemas/ExecutionLifecycle"
+          },
+          "manifestHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Manifesthash",
+            "type": "string"
+          },
+          "ordinal": {
+            "minimum": 1.0,
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "parameterDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Parameterdigest",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/ExecutionQuality"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "unitKey": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Unitkey",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "manifestHash",
+          "ordinal",
+          "unitKey",
+          "caseVersionId",
+          "executionProfileVersionId",
+          "fixtureBlueprintVersionId",
+          "identityProfileVersionId",
+          "environmentId",
+          "browserProfileVersionId",
+          "dataProfileVersionId",
+          "parameterDigest",
+          "dependencyDigest",
+          "lifecycle",
+          "quality",
+          "hygiene",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "ExecutionUnit",
+        "type": "object"
+      },
+      "ExecutionUnitManifest": {
+        "additionalProperties": false,
+        "description": "One exact CaseVersion and matrix cell frozen into a Run Manifest.",
+        "properties": {
+          "browserProfileVersionId": {
+            "format": "uuid",
+            "title": "Browserprofileversionid",
+            "type": "string"
+          },
+          "caseVersionId": {
+            "format": "uuid",
+            "title": "Caseversionid",
+            "type": "string"
+          },
+          "dataProfileVersionId": {
+            "format": "uuid",
+            "title": "Dataprofileversionid",
+            "type": "string"
+          },
+          "dependencyDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Dependencydigest",
+            "type": "string"
+          },
+          "environmentId": {
+            "format": "uuid",
+            "title": "Environmentid",
+            "type": "string"
+          },
+          "executionProfileVersionId": {
+            "format": "uuid",
+            "title": "Executionprofileversionid",
+            "type": "string"
+          },
+          "fixtureBlueprintVersionId": {
+            "format": "uuid",
+            "title": "Fixtureblueprintversionid",
+            "type": "string"
+          },
+          "identityProfileVersionId": {
+            "format": "uuid",
+            "title": "Identityprofileversionid",
+            "type": "string"
+          },
+          "ordinal": {
+            "minimum": 1.0,
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "parameterDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Parameterdigest",
+            "type": "string"
+          },
+          "unitKey": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Unitkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ordinal",
+          "unitKey",
+          "caseVersionId",
+          "executionProfileVersionId",
+          "fixtureBlueprintVersionId",
+          "identityProfileVersionId",
+          "environmentId",
+          "browserProfileVersionId",
+          "dataProfileVersionId",
+          "parameterDigest",
+          "dependencyDigest"
+        ],
+        "title": "ExecutionUnitManifest",
+        "type": "object"
+      },
+      "ExecutionUnitPage": {
+        "additionalProperties": false,
+        "description": "Ordinal page of ExecutionUnits for one TaskRun.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ExecutionUnit"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextAfterOrdinal": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextafterordinal"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ExecutionUnitPage",
+        "type": "object"
+      },
       "FieldViolation": {
         "additionalProperties": false,
         "description": "请求字段的单个校验问题。",
@@ -8438,6 +8769,78 @@
         "title": "RequestDebugRunCancel",
         "type": "object"
       },
+      "RequestTaskRunCancel": {
+        "additionalProperties": false,
+        "description": "Idempotent public request to cancel one exact TaskRun revision.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientMutationId"
+        ],
+        "title": "RequestTaskRunCancel",
+        "type": "object"
+      },
+      "RequestTaskRunInfraFailureRerun": {
+        "additionalProperties": false,
+        "description": "Idempotent public request to create a child Run for infra-failed Units.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientMutationId"
+        ],
+        "title": "RequestTaskRunInfraFailureRerun",
+        "type": "object"
+      },
+      "RequestTaskRunPause": {
+        "additionalProperties": false,
+        "description": "Idempotent public request to pause dispatch for one exact TaskRun revision.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientMutationId"
+        ],
+        "title": "RequestTaskRunPause",
+        "type": "object"
+      },
+      "RequestTaskRunResume": {
+        "additionalProperties": false,
+        "description": "Idempotent public request to resume dispatch for one exact TaskRun revision.",
+        "properties": {
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientMutationId"
+        ],
+        "title": "RequestTaskRunResume",
+        "type": "object"
+      },
       "ResourceCleanupAttempt": {
         "additionalProperties": false,
         "description": "Safe append-only cleanup attempt without the provider locator.",
@@ -9010,6 +9413,952 @@
         ],
         "title": "SurfaceRef",
         "type": "object"
+      },
+      "TaskExecutionEvent": {
+        "additionalProperties": false,
+        "description": "Append-only monotonic event projection for Task execution replay.",
+        "properties": {
+          "eventType": {
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9_.-]+$",
+            "title": "Eventtype",
+            "type": "string"
+          },
+          "executionUnitId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executionunitid"
+          },
+          "hygiene": {
+            "$ref": "#/components/schemas/ExecutionHygiene"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lifecycle": {
+            "$ref": "#/components/schemas/ExecutionLifecycle"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Payload",
+            "type": "object",
+            "x-atlas-max-serialized-bytes": 32768
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/ExecutionQuality"
+          },
+          "schemaVersion": {
+            "const": "atlas.execution-event/0.1",
+            "default": "atlas.execution-event/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "seq": {
+            "minimum": 1.0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "unitAttemptId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitattemptid"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "seq",
+          "eventType",
+          "lifecycle",
+          "quality",
+          "hygiene",
+          "occurredAt"
+        ],
+        "title": "TaskExecutionEvent",
+        "type": "object"
+      },
+      "TaskExecutionEventPage": {
+        "additionalProperties": false,
+        "description": "Monotonic event page resumed with afterSeq.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskExecutionEvent"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextAfterSeq": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextafterseq"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TaskExecutionEventPage",
+        "type": "object"
+      },
+      "TaskMaterializationState": {
+        "description": "Completeness gate for a TaskRun aggregate before dispatch.",
+        "enum": [
+          "MATERIALIZING",
+          "SEALED"
+        ],
+        "title": "TaskMaterializationState",
+        "type": "string"
+      },
+      "TaskRetryPolicy": {
+        "additionalProperties": false,
+        "description": "Frozen bounded policy for safe, explicitly classified infrastructure retries.",
+        "properties": {
+          "contentDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Contentdigest",
+            "type": "string"
+          },
+          "infraRetryAttempts": {
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Infraretryattempts",
+            "type": "integer"
+          },
+          "initialBackoffSeconds": {
+            "maximum": 300.0,
+            "minimum": 1.0,
+            "title": "Initialbackoffseconds",
+            "type": "integer"
+          },
+          "jitterPercent": {
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Jitterpercent",
+            "type": "integer"
+          },
+          "maxTotalInfraRetries": {
+            "maximum": 256.0,
+            "minimum": 0.0,
+            "title": "Maxtotalinfraretries",
+            "type": "integer"
+          },
+          "maximumBackoffSeconds": {
+            "maximum": 3600.0,
+            "minimum": 1.0,
+            "title": "Maximumbackoffseconds",
+            "type": "integer"
+          },
+          "schemaVersion": {
+            "const": "atlas.task-retry-policy/0.1",
+            "default": "atlas.task-retry-policy/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "infraRetryAttempts",
+          "maxTotalInfraRetries",
+          "initialBackoffSeconds",
+          "maximumBackoffSeconds",
+          "jitterPercent",
+          "contentDigest"
+        ],
+        "title": "TaskRetryPolicy",
+        "type": "object"
+      },
+      "TaskRun": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "materializationSealedAt": {
+                  "type": "null"
+                },
+                "materializationState": {
+                  "const": "MATERIALIZING"
+                },
+                "materializedFirstAttemptCount": {
+                  "type": "null"
+                },
+                "materializedUnitCount": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "materializationState": {
+                  "const": "SEALED"
+                }
+              },
+              "required": [
+                "materializationState"
+              ]
+            },
+            "then": {
+              "properties": {
+                "materializationSealedAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "materializedFirstAttemptCount": {
+                  "type": "integer"
+                },
+                "materializedUnitCount": {
+                  "type": "integer"
+                },
+                "requestDigest": {
+                  "type": "string"
+                },
+                "temporalNamespace": {
+                  "type": "string"
+                },
+                "temporalWorkflowId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "requestDigest",
+                "materializedUnitCount",
+                "materializedFirstAttemptCount",
+                "materializationSealedAt",
+                "temporalNamespace",
+                "temporalWorkflowId"
+              ]
+            }
+          },
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "temporalNamespace": {
+                    "type": "string"
+                  },
+                  "temporalWorkflowId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "temporalNamespace",
+                  "temporalWorkflowId"
+                ]
+              },
+              {
+                "properties": {
+                  "temporalNamespace": {
+                    "type": "null"
+                  },
+                  "temporalWorkflowId": {
+                    "type": "null"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "description": "Durable execution batch bound to one immutable Run Manifest.",
+        "properties": {
+          "cleanupResolvedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cleanupresolvedat"
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closedat"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "finalizedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizedat"
+          },
+          "hygiene": {
+            "$ref": "#/components/schemas/ExecutionHygiene"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lifecycle": {
+            "$ref": "#/components/schemas/ExecutionLifecycle"
+          },
+          "manifestHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Manifesthash",
+            "type": "string"
+          },
+          "materializationSealedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Materializationsealedat"
+          },
+          "materializationState": {
+            "$ref": "#/components/schemas/TaskMaterializationState",
+            "default": "MATERIALIZING"
+          },
+          "materializedFirstAttemptCount": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Materializedfirstattemptcount"
+          },
+          "materializedUnitCount": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Materializedunitcount"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/ExecutionQuality"
+          },
+          "queuedAt": {
+            "format": "date-time",
+            "title": "Queuedat",
+            "type": "string"
+          },
+          "requestDigest": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestdigest"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "title": "Requestedat",
+            "type": "string"
+          },
+          "requestedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestedby"
+          },
+          "rerunOfTaskRunId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerunoftaskrunid"
+          },
+          "rerunSelectionMode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskRunRerunSelectionMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          },
+          "taskPlanVersionId": {
+            "format": "uuid",
+            "title": "Taskplanversionid",
+            "type": "string"
+          },
+          "temporalNamespace": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temporalnamespace"
+          },
+          "temporalWorkflowId": {
+            "anyOf": [
+              {
+                "maxLength": 320,
+                "minLength": 12,
+                "pattern": "^atlas-task/[A-Za-z0-9/_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temporalworkflowid"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "triggerFingerprint": {
+            "maxLength": 320,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+            "title": "Triggerfingerprint",
+            "type": "string"
+          },
+          "triggerSource": {
+            "$ref": "#/components/schemas/TaskTriggerSource"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskPlanVersionId",
+          "manifestHash",
+          "triggerSource",
+          "triggerFingerprint",
+          "lifecycle",
+          "quality",
+          "hygiene",
+          "requestedBy",
+          "requestedAt",
+          "queuedAt",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "TaskRun",
+        "type": "object",
+        "x-atlas-invariants": [
+          "SEALED requires materializedUnitCount == materializedFirstAttemptCount.",
+          "materializationSealedAt must be between createdAt and updatedAt.",
+          "When present, temporalWorkflowId is deterministically derived from tenantId and id."
+        ]
+      },
+      "TaskRunCommandIntent": {
+        "additionalProperties": false,
+        "description": "Public projection of one durable secret-free TaskRun control command.",
+        "properties": {
+          "acceptedRunRevision": {
+            "minimum": 2.0,
+            "title": "Acceptedrunrevision",
+            "type": "integer"
+          },
+          "appliedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appliedat"
+          },
+          "clientMutationId": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{7,199}$",
+            "title": "Clientmutationid",
+            "type": "string"
+          },
+          "commandDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Commanddigest",
+            "type": "string"
+          },
+          "commandType": {
+            "$ref": "#/components/schemas/TaskRunCommandType"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "createdBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdby"
+          },
+          "deliveredAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveredat"
+          },
+          "dispatchAttempts": {
+            "minimum": 0.0,
+            "title": "Dispatchattempts",
+            "type": "integer"
+          },
+          "expectedRunRevision": {
+            "minimum": 1.0,
+            "title": "Expectedrunrevision",
+            "type": "integer"
+          },
+          "failedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failedat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lastErrorCode": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lasterrorcode"
+          },
+          "manifestHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Manifesthash",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "requestDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Requestdigest",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "default": "atlas.task-run-command/0.2",
+            "enum": [
+              "atlas.task-run-command/0.1",
+              "atlas.task-run-command/0.2"
+            ],
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskRunCommandStatus"
+          },
+          "supersededAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersededat"
+          },
+          "supersededByCommandId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersededbycommandid"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "temporalNamespace": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+            "title": "Temporalnamespace",
+            "type": "string"
+          },
+          "temporalWorkflowId": {
+            "maxLength": 320,
+            "minLength": 12,
+            "pattern": "^atlas-task/[A-Za-z0-9/_-]+$",
+            "title": "Temporalworkflowid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "commandType",
+          "clientMutationId",
+          "commandDigest",
+          "expectedRunRevision",
+          "acceptedRunRevision",
+          "requestDigest",
+          "manifestHash",
+          "temporalNamespace",
+          "temporalWorkflowId",
+          "status",
+          "dispatchAttempts",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "TaskRunCommandIntent",
+        "type": "object"
+      },
+      "TaskRunCommandStatus": {
+        "description": "Public delivery state without exposing dispatcher lease internals.",
+        "enum": [
+          "PENDING",
+          "DELIVERED",
+          "APPLIED",
+          "FAILED",
+          "SUPERSEDED"
+        ],
+        "title": "TaskRunCommandStatus",
+        "type": "string"
+      },
+      "TaskRunCommandType": {
+        "description": "Durable TaskRun control commands accepted by the public control plane.",
+        "enum": [
+          "CANCEL",
+          "PAUSE",
+          "RESUME"
+        ],
+        "title": "TaskRunCommandType",
+        "type": "string"
+      },
+      "TaskRunManifest": {
+        "additionalProperties": false,
+        "description": "Complete immutable execution input for one TaskRun.",
+        "properties": {
+          "compilerVersion": {
+            "maxLength": 80,
+            "minLength": 5,
+            "pattern": "^(?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)[.](?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:[+][0-9A-Za-z.-]+)?$",
+            "title": "Compilerversion",
+            "type": "string"
+          },
+          "iterationId": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 3,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iterationid"
+          },
+          "manifestHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Manifesthash",
+            "type": "string"
+          },
+          "policyDigests": {
+            "additionalProperties": false,
+            "maxProperties": 64,
+            "minProperties": 1,
+            "patternProperties": {
+              "^[a-z][a-z0-9_.-]{1,127}$": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "title": "Policydigests",
+            "type": "object"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "retryPolicy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskRetryPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schemaVersion": {
+            "default": "atlas.task-run-manifest/0.1",
+            "enum": [
+              "atlas.task-run-manifest/0.1",
+              "atlas.task-run-manifest/0.2"
+            ],
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "taskPlanVersionId": {
+            "format": "uuid",
+            "title": "Taskplanversionid",
+            "type": "string"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "triggerFingerprint": {
+            "maxLength": 320,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{2,319}$",
+            "title": "Triggerfingerprint",
+            "type": "string"
+          },
+          "triggerSource": {
+            "$ref": "#/components/schemas/TaskTriggerSource"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/ExecutionUnitManifest"
+            },
+            "maxItems": 100000,
+            "minItems": 1,
+            "title": "Units",
+            "type": "array"
+          }
+        },
+        "required": [
+          "taskRunId",
+          "taskPlanVersionId",
+          "triggerSource",
+          "triggerFingerprint",
+          "tenantId",
+          "projectId",
+          "units",
+          "policyDigests",
+          "compilerVersion",
+          "manifestHash"
+        ],
+        "title": "TaskRunManifest",
+        "type": "object"
+      },
+      "TaskRunPage": {
+        "additionalProperties": false,
+        "description": "Cursor page of TaskRuns for one Project.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskRun"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TaskRunPage",
+        "type": "object"
+      },
+      "TaskRunRerunSelectionMode": {
+        "description": "Database-proven source selection used to materialize a child TaskRun.",
+        "enum": [
+          "INFRA_FAILURES"
+        ],
+        "title": "TaskRunRerunSelectionMode",
+        "type": "string"
+      },
+      "TaskTriggerSource": {
+        "description": "Bounded trigger origins used in TaskRun idempotency scope.",
+        "enum": [
+          "MANUAL",
+          "SCHEDULE",
+          "CI",
+          "WEBHOOK",
+          "API"
+        ],
+        "title": "TaskTriggerSource",
+        "type": "string"
       },
       "Tenant": {
         "additionalProperties": false,
@@ -9905,6 +11254,251 @@
           "policyDigest"
         ],
         "title": "ToolExecutionProfile",
+        "type": "object"
+      },
+      "UnitAttempt": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "temporalNamespace": {
+                    "type": "string"
+                  },
+                  "temporalWorkflowId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "temporalNamespace",
+                  "temporalWorkflowId"
+                ]
+              },
+              {
+                "properties": {
+                  "temporalNamespace": {
+                    "type": "null"
+                  },
+                  "temporalWorkflowId": {
+                    "type": "null"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "description": "One append-only physical execution attempt for an ExecutionUnit.",
+        "properties": {
+          "attemptNumber": {
+            "minimum": 1.0,
+            "title": "Attemptnumber",
+            "type": "integer"
+          },
+          "caseVersionId": {
+            "format": "uuid",
+            "title": "Caseversionid",
+            "type": "string"
+          },
+          "cleanupResolvedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cleanupresolvedat"
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closedat"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "executionDeadline": {
+            "format": "date-time",
+            "title": "Executiondeadline",
+            "type": "string"
+          },
+          "executionUnitId": {
+            "format": "uuid",
+            "title": "Executionunitid",
+            "type": "string"
+          },
+          "finalizedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizedat"
+          },
+          "hygiene": {
+            "$ref": "#/components/schemas/ExecutionHygiene"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lifecycle": {
+            "$ref": "#/components/schemas/ExecutionLifecycle"
+          },
+          "manifestHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Manifesthash",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/ExecutionQuality"
+          },
+          "queuedAt": {
+            "format": "date-time",
+            "title": "Queuedat",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          },
+          "taskRunId": {
+            "format": "uuid",
+            "title": "Taskrunid",
+            "type": "string"
+          },
+          "temporalNamespace": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temporalnamespace"
+          },
+          "temporalWorkflowId": {
+            "anyOf": [
+              {
+                "maxLength": 320,
+                "minLength": 12,
+                "pattern": "^atlas-task/[A-Za-z0-9/_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temporalworkflowid"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "unitKey": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Unitkey",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "taskRunId",
+          "executionUnitId",
+          "manifestHash",
+          "unitKey",
+          "caseVersionId",
+          "attemptNumber",
+          "lifecycle",
+          "quality",
+          "hygiene",
+          "queuedAt",
+          "executionDeadline",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "UnitAttempt",
+        "type": "object",
+        "x-atlas-invariants": [
+          "When present, temporalWorkflowId is deterministically derived from tenantId and id."
+        ]
+      },
+      "UnitAttemptPage": {
+        "additionalProperties": false,
+        "description": "Attempt-number page for one ExecutionUnit.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UnitAttempt"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextAfterAttemptNumber": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextafterattemptnumber"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "UnitAttemptPage",
         "type": "object"
       },
       "UpdateAccountPool": {
@@ -21777,6 +23371,150 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/task-runs": {
+      "get": {
+        "operationId": "list_task_runs_v1_projects__projectId__task_runs_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Projectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "列出 Project 的 TaskRun",
+        "tags": [
+          "task-runs"
+        ]
+      }
+    },
     "/v1/projects/{projectId}/test-cases": {
       "get": {
         "operationId": "list_test_cases_v1_projects__projectId__test_cases_get",
@@ -22544,6 +24282,1489 @@
         "summary": "读取当前 Session",
         "tags": [
           "authentication"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}": {
+      "get": {
+        "operationId": "get_task_run_v1_task_runs__runId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 TaskRun 状态快照",
+        "tags": [
+          "task-runs"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}/commands/{commandId}": {
+      "get": {
+        "operationId": "get_task_run_command_v1_task_runs__runId__commands__commandId__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commandId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Commandid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunCommandIntent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 TaskRun 控制命令状态",
+        "tags": [
+          "task-runs"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}/events": {
+      "get": {
+        "operationId": "list_task_run_events_v1_task_runs__runId__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "afterSeq",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Afterseq",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskExecutionEventPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "增量读取 TaskRun 单调事件",
+        "tags": [
+          "task-runs"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}/manifest": {
+      "get": {
+        "operationId": "get_task_run_manifest_v1_task_runs__runId__manifest_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunManifest"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 TaskRun 的不可变 Run Manifest",
+        "tags": [
+          "task-runs"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}/units": {
+      "get": {
+        "operationId": "list_execution_units_v1_task_runs__runId__units_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "afterOrdinal",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Afterordinal",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionUnitPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "按 Manifest 顺序列出 ExecutionUnit",
+        "tags": [
+          "task-runs"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}/units/{unitId}/attempts": {
+      "get": {
+        "operationId": "list_unit_attempts_v1_task_runs__runId__units__unitId__attempts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "unitId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unitid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "afterAttemptNumber",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Afterattemptnumber",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitAttemptPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "列出 ExecutionUnit 的 UnitAttempt",
+        "tags": [
+          "task-runs"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}:cancel": {
+      "post": {
+        "operationId": "cancel_task_run_v1_task_runs__runId__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTaskRunCancel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunCommandIntent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能控制该 TaskRun"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 状态或幂等键冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "可靠请求取消 TaskRun",
+        "tags": [
+          "task-runs"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}:pause": {
+      "post": {
+        "operationId": "pause_task_run_v1_task_runs__runId__pause_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTaskRunPause"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunCommandIntent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能控制该 TaskRun"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 状态或幂等键冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "在安全批次边界暂停 TaskRun 派发",
+        "tags": [
+          "task-runs"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}:rerun-infra-failures": {
+      "post": {
+        "operationId": "rerun_task_run_infrastructure_failures_v1_task_runs__runId__rerun_infra_failures_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTaskRunInfraFailureRerun"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能运行该 TaskRun"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "父 TaskRun 状态或环境失败选择冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "父 TaskRun Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "创建仅包含环境失败单元的子 TaskRun",
+        "tags": [
+          "task-runs"
+        ]
+      }
+    },
+    "/v1/task-runs/{runId}:resume": {
+      "post": {
+        "operationId": "resume_task_run_v1_task_runs__runId__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "If-Match",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTaskRunResume"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunCommandIntent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "分页 Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "当前角色不能控制该 TaskRun"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 或 ExecutionUnit 不存在"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun 状态或幂等键冲突"
+          },
+          "412": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "TaskRun Revision 前置条件失败"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "继续派发已暂停的 TaskRun",
+        "tags": [
+          "task-runs"
         ]
       }
     },

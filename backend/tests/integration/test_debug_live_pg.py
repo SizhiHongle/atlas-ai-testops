@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from os import environ
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import patch
+from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID, uuid7
 
 import psycopg
@@ -17,7 +19,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
-from psycopg import AsyncConnection
+from psycopg import AsyncConnection, sql
 from psycopg.rows import DictRow
 from psycopg.types.json import Jsonb
 from pydantic import SecretStr
@@ -110,12 +112,18 @@ def test_debug_live_historical_payload_validation_is_retryable() -> None:
     assert OWNER_DATABASE_URL is not None
     config = Config(str(ALEMBIC_CONFIG_PATH))
     oversized_event_id = uuid7()
-    with patch.dict(environ, {"ATLAS_DATABASE_URL": OWNER_DATABASE_URL}):
+    with (
+        _isolated_migration_database()
+        as (isolated_owner_url, isolated_app_url),
+        patch(f"{__name__}.DATABASE_URL", isolated_app_url),
+        patch(f"{__name__}.OWNER_DATABASE_URL", isolated_owner_url),
+        patch.dict(environ, {"ATLAS_DATABASE_URL": isolated_owner_url}),
+    ):
         command.upgrade(config, "head")
         settings = Settings(
             environment="test",
             cors_origins=[],
-            database_url=SecretStr(DATABASE_URL),
+            database_url=SecretStr(isolated_app_url),
             database_pool_min_size=1,
             database_pool_max_size=4,
         )
@@ -142,6 +150,59 @@ def test_debug_live_historical_payload_validation_is_retryable() -> None:
             if current_revision in {"20260715_0018", "20260716_0019"}:
                 _repair_historical_event(oversized_event_id)
             command.upgrade(config, "head")
+
+
+@contextmanager
+def _isolated_migration_database() -> Iterator[tuple[str, str]]:
+    """Run destructive historical migrations without touching shared test facts."""
+
+    assert DATABASE_URL is not None
+    assert OWNER_DATABASE_URL is not None
+    database_name = f"atlas_debug_migration_{uuid7().hex}"
+    owner_url = _database_url_for_name(OWNER_DATABASE_URL, database_name)
+    app_url = _database_url_for_name(DATABASE_URL, database_name)
+
+    with psycopg.connect(OWNER_DATABASE_URL, autocommit=True) as connection:
+        privilege = connection.execute(
+            """
+            select rolsuper or rolcreatedb
+            from pg_roles
+            where rolname = current_user
+            """
+        ).fetchone()
+        if privilege != (True,):
+            pytest.skip("migration isolation requires a database-creating owner role")
+        connection.execute(
+            sql.SQL("create database {} template template0").format(
+                sql.Identifier(database_name)
+            )
+        )
+
+    try:
+        yield owner_url, app_url
+    finally:
+        with psycopg.connect(OWNER_DATABASE_URL, autocommit=True) as connection:
+            connection.execute(
+                """
+                select pg_terminate_backend(pid)
+                from pg_stat_activity
+                where datname = %s
+                  and pid <> pg_backend_pid()
+                """,
+                (database_name,),
+            )
+            connection.execute(
+                sql.SQL("drop database if exists {}").format(
+                    sql.Identifier(database_name)
+                )
+            )
+
+
+def _database_url_for_name(database_url: str, database_name: str) -> str:
+    parsed = urlsplit(database_url)
+    if parsed.scheme not in {"postgresql", "postgresql+psycopg"}:
+        raise ValueError("PostgreSQL URL is required for migration isolation")
+    return urlunsplit(parsed._replace(path=f"/{database_name}"))
 
 
 def _seed_terminal_run(settings: Settings) -> SeededDebugLiveRun:

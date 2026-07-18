@@ -24,6 +24,9 @@ from atlas_testops.application.platform import PlatformService
 from atlas_testops.application.ports.evidence import EvidenceObjectReader
 from atlas_testops.application.ports.secrets import SecretProvider
 from atlas_testops.application.session_dispatcher import AuthSessionDispatcher
+from atlas_testops.application.task_commands import TaskRunCommandService
+from atlas_testops.application.task_reruns import TaskRunRerunService
+from atlas_testops.application.task_runs import TaskRunQueryService
 from atlas_testops.core.config import Settings
 from atlas_testops.core.errors import ApplicationError, ErrorCode
 from atlas_testops.infrastructure.adapters.fixture_registry import FixtureOperationRegistry
@@ -214,6 +217,42 @@ def get_debug_run_service(
 DebugRunServiceDependency = Annotated[
     DebugRunService,
     Depends(get_debug_run_service),
+]
+
+
+def get_task_run_query_service(database: DatabaseDependency) -> TaskRunQueryService:
+    """Create a stateless read-only TaskRun query service."""
+
+    return TaskRunQueryService(database)
+
+
+TaskRunQueryServiceDependency = Annotated[
+    TaskRunQueryService,
+    Depends(get_task_run_query_service),
+]
+
+
+def get_task_run_command_service(database: DatabaseDependency) -> TaskRunCommandService:
+    """Create the stateless durable TaskRun command-acceptance service."""
+
+    return TaskRunCommandService(database)
+
+
+TaskRunCommandServiceDependency = Annotated[
+    TaskRunCommandService,
+    Depends(get_task_run_command_service),
+]
+
+
+def get_task_run_rerun_service(database: DatabaseDependency) -> TaskRunRerunService:
+    """Create the stateless child TaskRun materialization service."""
+
+    return TaskRunRerunService(database)
+
+
+TaskRunRerunServiceDependency = Annotated[
+    TaskRunRerunService,
+    Depends(get_task_run_rerun_service),
 ]
 
 

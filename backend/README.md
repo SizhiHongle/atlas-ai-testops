@@ -45,12 +45,14 @@ Atlas AI 测试平台的 Python 3.14 模块化后端。
 - P5-00A 正式任务执行宿主：`TaskPlanVersion → TaskRun → ExecutionUnit → UnitAttempt`、不可变 Run Manifest、Lifecycle / Quality / Hygiene 三轴、追加 Attempt / Event exact replay，以及 `20260716_0022` 的复合 Scope FK、Repository / PostgreSQL 双层 Plan-to-Manifest provenance、JSON 缺键 / null fail-closed、gapless 父行锁、不可变 Trigger、`FORCE RLS` 与最小权限。
 - P5-00B1 调度前置边界：四类不可变 `ExecutionProfileVersion` / `IdentityProfileVersion` / `BrowserProfileVersion` / `DataProfileVersion` 正式宿主与发布门禁、`executionProfileVersionId` 统一命名、稳定 Run request digest 与 exact rerun lineage、Run / Attempt 确定性 Temporal identity 与 namespace 全局注册表、`MATERIALIZING → SEALED` 完整性证明、SEALED / Lifecycle / QUEUED Admission、受约束的后续 Attempt、Pending Workflow Start Intent，以及数据库拥有的 Run → Unit → Attempt Revision CAS。
 - P5-00B2A 可靠 Intent 交付边界：`20260716_0024` 的 `PENDING / CLAIMED / RETRY_WAIT / STARTED / FAILED` 状态机、独立且无表级 DML 的 `atlas_dispatcher`、Claim Lease / Token / Revision Fence、三段式短事务 Consumer、稳定 Temporal `request_id`、`REJECT_DUPLICATE + USE_EXISTING` 与 Describe Type / Queue / Memo collision verification。Consumer 与 Compose profile 默认关闭；`STARTED` 只表示 Temporal 接受。
-- Profile、TaskPlanVersion、TaskRunManifest、TaskRun、ExecutionUnit、UnitAttempt 与 TaskExecutionEvent 的机器 Schema 已导出；P5-00B2A 仍未开放公共 Task API，也未实现真实 `AtlasTaskRunWorkflow` / Activity 或 UnitAttempt Workflow。代码没有注册 no-op / placeholder Workflow。
+- P5-00B2B Task Worker 装配：真实 `AtlasTaskRunWorkflow` 与 `AtlasUnitAttemptWorkflow` 分别绑定固定 `atlas-task-run` / `atlas-unit-attempt` Queue，Root 与 Attempt Worker 各自具有有界并发。副作用 Activity 固定单次执行、Heartbeat 和等待取消完成，Queue 排队不得越过冻结 deadline；原生取消中的副作用一律按结果未知收敛，Root 保留已完成 Child 的真实结果。数据库 Activity 对瞬时故障耐久 retry、对安全不变量 non-retryable，且所有不可信返回和异常都先转为安全码再写入 Temporal History；Attempt / Run finalize 事件用于 exact replay。Task Worker 和 Intent Consumer 使用独立开关且默认关闭；缺少部署注入的正式 `TaskUnitExecutionPort` 时，Task Worker 会在构造数据库或连接 Temporal 前 fail-closed，绝不注册 no-op executor。
+- Profile、TaskPlanVersion、TaskRunManifest、TaskRun、ExecutionUnit、UnitAttempt、TaskUnitExecutionTicket、TaskRunCommandIntent 与 TaskExecutionEvent 的机器 Schema 已导出；P5-00C 已开放 TaskRun / Manifest / Unit / Attempt / Event 的只读公共 API。P5-00D1 通过 `20260717_0027` 为每个 Attempt 增加唯一、secret-free、不可更新删除且强制 RLS 的 Execution Ticket；P5-00D3A 通过 `20260717_0030` 冻结有界基础设施重试策略，只对明确 `INFRA_ERROR` 追加确定性新 Attempt；P5-00D3B 通过 `20260717_0031` 与 `POST /v1/task-runs/{runId}:rerun-infra-failures` 创建数据库证明 exact 选择的新 child TaskRun。`TaskUnitExecutionPort` 只接收 exact Attempt + `ticketId / ticketDigest`，仓库仍不内置真实 SaaS Adapter。
+- P5-00D2A 通过 `20260717_0028` 落地 durable TaskRun `CANCEL`；P5-00D2B 通过 `20260717_0029` 将命令契约升级为兼容旧 Cancel 的 `atlas.task-run-command/0.2`，新增 `PAUSE / RESUME / SUPERSEDED`。`POST /v1/task-runs/{runId}:cancel|pause|resume|rerun-infra-failures` 都要求 `If-Match`、`Idempotency-Key == clientMutationId` 与 `RUN_OPERATOR+`。前三者写 durable command；infra rerun 只接受 `SEALED / CLOSED` source，生成全新 sealed child aggregate 与 Start Intent，不向旧 Workflow 发送 RETRY Signal。Takeover 尚未开放。
 - 同步初始物化仍严格限制为最多 64 Units；Seal 会重算 Plan / Manifest / Unit / request digest，证明每个 Unit 和首个 Attempt 完整落地，并重验 PUBLISHED Profile、Case / Fixture exact binding、ACTIVE TEST/STAGING Environment 与当前 TestRole。超过 64 Units 的可恢复分区物化和容量验证留给后续 P5 切片，不能通过放宽当前事务伪装完成。
 - `DebugRun=TERMINATED` 不封存事件日志；SSE 会跨过 `debug_run.terminated` replay 后续 `debug_run.snapshot_outdated`，到达当前 head 后继续 Poll，直到客户端断开或 Service 事件生成预算耗尽。Route 内 `_DebugLiveStreamingResponse` 使用 `maximum_connection_seconds` 加固定 1.0 秒 Close Grace 管理生成、Source close 与 Slot release；最后安装的 pure-ASGI `DebugLiveStreamSendDeadlineMiddleware` 使用相同 maximum 与 Close Grace，包住 `BaseHTTPMiddleware` 后的真实 client-facing `send`，阻塞写入到期会被取消。
 - Live Event 使用 event-type allowlist，不原样转发事实 Payload；取消原因、Report / Chain Digest、ObjectRef、Authorization、Password、输入 Value 与未知字段不进入 SSE。`20260716_0019` 只提交 32 KiB Payload `CHECK ... NOT VALID` 可修复边界；`20260716_0020` 只先 Validate，再创建 UPDATE / DELETE 防护 Trigger；`20260716_0021` 通过 Alembic autocommit 执行 `DROP INDEX CONCURRENTLY IF EXISTS` 清理冗余 replay index，downgrade 以 `CREATE INDEX CONCURRENTLY IF NOT EXISTS` 恢复。若历史超限 Payload 使 0020 失败，版本保持 0019；修复后重试 0020，成功后再进入 0021。
 
-首个真实 SaaS `PasswordLoginFlow`、生产 Secret Provider / KMS-backed Vault 和真实 SaaS Browser Operation / Route Registry 仍需部署侧提供。生产 Evidence Bucket 的 Object Lock / Versioning、Credential 分离与生命周期策略也属于部署责任。P6-02B1 只提供 DebugRun-scoped 只读 Observer；P5-00B2A 已提供正式 UnitAttempt、Profile、Seal、CAS 与可靠 Start Intent 交付层，但 Task Temporal Root Workflow / Activity、公共 Task 控制面、正式 LiveSession、ControlLease、浏览器控制 Epoch / Fence、Human Takeover、持久化 ActionGrant、超过 64 Units 的分区物化、容器级 Egress / DNS / UDP / WebRTC 限制、BrowserContext Envelope Key Ring Rotation、公共 Start 自动 Preparation / Bind / Dispatch 与 Multi-actor 尚未完成；缺失时对应能力明确 fail-closed。架构决策见 `../documents/adr/`。
+首个真实 SaaS `PasswordLoginFlow`、生产 Secret Provider / KMS-backed Vault 和真实 SaaS Browser Operation / Route Registry 仍需部署侧提供。生产 Evidence Bucket 的 Object Lock / Versioning、Credential 分离与生命周期策略也属于部署责任。P6-02B1 只提供 DebugRun-scoped 只读 Observer；P5-00B2B 已提供正式 UnitAttempt 与 Root / Attempt Workflow，P5-00C 已补充只读查询，P5-00D1 已建立不可变 Ticket 与正式 Port 输入授权协议，P5-00D2A/D2B 已开放可靠 TaskRun Cancel、batch-boundary Pause / Resume 与命令状态查询，P5-00D3B 已开放创建新 child Run 的 exact infra-failure rerun。Task Plan authoring、旧 Run RETRY command / Takeover、真实 SaaS production Adapter、LiveSession、ControlLease、浏览器控制 Epoch / Fence、Human Takeover、持久化 ActionGrant、超过 64 Units 的分区物化、容器级 Egress / DNS / UDP / WebRTC 限制、BrowserContext Envelope Key Ring Rotation、公共 Start 自动 Preparation / Bind / Dispatch 与 Multi-actor 尚未完成；缺失时对应能力明确 fail-closed。架构决策见 `../documents/adr/`。
 
 ## 开发
 
@@ -93,6 +95,8 @@ uv run uvicorn atlas_testops.main:app --reload
 - Evidence Content：`GET http://127.0.0.1:8000/v1/evidence/artifacts/{artifactId}/content?purpose=INLINE`
 - DebugRun Live Snapshot：`GET http://127.0.0.1:8000/v1/debug-runs/{runId}/live`
 - DebugRun Live SSE：`GET http://127.0.0.1:8000/v1/debug-runs/{runId}/events/stream`（重连使用 `Last-Event-ID`）
+- TaskRun 控制：`POST http://127.0.0.1:8000/v1/task-runs/{runId}:cancel|pause|resume`
+- TaskRun 命令状态：`GET http://127.0.0.1:8000/v1/task-runs/{runId}/commands/{commandId}`
 
 上述以“内部 Browser”标记的 Runtime 端点不是公共用户 API；必须同时通过短期 Execution Permit 与 `Atlas-HMAC` Request Signature，且响应禁止缓存。Evidence 与 DebugRun Live 端点属于 Platform Session 保护的公共控制面读取接口。
 
@@ -129,7 +133,15 @@ ATLAS_TASK_INTENT_TEMPORAL_NAMESPACE=default \
 uv run atlas-task-intent-consumer
 ```
 
-该进程使用独立 Dispatcher DSN，不读取 API Tenant Context，也不能复用 `atlas_app`。它先提交 Claim 事务，再在事务外 Start / Describe Temporal Workflow，最后以 Claim Token + Revision 的新事务确认结果。入口和 Compose profile 均默认关闭；当前仓库尚未注册真实 `AtlasTaskRunWorkflow` / Activity，因此除迁移与集成验证外，不应在生产启用。Compose 验证还需要同时显式设置 `ATLAS_TASK_INTENT_CONSUMPTION_ENABLED=true` 并启用 `--profile task-intent-consumer`。
+该进程使用独立 Dispatcher DSN，不读取 API Tenant Context，也不能复用 `atlas_app`。它先提交 Claim 事务，再在事务外 Start / Describe Temporal Workflow，最后以 Claim Token + Revision 的新事务确认结果。入口和 Compose profile 均默认关闭；只有正式 Task Worker 与 `TaskUnitExecutionPort` 同时就绪后才可启用。Compose 验证还需要同时显式设置 `ATLAS_TASK_INTENT_CONSUMPTION_ENABLED=true` 并启用 `--profile task-intent-consumer`。
+
+运行独立 Task Worker 入口：
+
+```bash
+uv run atlas-task-worker
+```
+
+`ATLAS_TASK_WORKER_ENABLED=false` 是默认值，此时进程不会构造数据库或连接 Temporal。启用时必须由部署组合根注入经过审核的正式 `TaskUnitExecutionPort`；仓库不提供 no-op / placeholder executor，缺少该端口会在任何外部连接前 fail-closed。Root 与 Attempt 使用两个隔离 Worker 和固定 Queue，分别通过 `ATLAS_TASK_RUN_WORKER_MAX_CONCURRENCY` 与 `ATLAS_TASK_ATTEMPT_WORKER_MAX_CONCURRENCY` 限制并发。Compose 还需显式启用 `--profile task-worker`，默认服务集合不会启动 Task Worker。
 
 运行独立 Auth Session Worker：
 
@@ -178,6 +190,11 @@ ATLAS_FIXTURE_TASK_QUEUE=atlas-fixture
 ATLAS_FIXTURE_ACTIVITY_TIMEOUT_SECONDS=330
 ATLAS_FIXTURE_CLEANUP_GRACE_SECONDS=900
 ATLAS_FIXTURE_WORKER_MAX_CONCURRENCY=8
+ATLAS_TASK_WORKER_ENABLED=false
+ATLAS_TASK_RUN_TASK_QUEUE=atlas-task-run
+ATLAS_TASK_ATTEMPT_TASK_QUEUE=atlas-unit-attempt
+ATLAS_TASK_RUN_WORKER_MAX_CONCURRENCY=8
+ATLAS_TASK_ATTEMPT_WORKER_MAX_CONCURRENCY=8
 ATLAS_BROWSER_RUNTIME_ENABLED=true
 ATLAS_BROWSER_RUNTIME_TASK_QUEUE=atlas-browser
 ATLAS_BROWSER_RUNTIME_WORKER_IDENTITY=browser-worker

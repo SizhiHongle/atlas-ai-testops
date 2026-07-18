@@ -11,6 +11,7 @@ from psycopg.rows import DictRow
 from psycopg.types.json import Jsonb
 from pydantic import JsonValue
 
+from atlas_testops.core.pagination import TimeCursor
 from atlas_testops.domain.task import (
     CaseExecutionProfileRef,
     ExecutionHygiene,
@@ -1040,6 +1041,38 @@ async def test_new_retry_requires_sealed_dispatchable_parent_and_closed_attempt(
 
 
 @pytest.mark.anyio
+async def test_worker_lock_reads_use_trusted_chain_function_without_direct_row_locks() -> None:
+    run, _, units, attempts = _aggregate(unit_count=1)
+    unit = units[0]
+    attempt = attempts[0]
+    lock_row = cast(DictRow, {"lock_task_execution_chain": None})
+    connection = StubConnection(
+        StubCursor(row=lock_row),
+        StubCursor(row=_row(run)),
+        StubCursor(row=_row(unit)),
+        StubCursor(row=lock_row),
+        StubCursor(row=_row(unit)),
+        StubCursor(row=_row(attempt)),
+        StubCursor(row=lock_row),
+        StubCursor(row=_row(attempt)),
+    )
+    repository = TaskRunRepository()
+    database = cast(AsyncConnection[DictRow], connection)
+
+    assert await repository.get_run_for_update(database, run.id) == run
+    assert await repository.get_unit_for_update(database, unit.id) == unit
+    assert await repository.get_attempt_for_update(database, attempt.id) == attempt
+
+    assert "atlas.lock_task_execution_chain" in connection.calls[0][0]
+    assert connection.calls[0][1] == (run.id, None, None)
+    assert "atlas.lock_task_execution_chain" in connection.calls[3][0]
+    assert connection.calls[3][1] == (run.id, unit.id, None)
+    assert "atlas.lock_task_execution_chain" in connection.calls[6][0]
+    assert connection.calls[6][1] == (run.id, unit.id, attempt.id)
+    assert all("for update" not in query.casefold() for query, _ in connection.calls)
+
+
+@pytest.mark.anyio
 async def test_repository_reads_roots_units_attempts_and_event_pages() -> None:
     plan = _task_plan()
     version = _task_plan_version()
@@ -1076,6 +1109,56 @@ async def test_repository_reads_roots_units_attempts_and_event_pages() -> None:
     assert "order by ordinal, id" in connection.calls[5][0]
     assert "order by attempt_number, id" in connection.calls[7][0]
     assert connection.calls[8][1] == (run.id, 0, 50)
+
+
+@pytest.mark.anyio
+async def test_repository_pages_runs_units_and_attempts_with_stable_keys() -> None:
+    run, _manifest, units, attempts = _aggregate()
+    connection = StubConnection(
+        StubCursor(rows=(_row(run),)),
+        StubCursor(rows=(_row(run),)),
+        StubCursor(rows=tuple(_row(unit) for unit in units)),
+        StubCursor(rows=tuple(_row(attempt) for attempt in attempts)),
+    )
+    repository = TaskRunRepository()
+    database = cast(AsyncConnection[DictRow], connection)
+
+    assert await repository.list_runs(
+        database,
+        project_id=run.project_id,
+        cursor=None,
+        limit=26,
+    ) == (run,)
+    assert await repository.list_runs(
+        database,
+        project_id=run.project_id,
+        cursor=TimeCursor(created_at=run.requested_at, id=run.id),
+        limit=26,
+    ) == (run,)
+    assert await repository.list_units_page(
+        database,
+        task_run_id=run.id,
+        after_ordinal=0,
+        limit=51,
+    ) == units
+    assert await repository.list_attempts_page(
+        database,
+        execution_unit_id=units[0].id,
+        after_attempt_number=0,
+        limit=51,
+    ) == attempts
+
+    assert "order by requested_at desc, id desc" in connection.calls[0][0]
+    assert connection.calls[0][1] == (run.project_id, 26)
+    assert "(requested_at, id) < (%s, %s)" in connection.calls[1][0]
+    assert connection.calls[1][1] == (
+        run.project_id,
+        run.requested_at,
+        run.id,
+        26,
+    )
+    assert connection.calls[2][1] == (run.id, 0, 51)
+    assert connection.calls[3][1] == (units[0].id, 0, 51)
 
 
 def test_initial_aggregate_requires_one_matching_attempt_per_manifest_unit() -> None:

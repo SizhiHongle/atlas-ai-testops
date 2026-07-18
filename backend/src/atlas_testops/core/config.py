@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     temporal_address: str = "127.0.0.1:7233"
     temporal_namespace: str = "default"
     temporal_task_queue: str = "atlas-control"
+    task_worker_enabled: bool = False
+    task_run_task_queue: Literal["atlas-task-run"] = "atlas-task-run"
+    task_attempt_task_queue: Literal["atlas-unit-attempt"] = "atlas-unit-attempt"
+    task_run_worker_max_concurrency: int = Field(default=8, ge=1, le=64)
+    task_attempt_worker_max_concurrency: int = Field(default=8, ge=1, le=64)
     auth_session_dispatch_enabled: bool = False
     auth_session_task_queue: str = "atlas-auth-session"
     auth_session_workflow_timeout_seconds: int = Field(default=90, ge=10, le=600)

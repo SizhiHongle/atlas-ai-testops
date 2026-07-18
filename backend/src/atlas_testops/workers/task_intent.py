@@ -8,12 +8,14 @@ from datetime import timedelta
 
 from temporalio.client import Client
 
+from atlas_testops.application.task_commands import TaskRunCommandIntentConsumer
 from atlas_testops.application.task_intents import (
     TaskIntentRetryPolicy,
     TaskWorkflowIntentConsumer,
 )
 from atlas_testops.core.config import TaskIntentConsumerSettings
 from atlas_testops.infrastructure.task_intents import TaskIntentDispatcherDatabase
+from atlas_testops.orchestration.task_commands import TemporalTaskCommandSignaler
 from atlas_testops.orchestration.task_intents import (
     TASK_RUN_TASK_QUEUE,
     TemporalTaskIntentStarter,
@@ -59,6 +61,15 @@ async def run_consumer(
             seconds=settings.task_intent_rpc_retry_delay_seconds,
         ),
     )
+    retry_policy = TaskIntentRetryPolicy(
+        max_attempts=settings.task_intent_max_attempts,
+        initial_backoff=timedelta(
+            seconds=settings.task_intent_retry_initial_seconds,
+        ),
+        maximum_backoff=timedelta(
+            seconds=settings.task_intent_retry_maximum_seconds,
+        ),
+    )
     consumer = TaskWorkflowIntentConsumer(
         database,
         starter,
@@ -69,15 +80,26 @@ async def run_consumer(
         poll_interval=timedelta(
             seconds=settings.task_intent_poll_interval_seconds,
         ),
-        retry_policy=TaskIntentRetryPolicy(
-            max_attempts=settings.task_intent_max_attempts,
-            initial_backoff=timedelta(
-                seconds=settings.task_intent_retry_initial_seconds,
-            ),
-            maximum_backoff=timedelta(
-                seconds=settings.task_intent_retry_maximum_seconds,
+        retry_policy=retry_policy,
+    )
+    command_consumer = TaskRunCommandIntentConsumer(
+        database,
+        TemporalTaskCommandSignaler(
+            client,
+            rpc_attempts=settings.task_intent_rpc_attempts,
+            rpc_timeout=timedelta(seconds=settings.task_intent_rpc_timeout_seconds),
+            retry_delay=timedelta(
+                seconds=settings.task_intent_rpc_retry_delay_seconds,
             ),
         ),
+        dispatcher_id=settings.task_intent_worker_identity,
+        temporal_namespace=settings.task_intent_temporal_namespace,
+        batch_size=settings.task_intent_batch_size,
+        lease_duration=timedelta(seconds=settings.task_intent_lease_seconds),
+        poll_interval=timedelta(
+            seconds=settings.task_intent_poll_interval_seconds,
+        ),
+        retry_policy=retry_policy,
     )
     selected_stop_event = stop_event or asyncio.Event()
     await database.open()
@@ -91,7 +113,9 @@ async def run_consumer(
                 "batch_size": settings.task_intent_batch_size,
             },
         )
-        await consumer.run_forever(selected_stop_event)
+        async with asyncio.TaskGroup() as group:
+            group.create_task(consumer.run_forever(selected_stop_event))
+            group.create_task(command_consumer.run_forever(selected_stop_event))
     finally:
         selected_stop_event.set()
         await database.close()

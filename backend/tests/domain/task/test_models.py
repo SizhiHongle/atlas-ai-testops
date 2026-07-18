@@ -18,6 +18,7 @@ from atlas_testops.domain.task import (
     ExecutionQuality,
     ExecutionUnit,
     ExecutionUnitManifest,
+    RequestTaskRunInfraFailureRerun,
     TaskExecutionEvent,
     TaskMaterializationState,
     TaskMatrixDefinition,
@@ -25,14 +26,18 @@ from atlas_testops.domain.task import (
     TaskPlanStatus,
     TaskPlanVersion,
     TaskProfileRefs,
+    TaskRetryPolicy,
     TaskRun,
     TaskRunManifest,
+    TaskRunRerunSelectionMode,
     TaskTriggerSource,
     UnitAttempt,
     execution_unit_dependency_digest,
     execution_unit_key,
     task_plan_version_content_digest,
     task_plan_version_ref,
+    task_retry_policy_digest,
+    task_run_infra_rerun_trigger_fingerprint,
     task_run_manifest_hash,
     task_run_workflow_id,
     unit_attempt_workflow_id,
@@ -180,7 +185,22 @@ def run_manifest_payload(
     frozen_units = units or ordered_units()
     task_run_id = uid(401)
     task_plan_version_id = uid(402)
-    policies = {"gate": POLICY_DIGEST}
+    retry_digest = task_retry_policy_digest(
+        infra_retry_attempts=2,
+        max_total_infra_retries=16,
+        initial_backoff_seconds=5,
+        maximum_backoff_seconds=60,
+        jitter_percent=20,
+    )
+    retry_policy = TaskRetryPolicy(
+        infra_retry_attempts=2,
+        max_total_infra_retries=16,
+        initial_backoff_seconds=5,
+        maximum_backoff_seconds=60,
+        jitter_percent=20,
+        content_digest=retry_digest,
+    )
+    policies = {"gate": POLICY_DIGEST, "infra-retry": retry_digest}
     manifest_hash = task_run_manifest_hash(
         task_run_id=task_run_id,
         task_plan_version_id=task_plan_version_id,
@@ -192,6 +212,8 @@ def run_manifest_payload(
         units=frozen_units,
         policy_digests=policies,
         compiler_version="0.1.0",
+        schema_version=TASK_RUN_MANIFEST_SCHEMA_VERSION,
+        retry_policy=retry_policy,
     )
     return {
         "schemaVersion": TASK_RUN_MANIFEST_SCHEMA_VERSION,
@@ -204,6 +226,7 @@ def run_manifest_payload(
         "iterationId": "2026.07",
         "units": [unit.model_dump(mode="json", by_alias=True) for unit in frozen_units],
         "policyDigests": policies,
+        "retryPolicy": retry_policy.model_dump(mode="json", by_alias=True),
         "compilerVersion": "0.1.0",
         "manifestHash": manifest_hash,
     }
@@ -407,6 +430,8 @@ def test_run_request_digest_excludes_generated_run_identity() -> None:
         units=first.units,
         policy_digests=first.policy_digests,
         compiler_version=first.compiler_version,
+        schema_version=first.schema_version,
+        retry_policy=first.retry_policy,
     )
     second = TaskRunManifest(
         **first.model_dump(mode="python", exclude={"task_run_id", "manifest_hash"}),
@@ -478,6 +503,35 @@ def test_task_run_requires_ordered_request_queue_and_runtime_times() -> None:
         TaskRun.model_validate({**payload, "queuedAt": NOW - timedelta(seconds=1)})
     with pytest.raises(ValidationError, match="cannot reference the same"):
         TaskRun.model_validate({**payload, "rerunOfTaskRunId": str(uid(401))})
+    with pytest.raises(ValidationError, match="requires rerunOfTaskRunId"):
+        TaskRun.model_validate(
+            {
+                **payload,
+                "rerunSelectionMode": TaskRunRerunSelectionMode.INFRA_FAILURES,
+            }
+        )
+
+
+def test_infra_rerun_request_has_stable_parent_scoped_trigger_identity() -> None:
+    request = RequestTaskRunInfraFailureRerun(
+        client_mutation_id="infra-rerun-domain-001"
+    )
+    first = task_run_infra_rerun_trigger_fingerprint(
+        parent_task_run_id=uid(401),
+        client_mutation_id=request.client_mutation_id,
+    )
+    replay = task_run_infra_rerun_trigger_fingerprint(
+        parent_task_run_id=uid(401),
+        client_mutation_id=request.client_mutation_id,
+    )
+    other = task_run_infra_rerun_trigger_fingerprint(
+        parent_task_run_id=uid(402),
+        client_mutation_id=request.client_mutation_id,
+    )
+
+    assert first == replay
+    assert first.startswith(f"api:infra-rerun:{uid(401)}:")
+    assert other != first
 
 
 def test_task_run_seal_requires_complete_counts_and_deterministic_workflow_identity() -> None:

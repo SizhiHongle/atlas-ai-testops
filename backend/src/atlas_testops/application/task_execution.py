@@ -141,119 +141,171 @@ class TaskAdmissionService:
                 raise _not_found("ExecutionUnit 不存在或不可见。")
             if not actor.can_operate_project(unit.project_id):
                 raise _forbidden("当前身份不能调度该 Project 的 ExecutionUnit。")
-
             run = await self._tasks.get_run(connection, unit.task_run_id)
-            if (
-                run is None
-                or run.id != unit.task_run_id
-                or run.tenant_id != unit.tenant_id
-                or run.project_id != unit.project_id
-            ):
-                raise _admission_failed(
-                    "ExecutionUnit 的父 TaskRun 不存在或作用域不一致。"
-                )
-            _require_sealed_run(run)
-            if run.lifecycle not in {
-                ExecutionLifecycle.QUEUED,
-                ExecutionLifecycle.RUNNING,
-            }:
-                raise _admission_failed(
-                    "TaskRun 当前状态不允许派发新的 ExecutionUnit。"
-                )
-            if unit.lifecycle is not ExecutionLifecycle.QUEUED:
-                raise _admission_failed(
-                    "只有 QUEUED ExecutionUnit 可以进入调度准入。"
-                )
-
-            case_version = await self._cases.get_version(connection, unit.case_version_id)
-            execution_profile = await self._profiles.get_execution_profile_version(
+            return await self.admit_loaded_unit_in_transaction(
                 connection,
-                unit.execution_profile_version_id,
-            )
-            identity_profile = await self._profiles.get_identity_profile_version(
-                connection,
-                unit.identity_profile_version_id,
-            )
-            browser_profile = await self._profiles.get_browser_profile_version(
-                connection,
-                unit.browser_profile_version_id,
-            )
-            data_profile = await self._profiles.get_data_profile_version(
-                connection,
-                unit.data_profile_version_id,
-            )
-            fixture = await self._fixtures.get_blueprint_version(
-                connection,
-                unit.fixture_blueprint_version_id,
-                for_share=True,
-            )
-            environment = await self._platform.get_environment_for_share(
-                connection,
-                unit.environment_id,
-            )
-
-            required = {
-                "CaseVersion": case_version,
-                "ExecutionProfileVersion": execution_profile,
-                "IdentityProfileVersion": identity_profile,
-                "BrowserProfileVersion": browser_profile,
-                "DataProfileVersion": data_profile,
-                "DataBlueprintVersion": fixture,
-                "Environment": environment,
-            }
-            missing = sorted(name for name, value in required.items() if value is None)
-            if missing:
-                raise _admission_failed(
-                    "ExecutionUnit 的精确依赖不存在或不在当前 Tenant: "
-                    + "、".join(missing)
-                    + "。"
-                )
-
-            assert case_version is not None
-            assert execution_profile is not None
-            assert identity_profile is not None
-            assert browser_profile is not None
-            assert data_profile is not None
-            assert fixture is not None
-            assert environment is not None
-
-            self._require_scope(
-                unit,
-                case_version,
-                execution_profile,
-                identity_profile,
-                browser_profile,
-                data_profile,
-                fixture,
-                environment,
-            )
-            self._require_published_profiles(
-                execution_profile,
-                identity_profile,
-                browser_profile,
-                data_profile,
-            )
-            self._require_execution_profile(unit, case_version, execution_profile)
-            self._require_identity_profile(unit, case_version, identity_profile)
-            self._require_browser_profile(unit, browser_profile)
-            self._require_data_profile(unit, case_version, data_profile, fixture)
-            self._require_environment(environment)
-            roles = await self._require_current_roles(
-                connection,
-                unit,
-                identity_profile,
-            )
-            return TaskAdmissionSnapshot(
+                run=run,
                 unit=unit,
-                case_version=case_version,
-                execution_profile=execution_profile,
-                identity_profile=identity_profile,
-                browser_profile=browser_profile,
-                data_profile=data_profile,
-                fixture_blueprint_version=fixture,
-                environment=environment,
-                roles=roles,
             )
+
+    async def admit_unit_in_transaction(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task_run_id: UUID,
+        execution_unit_id: UUID,
+    ) -> TaskAdmissionSnapshot:
+        """Revalidate one exact machine identity inside its caller-owned transaction."""
+
+        run = await self._tasks.get_run(connection, task_run_id)
+        unit = await self._tasks.get_unit(connection, execution_unit_id)
+        if (
+            run is None
+            or unit is None
+            or run.id != task_run_id
+            or run.tenant_id != tenant_id
+            or run.project_id != project_id
+            or unit.id != execution_unit_id
+            or unit.task_run_id != task_run_id
+            or unit.tenant_id != tenant_id
+            or unit.project_id != project_id
+        ):
+            raise _admission_failed(
+                "ExecutionUnit 或父 TaskRun 不存在，或与 exact machine scope 不一致。"
+            )
+        return await self.admit_loaded_unit_in_transaction(
+            connection,
+            run=run,
+            unit=unit,
+        )
+
+    async def admit_loaded_unit_in_transaction(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        run: TaskRun | None,
+        unit: ExecutionUnit,
+        allow_running_retry: bool = False,
+    ) -> TaskAdmissionSnapshot:
+        """Validate a prelocked Run and Unit without opening a nested transaction."""
+
+        if (
+            run is None
+            or run.id != unit.task_run_id
+            or run.tenant_id != unit.tenant_id
+            or run.project_id != unit.project_id
+        ):
+            raise _admission_failed(
+                "ExecutionUnit 的父 TaskRun 不存在或作用域不一致。"
+            )
+        _require_sealed_run(run)
+        if run.lifecycle not in {
+            ExecutionLifecycle.QUEUED,
+            ExecutionLifecycle.RUNNING,
+        }:
+            raise _admission_failed(
+                "TaskRun 当前状态不允许派发新的 ExecutionUnit。"
+            )
+        allowed_unit_lifecycles = {ExecutionLifecycle.QUEUED}
+        if allow_running_retry:
+            allowed_unit_lifecycles.add(ExecutionLifecycle.RUNNING)
+        if unit.lifecycle not in allowed_unit_lifecycles:
+            raise _admission_failed(
+                "只有 QUEUED ExecutionUnit 或受信 Retry 的 RUNNING ExecutionUnit "
+                "可以进入调度准入。"
+            )
+
+        case_version = await self._cases.get_version(connection, unit.case_version_id)
+        execution_profile = await self._profiles.get_execution_profile_version(
+            connection,
+            unit.execution_profile_version_id,
+        )
+        identity_profile = await self._profiles.get_identity_profile_version(
+            connection,
+            unit.identity_profile_version_id,
+        )
+        browser_profile = await self._profiles.get_browser_profile_version(
+            connection,
+            unit.browser_profile_version_id,
+        )
+        data_profile = await self._profiles.get_data_profile_version(
+            connection,
+            unit.data_profile_version_id,
+        )
+        fixture = await self._fixtures.get_blueprint_version(
+            connection,
+            unit.fixture_blueprint_version_id,
+            for_share=True,
+        )
+        environment = await self._platform.get_environment_for_share(
+            connection,
+            unit.environment_id,
+        )
+
+        required = {
+            "CaseVersion": case_version,
+            "ExecutionProfileVersion": execution_profile,
+            "IdentityProfileVersion": identity_profile,
+            "BrowserProfileVersion": browser_profile,
+            "DataProfileVersion": data_profile,
+            "DataBlueprintVersion": fixture,
+            "Environment": environment,
+        }
+        missing = sorted(name for name, value in required.items() if value is None)
+        if missing:
+            raise _admission_failed(
+                "ExecutionUnit 的精确依赖不存在或不在当前 Tenant: "
+                + "、".join(missing)
+                + "。"
+            )
+
+        assert case_version is not None
+        assert execution_profile is not None
+        assert identity_profile is not None
+        assert browser_profile is not None
+        assert data_profile is not None
+        assert fixture is not None
+        assert environment is not None
+
+        self._require_scope(
+            unit,
+            case_version,
+            execution_profile,
+            identity_profile,
+            browser_profile,
+            data_profile,
+            fixture,
+            environment,
+        )
+        self._require_published_profiles(
+            execution_profile,
+            identity_profile,
+            browser_profile,
+            data_profile,
+        )
+        self._require_execution_profile(unit, case_version, execution_profile)
+        self._require_identity_profile(unit, case_version, identity_profile)
+        self._require_browser_profile(unit, browser_profile)
+        self._require_data_profile(unit, case_version, data_profile, fixture)
+        self._require_environment(environment)
+        roles = await self._require_current_roles(
+            connection,
+            unit,
+            identity_profile,
+        )
+        return TaskAdmissionSnapshot(
+            unit=unit,
+            case_version=case_version,
+            execution_profile=execution_profile,
+            identity_profile=identity_profile,
+            browser_profile=browser_profile,
+            data_profile=data_profile,
+            fixture_blueprint_version=fixture,
+            environment=environment,
+            roles=roles,
+        )
 
     @staticmethod
     def _require_scope(unit: ExecutionUnit, *dependencies: object) -> None:

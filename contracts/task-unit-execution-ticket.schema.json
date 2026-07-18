@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.test/contracts/task-unit-execution-ticket/0.1/schema.json",
+  "additionalProperties": false,
+  "description": "Immutable, secret-free authority prepared before one execution side effect.",
+  "properties": {
+    "schemaVersion": {
+      "const": "atlas.task-unit-execution-ticket/0.1",
+      "default": "atlas.task-unit-execution-ticket/0.1",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "tenantId": {
+      "format": "uuid",
+      "title": "Tenantid",
+      "type": "string"
+    },
+    "projectId": {
+      "format": "uuid",
+      "title": "Projectid",
+      "type": "string"
+    },
+    "taskRunId": {
+      "format": "uuid",
+      "title": "Taskrunid",
+      "type": "string"
+    },
+    "executionUnitId": {
+      "format": "uuid",
+      "title": "Executionunitid",
+      "type": "string"
+    },
+    "unitAttemptId": {
+      "format": "uuid",
+      "title": "Unitattemptid",
+      "type": "string"
+    },
+    "requestDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Requestdigest",
+      "type": "string"
+    },
+    "manifestHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Manifesthash",
+      "type": "string"
+    },
+    "ordinal": {
+      "minimum": 1,
+      "title": "Ordinal",
+      "type": "integer"
+    },
+    "unitKey": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Unitkey",
+      "type": "string"
+    },
+    "caseVersionId": {
+      "format": "uuid",
+      "title": "Caseversionid",
+      "type": "string"
+    },
+    "caseContentDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Casecontentdigest",
+      "type": "string"
+    },
+    "testIrDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Testirdigest",
+      "type": "string"
+    },
+    "planDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plandigest",
+      "type": "string"
+    },
+    "compiledDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Compileddigest",
+      "type": "string"
+    },
+    "attemptNumber": {
+      "minimum": 1,
+      "title": "Attemptnumber",
+      "type": "integer"
+    },
+    "executionProfileVersionId": {
+      "format": "uuid",
+      "title": "Executionprofileversionid",
+      "type": "string"
+    },
+    "executionProfileDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Executionprofiledigest",
+      "type": "string"
+    },
+    "identityProfileVersionId": {
+      "format": "uuid",
+      "title": "Identityprofileversionid",
+      "type": "string"
+    },
+    "identityProfileDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Identityprofiledigest",
+      "type": "string"
+    },
+    "browserProfileVersionId": {
+      "format": "uuid",
+      "title": "Browserprofileversionid",
+      "type": "string"
+    },
+    "browserProfileDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Browserprofiledigest",
+      "type": "string"
+    },
+    "dataProfileVersionId": {
+      "format": "uuid",
+      "title": "Dataprofileversionid",
+      "type": "string"
+    },
+    "dataProfileDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Dataprofiledigest",
+      "type": "string"
+    },
+    "fixtureBlueprintVersionId": {
+      "format": "uuid",
+      "title": "Fixtureblueprintversionid",
+      "type": "string"
+    },
+    "fixtureBlueprintDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Fixtureblueprintdigest",
+      "type": "string"
+    },
+    "environmentId": {
+      "format": "uuid",
+      "title": "Environmentid",
+      "type": "string"
+    },
+    "environmentRevision": {
+      "minimum": 1,
+      "title": "Environmentrevision",
+      "type": "integer"
+    },
+    "allowedOrigins": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Allowedorigins",
+      "type": "array"
+    },
+    "executionDeadline": {
+      "format": "date-time",
+      "title": "Executiondeadline",
+      "type": "string"
+    },
+    "ticketDigest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Ticketdigest",
+      "type": "string"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "title": "Createdat",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "projectId",
+    "taskRunId",
+    "executionUnitId",
+    "unitAttemptId",
+    "requestDigest",
+    "manifestHash",
+    "ordinal",
+    "unitKey",
+    "caseVersionId",
+    "caseContentDigest",
+    "testIrDigest",
+    "planDigest",
+    "compiledDigest",
+    "attemptNumber",
+    "executionProfileVersionId",
+    "executionProfileDigest",
+    "identityProfileVersionId",
+    "identityProfileDigest",
+    "browserProfileVersionId",
+    "browserProfileDigest",
+    "dataProfileVersionId",
+    "dataProfileDigest",
+    "fixtureBlueprintVersionId",
+    "fixtureBlueprintDigest",
+    "environmentId",
+    "environmentRevision",
+    "allowedOrigins",
+    "executionDeadline",
+    "ticketDigest",
+    "createdAt"
+  ],
+  "title": "TaskUnitExecutionTicket",
+  "type": "object"
+}

@@ -81,9 +81,6 @@ class DebugRunService:
     ) -> CommandResult[DebugRun]:
         """Freeze and enqueue one exact Draft snapshot after full compilation."""
 
-        now = utc_now()
-        if command.execution_deadline <= now:
-            raise self._invalid_request("executionDeadline 必须晚于当前时间。")
         request_payload: dict[str, JsonValue] = {
             "testCaseId": str(case_id),
             **self._json_object(command),
@@ -91,6 +88,9 @@ class DebugRunService:
         request_hash = hash_request(request_payload)
         scope = f"test-cases.{case_id}.debug-runs.create"
         async with self._database.transaction(actor.database_context()) as connection:
+            now = await _database_now(connection)
+            if command.execution_deadline <= now:
+                raise self._invalid_request("executionDeadline 必须晚于当前时间。")
             case = await self._require_case(
                 connection,
                 actor,
@@ -543,3 +543,13 @@ class DebugRunService:
             detail=detail,
             status_code=503,
         )
+
+
+async def _database_now(connection: AsyncConnection[DictRow]) -> datetime:
+    """Use the transaction clock for facts constrained against database defaults."""
+
+    cursor = await connection.execute("select transaction_timestamp() as now")
+    row = await cursor.fetchone()
+    if row is None:
+        raise RuntimeError("database clock query returned no row")
+    return datetime.fromisoformat(str(row["now"]))

@@ -217,11 +217,33 @@ def test_rejects_unsafe_health_and_fixture_timeout_relationships(
 
 def test_task_intent_consumer_is_disabled_and_authority_is_process_isolated() -> None:
     settings = TaskIntentConsumerSettings(environment="test")
+    application_settings = Settings(environment="test")
 
     assert settings.task_intent_consumption_enabled is False
     assert settings.task_dispatcher_database_url_value is None
     assert settings.task_intent_task_queue == "atlas-task-run"
-    assert not hasattr(Settings(environment="test"), "task_dispatcher_database_url")
+    assert application_settings.task_worker_enabled is False
+    assert application_settings.task_run_task_queue == "atlas-task-run"
+    assert application_settings.task_attempt_task_queue == "atlas-unit-attempt"
+    assert not hasattr(application_settings, "task_dispatcher_database_url")
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"task_run_task_queue": "untrusted-root-queue"},
+        {"task_attempt_task_queue": "untrusted-attempt-queue"},
+        {"task_run_worker_max_concurrency": 0},
+        {"task_run_worker_max_concurrency": 65},
+        {"task_attempt_worker_max_concurrency": 0},
+        {"task_attempt_worker_max_concurrency": 65},
+    ],
+)
+def test_task_worker_rejects_untrusted_queues_and_unbounded_concurrency(
+    overrides: dict[str, object],
+) -> None:
+    with pytest.raises(ValidationError):
+        Settings.model_validate({"environment": "test", **overrides})
 
 
 def test_enabled_task_intent_consumer_requires_and_protects_dispatcher_dsn() -> None:

@@ -57,12 +57,19 @@ TaskPlanVersion
 | `BrowserProfileVersion` | Chromium revision、Viewport、Locale、Timezone 与 runtime attestation | P5-00B1 已落地；内容不可变，调度前仍须匹配实际 Worker 能力 |
 | `DataProfileVersion` | exact Fixture Blueprint / Plan 与无秘密 Run Inputs | P5-00B1 已落地；Profile 冻结 digest，dispatch admission 再按 exact Fixture `run_input_schema` 复验；不保存动态 Secret 或运行资源 |
 | `TaskPlanVersion` | 已发布的任务选择、矩阵、触发和策略 | P5-00B1 已接入四类正式 Profile 发布门禁；发布后不可变，PostgreSQL |
-| `TaskRun` | 一次触发形成的任务运行与冻结 Manifest | stable request digest 幂等；只有 `MATERIALIZING → SEALED` 完整证明后才能推进状态 |
+| `TaskRun` | 一次触发形成的任务运行与冻结 Manifest | stable request digest 幂等；只有 `MATERIALIZING → SEALED` 完整证明后才能推进状态；P5-00D3B child 以不可变 `rerunOfTaskRunId + INFRA_FAILURES` 记录 lineage / selection |
 | `TaskWorkflowStartIntent` | 与 sealed TaskRun / deterministic Workflow ID 同事务生成，并由可靠交付状态机推进的待启动事实 | P5-00B2A 支持 `PENDING / CLAIMED / RETRY_WAIT / STARTED / FAILED`；Claim Token + Revision 防旧 Consumer 覆盖，`STARTED` 只表示 Temporal 接受，不表示 Task 已执行或成功 |
-| `TaskWorkflowIntentConsumer` | 使用独立 `atlas_dispatcher` 权限把 TaskRun Start Intent 可靠提交到 Temporal 的后台进程 | 短事务 Claim → 事务外 Start / Describe → 短事务 CAS Ack；默认关闭，只消费 exact `AtlasTaskRunWorkflow + atlas-task-run`，不包含真实 Root Workflow / Activity |
+| `TaskWorkflowIntentConsumer` | 使用独立 `atlas_dispatcher` 权限把 TaskRun Start Intent 可靠提交到 Temporal 的后台进程 | 短事务 Claim → 事务外 Start / Describe → 短事务 CAS Ack；默认关闭，只提交 exact `AtlasTaskRunWorkflow + atlas-task-run`，P5-00B2B 的 Root Worker 再消费该固定 Queue |
+| `TaskRunCommandIntent` | API 已接受、尚待可靠作用到 exact TaskRun Workflow 的 secret-free 控制事实 | P5-00D2A/D2B 支持 `CANCEL / PAUSE / RESUME`；公开状态为 `PENDING / DELIVERED / APPLIED / FAILED / SUPERSEDED`，内部 Claim / Retry 状态不暴露；`clientMutationId + expectedRunRevision + requestDigest + manifestHash + Workflow identity` 共同进入 canonical digest |
+| `TaskRunCommandIntentConsumer` | 复用独立 `atlas_dispatcher` 权限向 exact Root Workflow 可靠发送控制 Signal | 短事务 Claim → 事务外 Describe / Signal → 短事务 CAS；Signal 重投由 Root 按 command ID + exact payload 去重，`NOT_FOUND` 视为可能尚未 Start 并持久重试 |
+| `AtlasTaskRunWorkflow` | 一个 sealed TaskRun 的真实 Temporal Root，加载完整首 Attempt 计划并耐久聚合 Child 结果 | P5-00D3A 已接入 durable Cancel / Pause / Resume 与自动 infra retry；固定 `atlas-task-run`，最多 64 Units，按 8-child wave 原子预授权、结算并调度；冻结 backoff 使用 durable timer 且可被控制 Signal 中断 |
+| `AtlasUnitAttemptWorkflow` | 一个 UnitAttempt 的真实 Temporal Child，按 Prepare Ticket → Begin → Execute → Finish 边界执行一次物理尝试 | P5-00D1 已收紧；固定 `atlas-unit-attempt`，deterministic child ID，冻结 deadline；数据库 Activity 耐久 retry，副作用 Activity `maximumAttempts=1`；Ticket 未准备成功时不调用 Port |
+| `TaskUnitExecutionTicket` | 一个 UnitAttempt 在副作用前生成的不可变、secret-free 执行授权快照 | P5-00D1 已落地；每 Attempt 唯一，冻结 exact Case / Profile / Fixture / Environment / Origin / deadline 摘要，强制 RLS 且不可更新删除；不包含账号、Credential、Lease、Session 或 Token |
+| `TaskUnitExecutionPort` | UnitAttempt Workflow 调用的受信副作用执行 Adapter 边界 | P5-00D1 Protocol 只接收 `attempt + ticketId + ticketDigest`；仓库没有内置 production 实现，Task Worker 默认关闭，启用却未注入真实 Adapter 时 fail-closed |
 | `ExecutionUnit` | CaseVersion 与矩阵单元形成的逻辑测试槽位 | P5-00A 已落地；Manifest 身份创建后不可变，PostgreSQL |
-| `UnitAttempt` | ExecutionUnit 的一次真实执行 | 每次业务重试创建新 Attempt；P5-00B1 使用确定性 namespace / Workflow ID，Activity retry 不创建新 Attempt |
-| `AttemptSeal` | Attempt 关闭时产生的不可变事实包 | P5-00A 已提供正式宿主；Seal 待 P6 后续，永久不可变 |
+| `TaskRetryPolicy` | TaskRun Manifest 冻结的自动基础设施重试边界 | `atlas.task-retry-policy/0.1`；限制 per-Unit 次数、Run 总预算、指数退避 / jitter，并以 `infra-retry` policy digest 绑定；只作用于显式 `INFRA_ERROR` |
+| `UnitAttempt` | ExecutionUnit 的一次真实执行 | 自动基础设施重试创建确定性、gapless 新 Attempt；旧 Attempt 不覆盖，Activity retry 不创建新 Attempt，原始 deadline 不延长；Assertion / 产品失败与 `OUTCOME_UNKNOWN` 不自动重试 |
+| `AttemptSeal` | Attempt 关闭时产生的不可变事实包 | P5-00A 已提供正式宿主；Seal 待 P6 后续，永久不可变。当前 Task Workflow 因没有 Seal 而绝不表达 `PASSED`；成功执行只得到 `FINISHED_UNSEALED` / `INCONCLUSIVE` |
 | `UnitResolutionRevision` | 对多个 Attempt 的追加式解释 | 只追加 Revision，可重建 |
 | `TaskResultSnapshot` | 绑定 Manifest 和策略版本的可复现任务结论 | 不可变快照 |
 | `TaskGateDecision` | 针对确定 Result Snapshot 作出的门禁决定 | 追加式审计事实 |
