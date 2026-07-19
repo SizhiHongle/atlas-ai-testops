@@ -1,0 +1,901 @@
+.page {
+  padding: 42px 30px 34px;
+}
+
+.hero {
+  display: flex;
+  min-height: 155px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.hero p {
+  display: flex;
+  margin: 0 0 12px;
+  align-items: center;
+  gap: 7px;
+  color: var(--atlas-color-ink-600);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+}
+
+.hero h1 {
+  max-width: 920px;
+  margin: 0;
+  font-size: clamp(42px, 5vw, 72px);
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+}
+
+.hero span {
+  display: block;
+  max-width: 720px;
+  margin-top: 13px;
+  color: var(--atlas-color-ink-600);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.heroActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.heroActions button {
+  display: flex;
+  min-height: 46px;
+  padding: 0 16px;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: 1px solid var(--atlas-color-line);
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.heroActions button:last-child {
+  color: white;
+  background: var(--atlas-color-ink-950);
+  border-color: var(--atlas-color-ink-950);
+}
+
+.heroActions button:disabled {
+  opacity: 0.42;
+}
+
+.planStrip {
+  display: flex;
+  min-height: 58px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  align-items: stretch;
+  gap: 7px;
+  color: var(--atlas-color-ink-950);
+  background: #f5f4f1;
+  border: 1px solid var(--atlas-color-line);
+  border-radius: 17px;
+}
+
+.planStrip > span {
+  display: flex;
+  padding: 0 12px;
+  flex: 0 0 auto;
+  align-items: center;
+  color: var(--atlas-color-ink-600);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+}
+
+.planStrip a {
+  display: grid;
+  min-width: 155px;
+  padding: 7px 12px;
+  background: var(--atlas-color-surface-muted);
+  border-radius: 11px;
+}
+
+.planStrip a[aria-current="page"] {
+  color: white;
+  background: var(--atlas-color-ink-950);
+}
+
+.planStrip strong {
+  font-size: 9px;
+}
+
+.planStrip small {
+  margin-top: 3px;
+  opacity: 0.55;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 7px;
+}
+
+.commandBar {
+  display: flex;
+  min-height: 62px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  align-items: center;
+  gap: 12px;
+  color: var(--atlas-color-ink-950);
+  background: #f5f4f1;
+  border: 1px solid var(--atlas-color-line);
+  border-radius: 17px;
+}
+
+.commandBar form {
+  display: flex;
+  min-width: 260px;
+  min-height: 42px;
+  padding: 0 13px;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid var(--atlas-color-line);
+  border-radius: 12px;
+}
+
+.commandBar input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  font-size: 9px;
+}
+
+.filters {
+  display: flex;
+  gap: 5px;
+}
+
+.filters span {
+  padding: 9px 10px;
+  color: var(--atlas-color-ink-600);
+  background: var(--atlas-color-surface-muted);
+  border-radius: 999px;
+  font-size: 7px;
+  white-space: nowrap;
+}
+
+.viewSwitch {
+  display: flex;
+  margin-left: auto;
+  gap: 3px;
+  background: var(--atlas-color-surface-muted);
+  border-radius: 999px;
+}
+
+.viewSwitch a {
+  display: flex;
+  min-height: 36px;
+  padding: 0 11px;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  font-size: 8px;
+}
+
+.viewSwitch .activeView {
+  color: white;
+  background: var(--atlas-color-ink-950);
+}
+
+.centerStage {
+  display: grid;
+  min-height: 610px;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-rows: minmax(0, 1fr) 92px;
+}
+
+.orbitBoard,
+.focus,
+.signalStrip,
+.versionRail {
+  color: var(--atlas-color-ink-950);
+  background: #f5f4f1;
+  border: 1px solid var(--atlas-color-line);
+}
+
+.orbitBoard {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--atlas-radius-lg);
+}
+
+.orbitBoard > header {
+  display: flex;
+  min-height: 74px;
+  padding: 18px 21px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.orbitBoard > header div {
+  display: grid;
+  gap: 5px;
+}
+
+.orbitBoard > header span,
+.focus header span {
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+}
+
+.orbitBoard > header strong {
+  font-size: 16px;
+}
+
+.orbitBoard > header em {
+  display: flex;
+  padding: 7px 9px;
+  align-items: center;
+  gap: 5px;
+  color: var(--atlas-color-success);
+  background: rgba(35, 132, 93, 0.08);
+  border-radius: 999px;
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.orbitMap {
+  position: relative;
+  min-height: 430px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 49% 48%, rgba(143, 111, 235, 0.13), transparent 23%),
+    linear-gradient(rgba(21, 35, 31, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(21, 35, 31, 0.025) 1px, transparent 1px);
+  background-size: auto, 28px 28px, 28px 28px;
+}
+
+.ringOne,
+.ringTwo,
+.ringThree {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid rgba(21, 35, 31, 0.09);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ringOne {
+  width: 230px;
+  height: 150px;
+}
+
+.ringTwo {
+  width: 470px;
+  height: 300px;
+}
+
+.ringThree {
+  width: 730px;
+  height: 430px;
+}
+
+.orbitCore {
+  --progress: 0%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 190px;
+  height: 190px;
+  padding: 36px 20px;
+  color: white;
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.16), transparent 35%),
+    var(--atlas-color-ink-950);
+  border: 8px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  box-shadow: 0 22px 60px rgba(18, 31, 27, 0.28);
+  place-items: center;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.orbitCore::before {
+  position: absolute;
+  inset: -13px;
+  background: conic-gradient(
+    var(--atlas-color-accent) var(--progress),
+    rgba(21, 35, 31, 0.1) 0
+  );
+  border-radius: 50%;
+  content: "";
+  mask: radial-gradient(transparent 68%, black 69%);
+}
+
+.orbitCore span {
+  font-size: 7px;
+  letter-spacing: 0.1em;
+}
+
+.orbitCore strong {
+  font-size: 43px;
+  letter-spacing: -0.07em;
+}
+
+.orbitCore small {
+  opacity: 0.55;
+  font-size: 6px;
+}
+
+.orbitCore > i {
+  width: 7px;
+  height: 7px;
+  background: #a7f16b;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(167, 241, 107, 0.1);
+}
+
+.satellite {
+  position: absolute;
+  display: grid;
+  width: 160px;
+  min-height: 84px;
+  padding: 14px;
+  background: white;
+  border: 1px solid var(--atlas-color-line);
+  border-radius: 17px;
+  box-shadow: 0 15px 35px rgba(31, 43, 38, 0.11);
+}
+
+.satellite[data-position="1"] {
+  top: 52px;
+  left: 8%;
+}
+
+.satellite[data-position="2"] {
+  top: 72px;
+  right: 7%;
+}
+
+.satellite[data-position="3"] {
+  right: 14%;
+  bottom: 40px;
+}
+
+.satellite span {
+  color: var(--atlas-color-ink-600);
+  font-size: 6px;
+}
+
+.satellite strong {
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.satellite small {
+  margin-top: 4px;
+  color: var(--atlas-color-ink-600);
+  font-size: 6px;
+}
+
+.satellite > i {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 7px;
+  height: 7px;
+  background: var(--atlas-color-ink-400);
+  border-radius: 50%;
+}
+
+.satellite[data-tone="active"] > i {
+  background: #9276ef;
+}
+
+.satellite[data-tone="good"] > i {
+  background: var(--atlas-color-success);
+}
+
+.satellite[data-tone="risk"] > i {
+  background: var(--atlas-color-danger);
+}
+
+.orbitCaption {
+  position: absolute;
+  bottom: 14px;
+  left: 20px;
+  display: flex;
+  margin: 0;
+  align-items: center;
+  gap: 7px;
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+}
+
+.runList {
+  display: grid;
+  max-height: 470px;
+  padding: 0 18px 18px;
+  overflow: auto;
+  gap: 6px;
+}
+
+.runCard {
+  position: relative;
+  display: grid;
+  min-height: 64px;
+  padding: 9px 12px;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  grid-template-columns: 8px minmax(180px, 1fr) 110px 100px 100px 16px;
+}
+
+.selectedRun {
+  border-color: var(--atlas-color-ink-950);
+}
+
+.runCard > i {
+  width: 7px;
+  height: 7px;
+  background: var(--atlas-color-ink-400);
+  border-radius: 50%;
+}
+
+.runCard[data-tone="active"] > i {
+  background: #9276ef;
+}
+
+.runCard[data-tone="good"] > i {
+  background: var(--atlas-color-success);
+}
+
+.runCard[data-tone="risk"] > i {
+  background: var(--atlas-color-danger);
+}
+
+.runCard div {
+  display: grid;
+  gap: 4px;
+}
+
+.runCard span,
+.runCard small,
+.runCard em {
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+  font-style: normal;
+}
+
+.runCard strong {
+  font-size: 10px;
+}
+
+.runCard > b {
+  font-size: 8px;
+}
+
+.focus {
+  padding: 22px;
+  border-radius: var(--atlas-radius-lg);
+}
+
+.focus > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.focus header em {
+  padding: 6px 8px;
+  color: var(--atlas-color-ink-600);
+  background: var(--atlas-color-surface-muted);
+  border-radius: 999px;
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.focus header em[data-tone="active"] {
+  color: #6b4dcc;
+  background: rgba(146, 118, 239, 0.12);
+}
+
+.focus header em[data-tone="good"] {
+  color: var(--atlas-color-success);
+  background: rgba(35, 132, 93, 0.09);
+}
+
+.focus header em[data-tone="risk"] {
+  color: var(--atlas-color-danger);
+  background: rgba(185, 62, 50, 0.09);
+}
+
+.focus h2 {
+  margin: 23px 0 0;
+  font-size: 25px;
+  letter-spacing: -0.04em;
+}
+
+.focus > p {
+  margin: 7px 0 0;
+  color: var(--atlas-color-ink-600);
+  font-size: 8px;
+}
+
+.focusProgress {
+  margin-top: 24px;
+}
+
+.focusProgress > div {
+  display: flex;
+  align-items: baseline;
+}
+
+.focusProgress strong {
+  font-size: 35px;
+}
+
+.focusProgress span {
+  margin-left: 4px;
+  color: var(--atlas-color-ink-600);
+  font-size: 8px;
+}
+
+.focusProgress small {
+  display: block;
+  margin-top: 4px;
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+}
+
+.focusProgress > i {
+  display: block;
+  height: 5px;
+  margin-top: 11px;
+  overflow: hidden;
+  background: var(--atlas-color-surface-muted);
+  border-radius: 999px;
+}
+
+.focusProgress > i b {
+  display: block;
+  height: 100%;
+  background: var(--atlas-color-accent);
+  border-radius: inherit;
+}
+
+.metrics {
+  display: grid;
+  margin-top: 18px;
+  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.metrics div {
+  display: grid;
+  min-height: 58px;
+  padding: 11px;
+  background: var(--atlas-color-surface-muted);
+  border-radius: 12px;
+}
+
+.metrics span {
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+}
+
+.metrics strong {
+  align-self: end;
+  font-size: 17px;
+}
+
+.metrics strong[data-risk] {
+  color: var(--atlas-color-danger);
+}
+
+.snapshot {
+  display: grid;
+  margin-top: 16px;
+  padding: 13px;
+  gap: 7px;
+  background: #1a1f27;
+  border-radius: 14px;
+  color: white;
+}
+
+.snapshot > span {
+  margin-bottom: 2px;
+  opacity: 0.45;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.snapshot small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 7px;
+}
+
+.controls {
+  display: flex;
+  margin-top: 12px;
+  gap: 6px;
+}
+
+.controls button {
+  display: flex;
+  min-height: 34px;
+  padding: 0 9px;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--atlas-color-line);
+  border-radius: 999px;
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.controls button:disabled {
+  opacity: 0.4;
+}
+
+.focusAction {
+  display: flex;
+  min-height: 43px;
+  margin-top: 12px;
+  padding: 0 14px;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+  background: var(--atlas-color-ink-950);
+  border-radius: 13px;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.inlineError {
+  margin: 10px 0 0;
+  color: var(--atlas-color-danger);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.signalStrip {
+  display: grid;
+  padding: 10px;
+  gap: 8px;
+  border-radius: 20px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.signalStrip div {
+  display: grid;
+  padding: 10px 14px;
+  align-items: center;
+  gap: 4px 9px;
+  background: var(--atlas-color-surface-muted);
+  border-radius: 13px;
+  grid-template-columns: 18px 1fr;
+}
+
+.signalStrip svg {
+  grid-row: 1 / 4;
+}
+
+.signalStrip span,
+.signalStrip small {
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+}
+
+.signalStrip strong {
+  font-size: 9px;
+}
+
+.versionRail {
+  display: grid;
+  min-height: 92px;
+  margin-top: 10px;
+  padding: 10px;
+  gap: 7px;
+  border-radius: 20px;
+  grid-template-columns: 115px repeat(4, minmax(0, 1fr));
+}
+
+.versionRail > header {
+  display: grid;
+  padding: 9px;
+  align-content: center;
+}
+
+.versionRail > header span {
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+  letter-spacing: 0.12em;
+}
+
+.versionRail > header strong {
+  margin-top: 4px;
+  font-size: 24px;
+}
+
+.versionRail > a {
+  position: relative;
+  display: grid;
+  padding: 10px 35px 10px 12px;
+  background: var(--atlas-color-surface-muted);
+  border: 1px solid transparent;
+  border-radius: 13px;
+}
+
+.versionRail > a.selectedVersion {
+  border-color: var(--atlas-color-ink-950);
+}
+
+.versionRail > a span,
+.versionRail > a small {
+  color: var(--atlas-color-ink-600);
+  font-size: 6px;
+}
+
+.versionRail > a strong {
+  margin-top: 3px;
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.versionRail > a b {
+  margin-top: 4px;
+  font-size: 7px;
+}
+
+.versionRail > a svg {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.versionGap {
+  display: flex;
+  padding: 12px 15px;
+  align-items: center;
+  gap: 16px;
+  background: var(--atlas-color-surface-muted);
+  border-radius: 13px;
+  grid-column: 2 / -1;
+}
+
+.versionGap strong {
+  flex: 0 0 auto;
+  font-size: 9px;
+}
+
+.versionGap span {
+  color: var(--atlas-color-ink-600);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.versionGap button {
+  min-height: 34px;
+  margin-left: auto;
+  padding: 0 12px;
+  flex: 0 0 auto;
+  border: 1px solid var(--atlas-color-line);
+  border-radius: 999px;
+  font-size: 7px;
+}
+
+@media (max-width: 1050px) {
+  .hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .centerStage {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .focus {
+    min-height: 420px;
+  }
+
+  .signalStrip {
+    grid-column: auto;
+  }
+
+  .filters {
+    display: none;
+  }
+
+  .versionRail {
+    grid-template-columns: 100px repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 26px 14px;
+  }
+
+  .hero h1 {
+    font-size: 44px;
+  }
+
+  .heroActions {
+    width: 100%;
+  }
+
+  .heroActions button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .commandBar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .commandBar form {
+    min-width: 0;
+  }
+
+  .viewSwitch {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+
+  .orbitMap {
+    min-height: 500px;
+  }
+
+  .satellite[data-position="1"] {
+    top: 20px;
+    left: 15px;
+  }
+
+  .satellite[data-position="2"] {
+    top: auto;
+    right: 15px;
+    bottom: 30px;
+  }
+
+  .satellite[data-position="3"] {
+    display: none;
+  }
+
+  .signalStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .versionRail {
+    grid-template-columns: 1fr;
+  }
+
+  .versionRail > a,
+  .versionGap {
+    grid-column: auto;
+  }
+
+  .versionGap {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .versionGap button {
+    margin-left: 0;
+  }
+}

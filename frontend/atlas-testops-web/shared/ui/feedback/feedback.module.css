@@ -1,0 +1,95 @@
+.state {
+  width: min(720px, calc(100% - 40px));
+  margin: 12vh auto;
+  padding: 44px;
+  text-align: center;
+  background: var(--atlas-color-surface);
+  border: 1px solid var(--atlas-color-line);
+  border-radius: var(--atlas-radius-lg);
+  box-shadow: var(--atlas-shadow-panel);
+}
+
+.state h1 {
+  margin: 12px 0;
+  font-size: clamp(28px, 4vw, 48px);
+  line-height: 1.05;
+}
+
+.state p:last-child {
+  margin: 0;
+  color: var(--atlas-color-ink-600);
+}
+
+.icon {
+  display: inline-grid;
+  width: 50px;
+  height: 50px;
+  color: white;
+  background: var(--atlas-color-accent);
+  border-radius: 50%;
+  place-items: center;
+}
+
+.eyebrow {
+  margin: 18px 0 0;
+  color: var(--atlas-color-accent-strong);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.primary,
+.secondary {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-weight: 750;
+}
+
+.primary {
+  color: white;
+  background: var(--atlas-color-ink-950);
+  border: 0;
+}
+
+.secondary {
+  background: transparent;
+  border: 1px solid var(--atlas-color-line);
+}
+
+.empty {
+  display: flex;
+  min-height: 150px;
+  padding: 28px;
+  align-items: center;
+  gap: 18px;
+  background: rgba(255, 253, 248, 0.72);
+  border: 1px dashed rgba(21, 35, 31, 0.25);
+  border-radius: var(--atlas-radius-md);
+}
+
+.empty h2,
+.empty p {
+  margin: 0;
+}
+
+.empty h2 {
+  font-size: 18px;
+}
+
+.empty p {
+  margin-top: 7px;
+  color: var(--atlas-color-ink-600);
+  line-height: 1.55;
+}
+
+.empty > :last-child:not(div) {
+  margin-left: auto;
+}

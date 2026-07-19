@@ -1,0 +1,9 @@
+.env
+.env.local
+.next
+.wrangler
+dist
+node_modules
+playwright-report
+test-results
+tsconfig.tsbuildinfo

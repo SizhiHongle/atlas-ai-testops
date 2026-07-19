@@ -7,7 +7,9 @@
 - `contracts/`
   - 由 Pydantic / FastAPI 导出的版本化 JSON Schema、OpenAPI 与前端类型源。
 - `frontend/atlas-ai-testops-prototype/`
-  - 当前 Atlas AI 测试平台前端原型源码，包含主工作台与登录页。
+  - 冻结的 Atlas AI 测试平台视觉与交互原型，是生产实现的设计权威，不承载生产运行。
+- `frontend/atlas-testops-web/`
+  - 生产前端工程：Feature First 架构、同源 BFF、真实 Session/RBAC/OpenAPI 接口、Unit/Component/E2E/Visual Regression 测试与 Cloudflare 部署配置。
 - `backend/`
   - Python 3.14 模块化后端，包含 Platform RBAC、Identity Catalog、Connector/Capability、Account Health Verification、Account Lease/Fencing、Secret Grant/Adapter、独立 Auth Session Worker、加密 SessionArtifact、DataAtom / DataBlueprint 资产控制面、耐久 FixtureRun / 资源账本，以及不直连主数据库的独立 Browser Worker 执行平面。
 - `compose.yaml`
@@ -30,23 +32,26 @@ make migrate
 - Temporal：`127.0.0.1:7233`，Web UI：`http://127.0.0.1:8233`
 - MinIO：`http://127.0.0.1:9000`，Console：`http://127.0.0.1:9001`
 
-## 本地运行前端
+## 本地运行生产前端
 
-环境要求：Node.js `>= 22.13.0`。
+环境要求：Node.js `>= 22.13.0`、pnpm `10.15.1`。
 
 ```bash
-cd frontend/atlas-ai-testops-prototype
-npm ci
+cd frontend/atlas-testops-web
+pnpm install --frozen-lockfile
 cp .env.example .env.local
-npm run dev
+pnpm dev
 ```
 
 代码检查与生产构建：
 
 ```bash
-npm run lint
-npm run build
+pnpm check
+pnpm test:e2e
+pnpm build
 ```
+
+原型仍可从 `frontend/atlas-ai-testops-prototype` 独立启动，仅用于设计对照。
 
 ## 本地运行后端
 
@@ -70,7 +75,7 @@ uv run python scripts/export_openapi.py --check
 uv build
 ```
 
-前后端启动后，`http://127.0.0.1:5173/system-status` 会使用生成的 TypeScript API 类型读取真实 readiness；`/login` 会在配置 Tenant / Project 后使用 HttpOnly Cookie Session 登录。
+前后端启动后，生产前端 `/login` 会在配置 Tenant / Project 后通过同源 BFF 使用 HttpOnly Cookie Session 登录；业务页面只读取真实 API，不回退到原型演示数据。
 
 ## 完整验证
 
@@ -83,7 +88,7 @@ make verify
 ## 说明
 
 - 交付包未包含 `node_modules`、`dist`、`.wrangler`、Git 历史和本地缓存。
-- 当前前端属于可交互产品原型，界面结构、DOM、布局、样式和既有交互是实现的唯一视觉与交互权威；业务数据按阶段替换为真实 API，尚未实施的执行过程仍使用演示数据。P6-01 未修改任何前端原型页面或交互。
+- `atlas-ai-testops-prototype` 的界面结构、布局、样式和既有交互继续作为唯一设计权威且保持未修改；`atlas-testops-web` 是独立生产实现，所有已开放业务能力使用真实 API，未开放能力明确禁用，不使用演示回退。
 - 打包前已通过 TypeScript 检查与生产构建。
 - 后端已接入 PostgreSQL/Psycopg 连接池、Alembic、RLS、Transactional Outbox、幂等、Platform RBAC、Argon2id 与 Opaque Session、测试账号目录、ConnectorInstallation / Capability Snapshot、账号登录身份与角色健康检查、Lease/Fencing、一次性 Secret Grant、独立 Auth Session Worker、AES-GCM SessionArtifact Vault、Fixture 耐久运行与发布证据、TestCase / WorkflowDraft / DebugRun / CaseVersion 发布闭环、TaskPlan Catalog、Manual / Schedule / CI / Webhook 统一 Trigger、数据库权威 Temporal Schedule Catalog / Sync / Fire，以及 TaskGateDecision 原子 intent、固定六字段 HMAC 和 eventId 幂等重投的签名 Callback；P6 可信执行/证据事实链和 UnitAttempt Live Control、P7 immutable Result Snapshot、Failure Classification、三值 Task Gate 和公开 Result 查询/API、P8 V1 comparable Insight Brief / DatasetCut / immutable Snapshot 均已落地。Browser Worker 通过短期 Permit + HMAC 内部网关、Temporal Activity、加密 BrowserContext Envelope、严格 Report Hash-chain 和 Epoch/Fence 绑定的单次 ActionGrant 执行冻结 Plan，不直接访问主数据库。
 - P9 本地参考验收已固化为 `make p9-acceptance`：六类故障注入、10,000 次 Lease、2× Evidence 负载、跨 Project 隔离、30 次黄金链、30 个真实 Temporal Schedule 样本与 Live P95 均已通过。机器报告明确区分本地 `PASSED` 与需要真实部署/试点的 `NOT_EVALUATED`，因此在月度可用性、人工分类准确率、影子迭代和灾备演练完成前总状态为 `CONDITIONAL_PASS`。

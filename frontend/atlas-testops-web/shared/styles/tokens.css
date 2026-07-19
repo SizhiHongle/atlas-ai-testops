@@ -1,0 +1,31 @@
+:root {
+  color-scheme: light;
+  --atlas-color-ink-950: #15231f;
+  --atlas-color-ink-800: #2f3d38;
+  --atlas-color-ink-600: #65716d;
+  --atlas-color-ink-400: #9aa29f;
+  --atlas-color-paper: #f4f1e8;
+  --atlas-color-surface: #fffdf8;
+  --atlas-color-surface-muted: #ebe7dc;
+  --atlas-color-line: rgba(21, 35, 31, 0.14);
+  --atlas-color-accent: #ff6b3d;
+  --atlas-color-accent-strong: #e94f25;
+  --atlas-color-success: #23845d;
+  --atlas-color-warning: #b57619;
+  --atlas-color-danger: #b93e32;
+  --atlas-shadow-panel: 0 24px 70px rgba(31, 43, 38, 0.12);
+  --atlas-radius-sm: 12px;
+  --atlas-radius-md: 20px;
+  --atlas-radius-lg: 30px;
+  --atlas-space-1: 4px;
+  --atlas-space-2: 8px;
+  --atlas-space-3: 12px;
+  --atlas-space-4: 16px;
+  --atlas-space-5: 24px;
+  --atlas-space-6: 32px;
+  --atlas-space-7: 48px;
+  --atlas-space-8: 64px;
+  --atlas-header-height: 72px;
+  --atlas-content-width: 1440px;
+  --atlas-transition-fast: 160ms ease;
+}

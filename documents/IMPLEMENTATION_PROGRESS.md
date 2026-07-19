@@ -1,6 +1,6 @@
 # Atlas AI 测试平台实施进度
 
-更新时间：2026-07-18
+更新时间：2026-07-19
 
 ## 使用规则
 
@@ -13,11 +13,11 @@
 
 ## 当前状态
 
-- 当前阶段：`P9 生产硬化与验收收口`
-- 当前切片：`P9-01 本地参考故障 / 容量 / 黄金链 / SLO`
-- 总体状态：P5 已建立正式执行宿主、统一 Manual / Schedule / CI / Webhook Trigger、100,000-Unit 可恢复分区物化、有界 Temporal History、signed HTTPS production Port、数据库权威 Temporal Schedule Catalog / Sync / Fire，以及 signed Task Gate Callback 可靠投递；P6 已建立可信 Browser / Evidence / Attempt Result 事实链、DebugRun 只读 Live 和 UnitAttempt-scoped Live Control；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate、公开查询 API 与既有 Results 槽位接线。P8 V1 已实现 comparable Insight Snapshot。P9 本地参考六类故障、10,000 Lease、2× Evidence、跨 Project、30 次黄金链、30 次真实 Temporal Schedule 与 Live P95 全部通过；真实 SaaS、月度可用性、人工分类、影子迭代和灾备演练仍需外部输入，生产状态保持 `CONDITIONAL_PASS`
+- 当前阶段：`P10 前端生产化`
+- 当前切片：`P10-01 独立生产前端、真实 API 闭环与发布门禁`
+- 总体状态：P5 已建立正式执行宿主、统一 Manual / Schedule / CI / Webhook Trigger、100,000-Unit 可恢复分区物化、有界 Temporal History、signed HTTPS production Port、数据库权威 Temporal Schedule Catalog / Sync / Fire，以及 signed Task Gate Callback 可靠投递；P6 已建立可信 Browser / Evidence / Attempt Result 事实链、DebugRun 只读 Live 和 UnitAttempt-scoped Live Control；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate 与公开查询 API。P8 V1 已实现 comparable Insight Snapshot。P9 本地参考验收全部通过。P10 已保留原型为设计权威，并在独立生产包中完成 Auth、Space、Identity、Fixture、Case、Task、Live、Result、Insight 的真实 API 接线、权限/错误边界、安全 BFF、Unit/Component/E2E/Visual Regression、生产构建与发布门禁
 - 当前分支：`main`
-- 当前进入基线提交：`593a092`
+- P10 进入基线提交：`3b8bdc4`
 
 ## 阶段看板
 
@@ -33,6 +33,7 @@
 | P7 | Result Fact、Snapshot、Classification 与 Gate | 已完成 | P6-03A/P6-03B 与 P7-01A 至 P7-03 已实现三阶段 Snapshot、FailureCluster / Classification、`0039` TaskGateDecision、公开 Result API、ETag 与既有 Results 槽位真实数据映射 |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 基础中 | V1 fixed MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums、DatasetCut、`0040` immutable InsightSnapshot、preview/pin/exact API 与既有 Insights 槽位映射已实现；Projector generation、Signal/Review 与异步 Export 待扩展 |
 | P9 | 隔离、并发、故障注入、黄金链路与 SLO 验收 | 基础中 | 本地参考：12 项故障、10,000 Lease 冲突 0、100 Evidence、30 / 30 黄金链、Cleanup 100%、Schedule P95 4,787 ms、Live P95 4 ms 均通过。生产月度 SLO、人工分类、真实影子迭代与灾备演练 `NOT_EVALUATED` |
+| P10 | 原型权威下的生产前端工程与真实 API 闭环 | 已完成 | 独立 `atlas-testops-web`、Feature First、同源 BFF、Session/RBAC、九个真实业务域、WorkflowPatch/Layout、14 项 Unit/Component Test、8 项桌面/移动 E2E 与 Visual Baseline、生产构建和安全响应验收全部通过 |
 
 ## P0-01 范围
 
@@ -992,6 +993,28 @@
 - 真实 PostgreSQL 完整 Task → Result → Classification → Gate → Insight preview / pin / permanent replay 链通过，并验证跨 Tenant RLS、不可 UPDATE / DELETE 和 `0040 → 0039 → 0040` 空表往返。
 - 完整门禁 1063 passed / coverage 90.16%，Ruff、严格 mypy 352 files、Contracts / OpenAPI 漂移、Python sdist / wheel、前端 API 漂移 / TypeScript / production build 全部通过。
 
+## P10-01 范围
+
+### 已实现
+
+- 冻结 `frontend/atlas-ai-testops-prototype` 作为视觉与交互权威；新增独立 `frontend/atlas-testops-web`，不在原型巨型页面上继续叠加生产逻辑。
+- 建立 Feature First 分层：Auth、Identity、Fixture、Case、Task、Live、Result、Insight 和 Space 均拆分为 Service / Query / Mapper / ViewModel / UI；页面不直接 `fetch`，Server State、Client State 与 URL State 分离。
+- 使用 `contracts/openapi.json` 生成严格 TypeScript API 类型，并建立契约漂移门禁。浏览器只访问 `/api/atlas/v1/*` 同源 BFF；BFF 只允许 V1、剥离 forwarding/hop-by-hop header、限制 10 MiB 请求体、贯穿 Request ID，并禁止 Session 数据被中间缓存。
+- Password Login、HttpOnly Session、Logout、Workspace Boundary 与角色级操作权限使用真实 Auth API；没有 Session 时跳转登录，Session/网络错误不会被误报成无权限。
+- Space、Identity、Fixture、Case、Task、Live、Result 与 Insight 全部读取真实投影；后端没有公开契约的能力明确禁用，不使用 Mock、手填无来源 UUID、假百分比或静默演示回退。
+- Case Workbench 完成 WorkflowPatch `validate → apply` 闭环，复用同一 Patch ID、Idempotency-Key 与 semantic Revision；节点拖拽使用独立 Layout Revision，不污染 Debug/发布语义证据。
+- Task Center 使用 exact TaskPlanVersion 启动 TaskRun，并按冻结 `infra-retry` digest 校验 canonical 请求；TaskRun 与 Live Control 均使用 If-Match、Idempotency 与 Control Epoch/Fencing。
+- Result Center 绑定 exact ResultSnapshot、FailureCluster 与 Classification Revision；Insight 明确区分 `NO_DATA` 与 0，并展示 DatasetCut 来源。
+- 建立 Design Tokens、CSS Modules、统一 Loading/Error/Empty/Dialog、Root/Global Error Boundary、Query/Mutation 错误事件和生产 CSP/HSTS/Cross-Origin/Permissions 安全头。
+- 测试覆盖 Mapper/Digest/WorkflowPatch Builder Unit Test、Permission Guard Component Test、桌面/移动 Login/Task/Live E2E，以及固定 Task Center 的双端 Visual Regression。
+
+### 验证状态与下一步
+
+- TypeScript strict、ESLint 与 10 个测试文件 / 14 项 Unit+Component Test 已通过。
+- Playwright 桌面与移动端 8 项 E2E/Visual Regression 已通过，并在浏览器回归中修复无效 URL `planId` 会触发错误后端请求的问题。
+- 最终生产构建、产物 Secret 清理、安全响应头、BFF Problem Details/Request ID 一致性与 API Contract 检查已通过；发布使用源码 commit 绑定 Sites Version 和 Deployment，部署事实以发布平台记录为准。
+- Identity 聚合创建、AI WorkflowPatch 生成、Execution/Profile Catalog、Evidence Listing/Streaming/Export、Defect Integration、Feishu OAuth、全局搜索和通知仍缺少公共后端契约；前端保持明确禁用，不能将其描述为已完成。
+
 ## 当前风险与外部输入
 
 - 首个真实 SaaS Connector、`PasswordLoginFlow` 和测试账号来源尚未提供；当前交付 Mock Provider、Generic Password Adapter 与可注入的 Playwright Target。
@@ -1005,4 +1028,4 @@
 - P9 本地参考全部通过，但 100×100 Lease 基准出现 5,472 次短暂 `POOL_EXHAUSTED` 背压；均在有界重试内收敛且 Slot 冲突为 0。生产需要按真实连接池、账号容量和突发模型设置 Admission / Retry，不能照搬本地 10 ms 重试。
 - P9 总状态为 `CONDITIONAL_PASS`。月度控制面可用性、生产 Schedule / Live Telemetry、人工分类准确率、真实影子迭代和灾备演练没有外部证据，必须按 Runbook 完成后才能声明 Production Ready。
 - P6-01 已实现独立无数据库 Browser Worker、Permit + HMAC 内部网关、Temporal Activity、加密 Context Restore、严格报告链与受限 Playwright Adapter；P6-02A Evidence Writer / 受控读取、P6-02B1 DebugRun Live Snapshot / SSE 与 P6-02B2 UnitAttempt LiveSession / ControlLease / Epoch / Fence / Human Takeover / ActionGrant 已完成。真实 SaaS Operation / Route Registry、生产 Bucket Object Lock / Versioning、容器网络沙箱、Envelope Key Ring、公共 Start 自动 Preparation / Bind / Dispatch 和 Multi-actor 尚未实现，缺少对应能力时继续 fail-closed。
-- 应用内 Browser 插件当前初始化报 `Cannot redefine property: process`；前端类型与生产构建已验证，服务保持可访问，自动化渲染回归需在插件恢复后补做。
+- 应用内浏览器已完成 1440×900 原型对照，Playwright 已固化桌面/移动端 Visual Regression；后续视觉改动必须继续以冻结原型和基线截图为准。

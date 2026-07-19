@@ -1,0 +1,636 @@
+.page {
+  padding: clamp(36px, 6vw, 86px) clamp(22px, 5vw, 72px) 80px;
+}
+
+.hero {
+  display: grid;
+  min-height: 440px;
+  align-items: center;
+  gap: 60px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 20px;
+  color: var(--atlas-color-accent-strong);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 820px;
+  margin: 0;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: clamp(54px, 7.4vw, 112px);
+  font-weight: 500;
+  letter-spacing: -0.065em;
+  line-height: 0.93;
+}
+
+.lead {
+  max-width: 620px;
+  margin: 28px 0 0;
+  color: var(--atlas-color-ink-600);
+  font-size: clamp(15px, 1.5vw, 19px);
+  line-height: 1.7;
+}
+
+.actions {
+  display: flex;
+  margin-top: 34px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  min-height: 48px;
+  padding: 0 19px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.primary {
+  color: white;
+  background: var(--atlas-color-ink-950);
+}
+
+.secondary {
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--atlas-color-line);
+}
+
+.orbitCard {
+  position: relative;
+  display: flex;
+  aspect-ratio: 1;
+  padding: 58px;
+  overflow: hidden;
+  color: white;
+  background:
+    radial-gradient(circle at 70% 28%, rgba(255, 107, 61, 0.45), transparent 32%),
+    var(--atlas-color-ink-950);
+  border-radius: 50%;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: var(--atlas-shadow-panel);
+}
+
+.orbitCard::after,
+.orbitCard i {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  content: "";
+}
+
+.orbitCard::after {
+  inset: 14%;
+}
+
+.orbitCard i {
+  inset: 29%;
+  border-color: rgba(255, 107, 61, 0.42);
+}
+
+.orbitCard > *:not(i) {
+  position: relative;
+  z-index: 1;
+}
+
+.orbitCard span {
+  color: var(--atlas-color-accent);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.15em;
+}
+
+.orbitCard strong {
+  max-width: 180px;
+  margin-top: 10px;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: clamp(26px, 3vw, 44px);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.orbitCard p {
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+}
+
+.grid {
+  display: grid;
+  margin-top: 34px;
+  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid article {
+  min-height: 190px;
+  padding: 26px;
+  background: rgba(255, 253, 248, 0.78);
+  border: 1px solid var(--atlas-color-line);
+  border-radius: var(--atlas-radius-md);
+}
+
+.cardIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  color: white;
+  background: var(--atlas-color-accent);
+  border-radius: 50%;
+  place-items: center;
+}
+
+.grid p {
+  margin: 25px 0 7px;
+  color: var(--atlas-color-ink-600);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+}
+
+.grid h2 {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 36px);
+}
+
+.grid small {
+  display: block;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  color: var(--atlas-color-ink-600);
+  line-height: 1.5;
+}
+
+.bento {
+  display: grid;
+  margin-top: 22px;
+  gap: 12px;
+  grid-template-columns: 1.35fr 0.9fr 0.75fr;
+  grid-template-rows: 255px 205px;
+}
+
+.bento > article,
+.bento > a {
+  overflow: hidden;
+  background: rgba(255, 253, 248, 0.8);
+  border: 1px solid var(--atlas-color-line);
+  border-radius: var(--atlas-radius-lg);
+}
+
+.bento header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.bento header > div {
+  display: grid;
+  gap: 5px;
+}
+
+.bento header span,
+.riskCard > span {
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.bento header h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.caseCard {
+  padding: 20px;
+  grid-row: 1 / 3;
+}
+
+.caseCard header em {
+  display: flex;
+  padding: 7px 9px;
+  align-items: center;
+  gap: 5px;
+  color: var(--atlas-color-success);
+  background: rgba(35, 132, 93, 0.09);
+  border-radius: 999px;
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.caseOrbit {
+  position: relative;
+  min-height: 330px;
+  margin-top: 14px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at center, rgba(255, 107, 61, 0.12), transparent 25%),
+    linear-gradient(rgba(21, 35, 31, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(21, 35, 31, 0.025) 1px, transparent 1px);
+  background-size: auto, 25px 25px, 25px 25px;
+  border-radius: 20px;
+}
+
+.caseOrbit > i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 230px;
+  height: 150px;
+  border: 1px solid rgba(21, 35, 31, 0.11);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.caseOrbit > i:nth-child(2) {
+  width: 430px;
+  height: 270px;
+}
+
+.caseOrbit > div {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 145px;
+  height: 145px;
+  color: white;
+  background: var(--atlas-color-ink-950);
+  border: 8px solid white;
+  border-radius: 50%;
+  place-items: center;
+  transform: translate(-50%, -50%);
+}
+
+.caseOrbit > div strong {
+  font-size: 40px;
+}
+
+.caseOrbit > div span {
+  margin-top: -35px;
+  opacity: 0.5;
+  font-size: 7px;
+}
+
+.caseOrbit > a {
+  position: absolute;
+  max-width: 155px;
+  padding: 8px 11px;
+  overflow: hidden;
+  background: white;
+  border: 1px solid var(--atlas-color-line);
+  border-radius: 999px;
+  box-shadow: 0 9px 24px rgba(31, 43, 38, 0.1);
+  font-size: 7px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caseOrbit > a[data-position="1"] {
+  top: 34px;
+  left: 8%;
+}
+
+.caseOrbit > a[data-position="2"] {
+  top: 55px;
+  right: 7%;
+}
+
+.caseOrbit > a[data-position="3"] {
+  right: 11%;
+  bottom: 42px;
+}
+
+.caseOrbit > a[data-position="4"] {
+  bottom: 55px;
+  left: 7%;
+}
+
+.caseCard > footer {
+  display: flex;
+  min-height: 40px;
+  margin-top: 10px;
+  align-items: center;
+  gap: 13px;
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+}
+
+.caseCard > footer a {
+  display: flex;
+  margin-left: auto;
+  align-items: center;
+  gap: 5px;
+  color: var(--atlas-color-ink-950);
+  font-weight: 850;
+}
+
+.runDeck {
+  padding: 18px;
+  grid-row: 1 / 3;
+}
+
+.runDeck > div {
+  position: relative;
+  height: 330px;
+  margin-top: 14px;
+}
+
+.runDeck > div > a {
+  position: absolute;
+  right: 0;
+  left: 0;
+  display: grid;
+  min-height: 125px;
+  padding: 15px;
+  color: white;
+  background: #1a1f27;
+  border-radius: 18px;
+  box-shadow: 0 18px 35px rgba(31, 43, 38, 0.18);
+}
+
+.runDeck > div > a[data-position="1"] {
+  top: 0;
+  z-index: 3;
+}
+
+.runDeck > div > a[data-position="2"] {
+  top: 90px;
+  right: 10px;
+  left: 10px;
+  opacity: 0.78;
+  z-index: 2;
+}
+
+.runDeck > div > a[data-position="3"] {
+  top: 170px;
+  right: 20px;
+  left: 20px;
+  opacity: 0.55;
+}
+
+.runDeck > div > a span,
+.runDeck > div > a small {
+  opacity: 0.5;
+  font-size: 7px;
+}
+
+.runDeck > div > a strong {
+  margin-top: 9px;
+  font-size: 20px;
+}
+
+.runDeck > div > a svg {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  color: #a7f16b;
+}
+
+.runDeck > div > p {
+  color: var(--atlas-color-ink-600);
+  font-size: 8px;
+}
+
+.runDeck > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.identityCard,
+.fixtureCard,
+.qualityCard,
+.riskCard {
+  padding: 18px;
+}
+
+.identityCard > strong,
+.qualityCard > strong {
+  display: block;
+  margin-top: 18px;
+  font-size: 42px;
+  letter-spacing: -0.05em;
+}
+
+.identityCard > span,
+.qualityCard > span {
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+}
+
+.identityCard > footer {
+  display: flex;
+  margin-top: 18px;
+  gap: 6px;
+}
+
+.identityCard > footer i {
+  padding: 6px 8px;
+  background: var(--atlas-color-surface-muted);
+  border-radius: 999px;
+  font-size: 6px;
+  font-style: normal;
+}
+
+.fixtureCard {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.fixtureCard header {
+  grid-column: 1 / -1;
+}
+
+.fixtureCard > div {
+  display: grid;
+  padding: 10px;
+  background: var(--atlas-color-surface-muted);
+  border-radius: 12px;
+}
+
+.fixtureCard > div strong {
+  font-size: 25px;
+}
+
+.fixtureCard > div span {
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+}
+
+.qualityCard > div {
+  height: 4px;
+  margin-top: 12px;
+  overflow: hidden;
+  background: var(--atlas-color-surface-muted);
+  border-radius: 99px;
+}
+
+.qualityCard > div i {
+  display: block;
+  height: 100%;
+  background: var(--atlas-color-accent);
+}
+
+.qualityCard > a {
+  display: flex;
+  margin-top: 14px;
+  align-items: center;
+  gap: 5px;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.riskCard {
+  color: white;
+  background: #1a1f27 !important;
+}
+
+.riskCard > span {
+  display: block;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.riskCard h2 {
+  margin: 7px 0 0;
+  font-size: 16px;
+}
+
+.riskCard p {
+  margin: 7px 0 0;
+  opacity: 0.55;
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.riskCard a {
+  display: flex;
+  margin-top: 13px;
+  align-items: center;
+  gap: 5px;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.journeyStrip {
+  display: grid;
+  min-height: 92px;
+  margin-top: 12px;
+  padding: 10px;
+  gap: 7px;
+  background: rgba(255, 253, 248, 0.8);
+  border: 1px solid var(--atlas-color-line);
+  border-radius: 20px;
+  grid-template-columns: 120px repeat(4, 1fr);
+}
+
+.journeyStrip header {
+  display: grid;
+  padding: 10px;
+  align-content: center;
+}
+
+.journeyStrip header span {
+  color: var(--atlas-color-ink-600);
+  font-size: 7px;
+}
+
+.journeyStrip header strong {
+  margin-top: 4px;
+  font-size: 24px;
+}
+
+.journeyStrip > a {
+  position: relative;
+  display: grid;
+  padding: 11px 34px 11px 12px;
+  background: var(--atlas-color-surface-muted);
+  border-radius: 13px;
+}
+
+.journeyStrip > a span,
+.journeyStrip > a small {
+  color: var(--atlas-color-ink-600);
+  font-size: 6px;
+}
+
+.journeyStrip > a strong {
+  margin-top: 4px;
+  font-size: 10px;
+}
+
+.journeyStrip > a b {
+  margin-top: 4px;
+  font-size: 7px;
+}
+
+.journeyStrip > a svg {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+}
+
+.journeyStrip > p {
+  grid-column: 2 / -1;
+  color: var(--atlas-color-ink-600);
+  font-size: 8px;
+}
+
+@media (max-width: 840px) {
+  .page {
+    padding-top: 54px;
+  }
+
+  .hero {
+    min-height: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .hero h1 {
+    font-size: clamp(54px, 16vw, 82px);
+  }
+
+  .orbitCard {
+    width: min(360px, 88vw);
+    margin: 0 auto;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bento {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .caseCard,
+  .runDeck {
+    grid-row: auto;
+  }
+
+  .journeyStrip {
+    grid-template-columns: 1fr;
+  }
+}

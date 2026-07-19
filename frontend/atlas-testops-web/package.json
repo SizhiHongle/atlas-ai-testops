@@ -1,0 +1,57 @@
+{
+  "name": "atlas-testops-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.15.1",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vite",
+    "prebuild": "node scripts/clean-dist.mjs",
+    "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
+    "postbuild": "node scripts/copy-hosting.mjs",
+    "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "generate:api": "openapi-typescript ../../contracts/openapi.json -o shared/api/schema.d.ts",
+    "check:api": "node scripts/check-api-contract.mjs",
+    "check": "pnpm check:api && pnpm typecheck && pnpm lint && pnpm test"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.101.2",
+    "lucide-react": "1.24.0",
+    "next": "16.2.6",
+    "openapi-fetch": "0.17.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "zod": "4.4.3",
+    "zustand": "5.0.14"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.37.1",
+    "@playwright/test": "1.61.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "eslint": "9.39.2",
+    "eslint-config-next": "16.2.6",
+    "jsdom": "28.1.0",
+    "openapi-typescript": "7.13.0",
+    "react-server-dom-webpack": "19.2.6",
+    "typescript": "5.9.3",
+    "vinext": "0.0.50",
+    "vite": "8.0.13",
+    "vitest": "4.1.10",
+    "wrangler": "4.92.0"
+  }
+}
