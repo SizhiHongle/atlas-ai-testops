@@ -14,6 +14,11 @@ from atlas_testops.application.ports.evidence import BrowserArtifactWriter
 from atlas_testops.application.ports.sessions import SessionArtifactVault
 from atlas_testops.core.config import BrowserWorkerSettings
 from atlas_testops.domain.runtime import BrowserActionKind
+from atlas_testops.infrastructure.adapters.local_public_web import (
+    LOCAL_PUBLIC_WEB_TOOL_CATALOG_REF,
+    build_browser_target_planner,
+    build_local_public_web_registries,
+)
 from atlas_testops.infrastructure.adapters.playwright_browser import (
     BrowserOperationRegistry,
     BrowserRouteRegistry,
@@ -92,9 +97,6 @@ async def run_worker(
     revision = settings.browser_revision
     catalog_ref = settings.browser_tool_catalog_ref
     policy_bundle_ref = settings.browser_policy_bundle_ref
-    mcp_manifest_digest = settings.browser_mcp_server_manifest_digest
-    tool_schema_digest = settings.browser_tool_schema_digest
-    policy_digest = settings.browser_policy_digest
     if any(
         value is None
         for value in (
@@ -104,9 +106,6 @@ async def run_worker(
             revision,
             catalog_ref,
             policy_bundle_ref,
-            mcp_manifest_digest,
-            tool_schema_digest,
-            policy_digest,
         )
     ):
         raise RuntimeError("validated browser worker configuration is incomplete")
@@ -116,9 +115,6 @@ async def run_worker(
     assert revision is not None
     assert catalog_ref is not None
     assert policy_bundle_ref is not None
-    assert mcp_manifest_digest is not None
-    assert tool_schema_digest is not None
-    assert policy_digest is not None
     request_signer = BrowserRuntimeRequestSigner.from_base64_key(
         request_key.get_secret_value(),
     )
@@ -126,16 +122,24 @@ async def run_worker(
         envelope_key.get_secret_value(),
         key_version=envelope_key_version,
     )
-    catalog = BrowserToolCatalog(
+    catalog = BrowserToolCatalog.reviewed(
         catalog_ref=catalog_ref,
         policy_bundle_ref=policy_bundle_ref,
-        mcp_server_manifest_digest=mcp_manifest_digest,
-        tool_schema_digest=tool_schema_digest,
-        policy_digest=policy_digest,
         allowed_actions=frozenset(
             BrowserActionKind(item) for item in settings.browser_allowed_actions
         ),
     )
+    configured_digests = (
+        settings.browser_mcp_server_manifest_digest,
+        settings.browser_tool_schema_digest,
+        settings.browser_policy_digest,
+    )
+    if any(configured_digests) and configured_digests != (
+        catalog.mcp_server_manifest_digest,
+        catalog.tool_schema_digest,
+        catalog.policy_digest,
+    ):
+        raise ValueError("configured Browser tool digests do not match reviewed code")
     vault = session_vault or await build_optional_session_artifact_vault(settings)
     if vault is None:
         raise ValueError("browser worker SessionArtifact Vault is not configured")
@@ -145,6 +149,28 @@ async def run_worker(
     runtime: PlaywrightExecutionRuntime | None = None
     selected_engine = engine
     if selected_engine is None:
+        selected_routes = route_registry
+        selected_operations = operation_registry
+        if (
+            selected_routes is None
+            and selected_operations is None
+            and settings.environment in {"local", "development"}
+            and catalog_ref == LOCAL_PUBLIC_WEB_TOOL_CATALOG_REF
+        ):
+            planner = build_browser_target_planner(
+                mode=settings.browser_ai_mode,
+                api_key=(
+                    settings.browser_ai_api_key.get_secret_value()
+                    if settings.browser_ai_api_key is not None
+                    else None
+                ),
+                model=settings.browser_ai_model,
+                api_base_url=settings.browser_ai_api_base_url,
+                timeout_seconds=settings.browser_ai_timeout_seconds,
+            )
+            selected_routes, selected_operations = build_local_public_web_registries(
+                planner
+            )
         runtime = PlaywrightExecutionRuntime(
             revision=revision,
             headless=settings.browser_headless,
@@ -155,8 +181,8 @@ async def run_worker(
             session_vault=vault,
             envelope_codec=envelope_codec,
             tool_catalog=catalog,
-            route_registry=route_registry or BrowserRouteRegistry(),
-            operation_registry=operation_registry or BrowserOperationRegistry(),
+            route_registry=selected_routes or BrowserRouteRegistry(),
+            operation_registry=selected_operations or BrowserOperationRegistry(),
             artifact_writer=selected_artifact_writer,
             action_timeout=timedelta(seconds=settings.browser_action_timeout_seconds),
         )

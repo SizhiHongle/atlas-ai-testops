@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 FROM ghcr.io/astral-sh/uv:0.11.28 AS uv
-FROM python:3.14.6-slim AS runtime
+FROM python:3.14.6-slim AS dependency-runtime
 
 COPY --from=uv /uv /uvx /bin/
 
@@ -14,9 +14,16 @@ ENV PATH="/app/.venv/bin:$PATH" \
 WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md ./
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-install-project
+
+FROM dependency-runtime AS runtime
+
 COPY src ./src
 
-RUN uv sync --frozen --no-dev --no-editable \
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-editable \
     && groupadd --gid 10001 atlas \
     && useradd --uid 10001 --gid atlas --no-create-home --shell /usr/sbin/nologin atlas
 
@@ -48,29 +55,27 @@ FROM runtime AS task-worker
 
 CMD ["atlas-task-worker"]
 
-FROM runtime AS auth-session-worker
-
-USER root
+FROM dependency-runtime AS playwright-runtime
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
-RUN playwright install --with-deps chromium \
+RUN playwright install --with-deps chromium
+
+COPY src ./src
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-editable \
+    && groupadd --gid 10001 atlas \
+    && useradd --uid 10001 --gid atlas --no-create-home --shell /usr/sbin/nologin atlas \
     && chown -R atlas:atlas /ms-playwright
 
 USER atlas
+
+FROM playwright-runtime AS auth-session-worker
 
 CMD ["atlas-auth-session-worker"]
 
-FROM runtime AS browser-worker
-
-USER root
-
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-
-RUN playwright install --with-deps chromium \
-    && chown -R atlas:atlas /ms-playwright
-
-USER atlas
+FROM playwright-runtime AS browser-worker
 
 CMD ["atlas-browser-worker"]
 

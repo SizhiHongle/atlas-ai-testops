@@ -6,10 +6,18 @@ import base64
 import binascii
 import json
 import re
+from hashlib import sha256
 from typing import Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, Field, JsonValue, ValidationError
+from pydantic import (
+    AwareDatetime,
+    Base64Bytes,
+    Field,
+    JsonValue,
+    ValidationError,
+    model_validator,
+)
 
 from atlas_testops.core.contracts import FrozenWireModel
 from atlas_testops.core.errors import ApplicationError, ErrorCode
@@ -31,7 +39,14 @@ DEBUG_LIVE_EVENT_SCHEMA_VERSION: Literal["atlas.debug-live-event/0.1"] = (
 DEBUG_LIVE_SNAPSHOT_SCHEMA_VERSION: Literal["atlas.debug-live-snapshot/0.1"] = (
     "atlas.debug-live-snapshot/0.1"
 )
+DEBUG_LIVE_FRAME_UPDATE_SCHEMA_VERSION: Literal["atlas.debug-live-frame-update/0.1"] = (
+    "atlas.debug-live-frame-update/0.1"
+)
+DEBUG_LIVE_FRAME_SCHEMA_VERSION: Literal["atlas.debug-live-frame/0.1"] = (
+    "atlas.debug-live-frame/0.1"
+)
 DEBUG_LIVE_CURSOR_MAX_LENGTH = 512
+DEBUG_LIVE_FRAME_MAXIMUM_BYTES = 700 * 1024
 
 _BASE64URL_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -92,6 +107,51 @@ class DebugLiveSnapshot(FrozenWireModel):
     cursor: str = Field(min_length=1, max_length=DEBUG_LIVE_CURSOR_MAX_LENGTH)
     latest_event: DebugLiveEvent | None = None
     observed_at: AwareDatetime
+
+
+class DebugLiveFrameUpdate(FrozenWireModel):
+    """One masked, bounded, non-authoritative browser frame from the trusted Worker."""
+
+    schema_version: Literal["atlas.debug-live-frame-update/0.1"] = (
+        DEBUG_LIVE_FRAME_UPDATE_SCHEMA_VERSION
+    )
+    execution_contract_id: UUID
+    execution_contract_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    frame_revision: int = Field(ge=1)
+    page_revision: int = Field(ge=1)
+    mime_type: Literal["image/jpeg", "image/png", "image/webp"]
+    content_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    payload: Base64Bytes = Field(max_length=DEBUG_LIVE_FRAME_MAXIMUM_BYTES)
+    captured_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def require_exact_payload_receipt(self) -> DebugLiveFrameUpdate:
+        """Reject a frame whose declared receipt does not match its bytes."""
+
+        if not self.payload or len(self.payload) > DEBUG_LIVE_FRAME_MAXIMUM_BYTES:
+            raise ValueError("debug live frame payload size is invalid")
+        actual = f"sha256:{sha256(self.payload).hexdigest()}"
+        if actual != self.content_digest:
+            raise ValueError("debug live frame content digest does not match payload")
+        return self
+
+
+class DebugLiveFrame(FrozenWireModel):
+    """Public metadata for the latest private browser frame."""
+
+    schema_version: Literal["atlas.debug-live-frame/0.1"] = (
+        DEBUG_LIVE_FRAME_SCHEMA_VERSION
+    )
+    debug_run_id: UUID
+    project_id: UUID
+    environment_id: UUID
+    execution_contract_id: UUID
+    frame_revision: int = Field(ge=1)
+    page_revision: int = Field(ge=1)
+    mime_type: Literal["image/jpeg", "image/png", "image/webp"]
+    content_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    size_bytes: int = Field(ge=1, le=DEBUG_LIVE_FRAME_MAXIMUM_BYTES)
+    captured_at: AwareDatetime
 
 
 def encode_debug_live_cursor(cursor: DebugLiveCursor) -> str:

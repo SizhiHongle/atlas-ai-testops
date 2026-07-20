@@ -10,7 +10,7 @@ function normalizeError(error: unknown): Error {
   return error instanceof Error ? error : new Error("Unknown client error");
 }
 
-export function reportClientError(
+export function observeClientError(
   error: unknown,
   context: ClientErrorContext
 ): void {
@@ -26,6 +26,14 @@ export function reportClientError(
       }
     })
   );
+}
+
+export function reportClientError(
+  error: unknown,
+  context: ClientErrorContext
+): void {
+  const normalized = normalizeError(error);
+  observeClientError(normalized, context);
 
   if (typeof globalThis.reportError === "function") {
     globalThis.reportError(normalized);

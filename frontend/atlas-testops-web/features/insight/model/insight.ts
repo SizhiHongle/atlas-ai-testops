@@ -15,6 +15,24 @@ export type InsightMetricViewModel = {
 };
 
 export type InsightBriefViewModel = {
+  mode: "LIVE" | "PINNED";
+  schemaVersion:
+    | "atlas.insight-brief/0.1"
+    | "atlas.insight-snapshot/0.1";
+  metricPolicyVersion: "0.1.0";
+  metricDefinitions: Array<{
+    metricKey: string;
+    aggregation: "RATIO_OF_SUMS";
+    minimumSample: 30;
+    version: "1.0.0";
+  }>;
+  snapshot: {
+    id: string;
+    snapshotHash: string;
+    requestHash: string;
+    createdAt: Date;
+    createdBy: string;
+  } | null;
   windowDays: 7 | 30 | 90;
   current: {
     startAt: Date;
@@ -49,6 +67,7 @@ export type InsightBriefViewModel = {
     latestResultSnapshotId: string;
   }>;
   activeRisk: {
+    taskPlanId: string;
     taskRunId: string;
     resultSnapshotId: string;
     taskPlanName: string;
@@ -58,10 +77,15 @@ export type InsightBriefViewModel = {
   } | null;
   datasetCut: {
     asOf: Date;
+    sourceSnapshotIds: string[];
+    sourceSnapshotHashes: string[];
+    gateDecisionIds: string[];
+    gateDecisionHashes: string[];
     sourceSnapshotCount: number;
     gateDecisionCount: number;
     sourceSetDigest: string;
     queryHash: string;
+    authScopeHash: string;
     projectionWatermark: Date | null;
   };
   generatedAt: Date;

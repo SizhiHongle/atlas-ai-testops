@@ -67,7 +67,13 @@ class CaseRepository:
                 command.name,
                 command.intent_version,
                 intent_version_ref,
-                Jsonb(command.intent.model_dump(mode="json", by_alias=True)),
+                Jsonb(
+                    command.intent.model_dump(
+                        mode="json",
+                        by_alias=True,
+                        exclude_none=True,
+                    )
+                ),
                 intent_digest,
             ),
         )

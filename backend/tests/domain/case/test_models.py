@@ -18,7 +18,11 @@ DIGEST = f"sha256:{'a' * 64}"
 
 
 def test_literal_value_source_preserves_explicit_json_null() -> None:
-    source = ValueSource(kind=ValueSourceKind.LITERAL, value=None)
+    source = ValueSource(
+        kind=ValueSourceKind.LITERAL,
+        reference=None,
+        value=None,
+    )
 
     assert "value" in source.model_fields_set
     assert source.value is None

@@ -30,7 +30,9 @@ export function mapTaskResult(dto: TaskResultViewDto): TaskResultViewModel {
       id: snapshot.id,
       revision: snapshot.revision,
       finality: snapshot.finality,
+      aggregationPolicyVersion: snapshot.aggregationPolicyVersion,
       manifestCount: snapshot.manifestCount,
+      unitResolutionRevisionIds: [...snapshot.unitResolutionRevisionIds],
       verdicts: { ...snapshot.verdictCounts },
       rawPassRate: mapRate(snapshot.rawPassRate),
       trustedPassRate: mapRate(snapshot.trustedPassRate),
@@ -58,6 +60,7 @@ export function mapTaskResult(dto: TaskResultViewDto): TaskResultViewModel {
           id: dto.taskGateDecision.id,
           decision: dto.taskGateDecision.decision,
           revision: dto.taskGateDecision.revision,
+          policyVersion: dto.taskGateDecision.gatePolicyVersion,
           reasons: dto.taskGateDecision.reasons.map((reason) => ({
             code: reason.code,
             count: reason.count
@@ -80,13 +83,21 @@ export function mapFailureCluster(
     revision: cluster.revision,
     fingerprint: cluster.fingerprint,
     affectedCount: cluster.affectedCount,
+    affectedUnitResolutionRevisionIds: [
+      ...cluster.affectedUnitResolutionRevisionIds
+    ],
+    representativeUnitResolutionRevisionId:
+      cluster.representativeUnitResolutionRevisionId,
     signal: {
       code: cluster.signal.signalCode,
       domain: cluster.signal.failureDomain,
       verdict: cluster.signal.effectiveVerdict,
       outcomeClass: cluster.signal.outcomeClass,
       stability: cluster.signal.stability,
-      closureReason: cluster.signal.closureReason
+      closureReason: cluster.signal.closureReason,
+      evidenceCompleteness: cluster.signal.evidenceCompleteness,
+      evidenceIntegrity: cluster.signal.evidenceIntegrity,
+      dataHygiene: cluster.signal.dataHygiene
     },
     classification: classification
       ? {
@@ -103,6 +114,7 @@ export function mapFailureCluster(
             ) / 10,
           judgmentState: classification.judgmentState,
           authorKind: classification.authorKind,
+          modelVersionRef: classification.modelVersionRef ?? null,
           supportingEvidenceRefs: [...classification.supportingEvidenceRefs],
           contradictingEvidenceRefs: [
             ...classification.contradictingEvidenceRefs
@@ -110,7 +122,8 @@ export function mapFailureCluster(
           evidenceGapCodes: [...classification.evidenceGapCodes]
         }
       : null,
-    createdAt: new Date(cluster.createdAt)
+    createdAt: new Date(cluster.createdAt),
+    projectionWatermark: new Date(cluster.projectionWatermark)
   };
 }
 
@@ -120,6 +133,8 @@ export function mapFailureClusterPage(
   return {
     items: dto.items.map(mapFailureCluster),
     nextCursor: dto.nextCursor ?? null,
-    asOf: new Date(dto.asOf)
+    asOf: new Date(dto.asOf),
+    projectionWatermark: new Date(dto.projectionWatermark),
+    resultSnapshotId: dto.resultSnapshotId
   };
 }

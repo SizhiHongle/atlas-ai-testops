@@ -1,18 +1,27 @@
 .page {
-  padding: 42px 30px 34px;
+  --insight-ink: #111317;
+  --insight-violet: #6a55df;
+  --insight-mint: #62d9ad;
+  --insight-coral: #ff826f;
+  padding: 38px 30px 34px;
 }
 
 .hero {
   display: flex;
-  min-height: 155px;
-  align-items: center;
+  min-height: 112px;
+  margin-bottom: 20px;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 28px;
 }
 
+.hero > div:first-child {
+  min-width: 0;
+}
+
 .hero p {
   display: flex;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   align-items: center;
   gap: 7px;
   color: var(--atlas-color-ink-600);
@@ -22,56 +31,37 @@
 }
 
 .hero h1 {
+  max-width: 820px;
   margin: 0;
-  font-size: clamp(42px, 5vw, 72px);
+  font-size: clamp(34px, 4vw, 53px);
+  font-weight: 520;
   letter-spacing: -0.06em;
-  line-height: 1;
+  line-height: 1.05;
 }
 
-.hero span {
+.hero > div:first-child > span {
   display: block;
-  margin-top: 12px;
+  max-width: 620px;
+  margin-top: 10px;
   color: var(--atlas-color-ink-600);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.65;
 }
 
 .heroActions {
-  display: flex;
   flex: 0 0 auto;
-  gap: 8px;
+  padding-bottom: 4px;
 }
 
-.heroActions nav {
-  display: flex;
-  padding: 4px;
-  background: rgba(255, 253, 248, 0.78);
-  border: 1px solid var(--atlas-color-line);
-  border-radius: 999px;
-}
-
-.heroActions nav a {
-  display: grid;
-  width: 38px;
-  height: 36px;
-  border-radius: 999px;
-  font-size: 8px;
-  font-weight: 850;
-  place-items: center;
-}
-
-.heroActions nav a[aria-current="page"] {
-  color: white;
-  background: var(--atlas-color-ink-950);
-}
-
+.heroActions a,
 .heroActions button {
   display: flex;
-  min-height: 46px;
+  min-height: 44px;
   padding: 0 15px;
   align-items: center;
   gap: 7px;
   color: white;
-  background: var(--atlas-color-ink-950);
+  background: var(--insight-ink);
   border: 0;
   border-radius: 999px;
   font-size: 8px;
@@ -79,440 +69,676 @@
 }
 
 .heroActions button:disabled {
-  opacity: 0.45;
-}
-
-.datasetBanner {
-  display: flex;
-  min-height: 55px;
-  margin-bottom: 10px;
-  padding: 9px 14px;
-  align-items: center;
-  gap: 14px;
-  color: white;
-  background: #1a1f27;
-  border-radius: 15px;
-}
-
-.datasetBanner div {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.datasetBanner span {
-  opacity: 0.45;
-  font-size: 7px;
-  letter-spacing: 0.12em;
-}
-
-.datasetBanner strong,
-.datasetBanner p {
-  font-size: 8px;
-}
-
-.datasetBanner p {
-  margin: 0;
-  opacity: 0.6;
-}
-
-.datasetBanner em {
-  margin-left: auto;
-  padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.09);
-  border-radius: 999px;
-  font-size: 7px;
-  font-style: normal;
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .terrainStage {
-  display: grid;
-  min-height: 570px;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) 295px;
-}
-
-.terrainMap,
-.metrics,
-.compare,
-.snapshotRail {
-  background: rgba(255, 253, 248, 0.84);
-  border: 1px solid var(--atlas-color-line);
-}
-
-.terrainMap {
+  position: relative;
+  min-height: 690px;
   overflow: hidden;
-  border-radius: var(--atlas-radius-lg);
+  background:
+    radial-gradient(
+      circle at 48% 44%,
+      rgba(174, 178, 255, 0.17),
+      transparent 31%
+    ),
+    rgba(255, 255, 255, 0.69);
+  border-radius: 34px;
+  box-shadow: var(--atlas-shadow-panel);
 }
 
-.terrainMap > header {
-  display: flex;
-  min-height: 76px;
-  padding: 19px 22px;
-  align-items: flex-start;
-  justify-content: space-between;
+.terrainStage[data-mode="PINNED"] {
+  box-shadow:
+    0 28px 70px rgba(58, 54, 88, 0.15),
+    inset 0 0 0 1px rgba(106, 85, 223, 0.12);
 }
 
-.terrainMap > header div {
+.terrainTitle {
+  position: absolute;
+  z-index: 5;
+  top: 24px;
+  left: 25px;
   display: grid;
-  gap: 5px;
 }
 
-.terrainMap > header span,
-.terrainMap > header small {
-  color: var(--atlas-color-ink-600);
-  font-size: 7px;
+.terrainTitle span {
+  color: #7f838b;
+  font-size: 8px;
+  font-weight: 700;
   letter-spacing: 0.12em;
 }
 
-.terrainMap > header strong {
-  font-size: 17px;
+.terrainTitle strong {
+  margin-top: 10px;
+  font-size: 48px;
+  letter-spacing: -0.07em;
+  line-height: 1;
 }
 
-.landscape {
-  position: relative;
-  min-height: 490px;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 48% 60%, rgba(146, 118, 239, 0.14), transparent 34%),
-    linear-gradient(rgba(21, 35, 31, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(21, 35, 31, 0.025) 1px, transparent 1px);
-  background-size: auto, 28px 28px, 28px 28px;
+.terrainTitle small {
+  margin-top: 5px;
+  color: #74787f;
+  font-size: 8px;
 }
 
-.gridOne,
-.gridTwo {
+.windowNav {
   position: absolute;
-  right: -10%;
-  bottom: -45%;
-  left: -10%;
-  height: 80%;
-  border: 1px solid rgba(21, 35, 31, 0.11);
+  z-index: 8;
+  top: 24px;
+  right: 310px;
+  display: flex;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(17, 19, 23, 0.07);
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(51, 48, 67, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.windowNav a {
+  display: grid;
+  width: 34px;
+  height: 31px;
+  border-radius: 999px;
+  color: #777b83;
+  font-size: 7px;
+  font-weight: 850;
+  place-items: center;
+}
+
+.windowNav a[aria-current="page"] {
+  color: white;
+  background: var(--insight-ink);
+}
+
+.qualitySphere {
+  position: absolute;
+  top: 30px;
+  left: 15%;
+  width: 620px;
+  height: 620px;
   border-radius: 50%;
 }
 
-.gridTwo {
-  right: 5%;
-  bottom: -28%;
-  left: 5%;
+.sphereSurface {
+  position: absolute;
+  inset: 75px;
+  background: radial-gradient(
+    circle at 36% 28%,
+    #fff,
+    #e7e9f0 42%,
+    #cfd3df 72%,
+    #f7f7f4
+  );
+  border-radius: 50%;
+  box-shadow:
+    inset -35px -40px 70px rgba(97, 100, 127, 0.2),
+    0 50px 80px rgba(92, 92, 115, 0.16);
+}
+
+.sphereSurface::before,
+.sphereSurface::after {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.46);
+  border-radius: 42% 58% 53% 47% / 44% 45% 55% 56%;
+  content: "";
+  filter: blur(1px);
+}
+
+.sphereSurface::before {
+  top: 80px;
+  left: 80px;
+  width: 180px;
+  height: 100px;
+  transform: rotate(-18deg);
+}
+
+.sphereSurface::after {
+  right: 65px;
+  bottom: 60px;
+  width: 160px;
+  height: 190px;
+}
+
+.sphereRing {
+  position: absolute;
+  inset: 42px;
+  border: 1px solid rgba(83, 75, 177, 0.14);
+  border-radius: 50%;
+}
+
+.ringB {
+  inset: 18px;
+  border-style: dashed;
+  animation: ringTurn 28s linear infinite reverse;
+}
+
+.sphereGrid {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 470px;
+  height: 220px;
+  border: 1px solid rgba(83, 75, 177, 0.13);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(21deg);
+}
+
+.gridB {
+  transform: translate(-50%, -50%) rotate(91deg);
+}
+
+.qualitySphere > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.qualitySphere > svg path {
+  fill: none;
+  stroke: var(--insight-violet);
+  stroke-dasharray: 6 8;
+  stroke-linecap: round;
+  stroke-width: 2;
 }
 
 .terrainNode {
   position: absolute;
+  z-index: 4;
   display: grid;
-  width: 185px;
-  min-height: 125px;
-  padding: 15px;
-  overflow: hidden;
-  background: white;
-  border: 1px solid var(--atlas-color-line);
-  border-radius: 21px;
-  box-shadow: 0 18px 45px rgba(31, 43, 38, 0.12);
+  min-height: 39px;
+  padding: 5px 9px;
+  align-items: center;
+  gap: 6px;
+  color: #292c32;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(58, 54, 88, 0.16);
+  grid-template-columns: 9px auto auto;
+  backdrop-filter: blur(12px);
 }
 
-.terrainNode[data-position="1"] {
-  top: 34px;
-  left: 8%;
-}
-
-.terrainNode[data-position="2"] {
-  top: 62px;
-  right: 9%;
-}
-
-.terrainNode[data-position="3"] {
-  right: 24%;
-  bottom: 60px;
-}
-
-.terrainNode[data-position="4"] {
-  bottom: 82px;
-  left: 12%;
+.terrainNode i {
+  width: 9px;
+  height: 9px;
+  background: var(--insight-mint);
+  border-radius: 4px;
+  box-shadow: 0 0 0 6px rgba(98, 217, 173, 0.14);
 }
 
 .terrainNode span,
-.terrainNode small {
-  color: var(--atlas-color-ink-600);
-  font-size: 7px;
-}
-
-.terrainNode strong {
-  margin-top: 8px;
-  font-size: 29px;
-}
-
-.terrainNode > i {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 17px;
-  background: var(--atlas-color-accent);
-  opacity: 0.45;
-}
-
-.terrainCaption {
-  position: absolute;
-  bottom: 15px;
-  left: 21px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--atlas-color-ink-600);
-  font-size: 7px;
-}
-
-.metrics {
-  display: grid;
-  padding: 10px;
-  gap: 8px;
-  border-radius: var(--atlas-radius-lg);
-}
-
-.metrics > article {
-  display: grid;
-  min-height: 108px;
-  padding: 15px;
-  background: var(--atlas-color-surface-muted);
-  border-radius: 16px;
-}
-
-.metrics article > span,
-.metrics article > small {
-  color: var(--atlas-color-ink-600);
-  font-size: 7px;
-}
-
-.metrics article > strong {
-  margin-top: 5px;
-  font-size: 27px;
-}
-
-.metrics article > i {
-  height: 4px;
-  margin-top: 9px;
+.terrainNode b {
   overflow: hidden;
-  background: rgba(21, 35, 31, 0.1);
-  border-radius: 99px;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.metrics article > i b {
-  display: block;
-  height: 100%;
-  background: var(--atlas-color-accent);
+.terrainNode span {
+  max-width: 105px;
 }
 
-.metrics .riskCard,
-.metrics .noRisk {
-  min-height: 185px;
-  color: white;
-  background: #1a1f27;
+.terrainNode b {
+  color: #6e7180;
 }
 
-.riskCard > span,
-.noRisk > span {
-  margin-top: 8px;
-  color: rgba(255, 255, 255, 0.45) !important;
+.terrainNodeOne {
+  top: 190px;
+  left: 80px;
 }
 
-.riskCard h3,
-.noRisk h3 {
-  margin: 7px 0 0;
-  font-size: 17px;
+.terrainNodeTwo {
+  top: 150px;
+  right: 58px;
 }
 
-.riskCard p,
-.noRisk p {
-  margin: 6px 0 0;
-  opacity: 0.55;
-  font-size: 7px;
-  line-height: 1.5;
+.terrainNodeThree {
+  right: 70px;
+  bottom: 135px;
 }
 
-.riskCard a {
-  display: flex;
-  margin-top: 14px;
-  align-items: center;
-  gap: 5px;
+.terrainNodeFour {
+  bottom: 126px;
+  left: 90px;
+}
+
+.riskNode i {
+  background: var(--insight-coral);
+  box-shadow: 0 0 0 6px rgba(255, 130, 111, 0.15);
+}
+
+.emptyTerrain {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 255px;
+  min-height: 132px;
+  padding: 20px;
+  align-content: center;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(17, 19, 23, 0.07);
+  border-radius: 24px;
+  box-shadow: 0 18px 45px rgba(58, 54, 88, 0.12);
+  text-align: center;
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(16px);
+}
+
+.emptyTerrain span {
+  color: var(--insight-violet);
   font-size: 7px;
   font-weight: 850;
+  letter-spacing: 0.12em;
 }
 
-.compare {
+.emptyTerrain strong {
+  margin-top: 8px;
+  font-size: 16px;
+}
+
+.emptyTerrain small {
+  margin-top: 7px;
+  color: #777b83;
+  font-size: 7px;
+  line-height: 1.55;
+}
+
+.terrainMetrics {
+  position: absolute;
+  z-index: 5;
+  top: 20px;
+  right: 22px;
   display: grid;
-  min-height: 170px;
-  margin-top: 10px;
-  padding: 12px;
-  gap: 7px;
-  border-radius: 22px;
-  grid-template-columns: 180px repeat(3, 1fr) 155px;
+  width: 265px;
+  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
 }
 
-.compare > header {
+.terrainMetrics > div {
+  display: grid;
+  min-height: 105px;
   padding: 13px;
+  align-content: center;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.78);
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(51, 48, 67, 0.08);
 }
 
-.compare > header div {
+.terrainMetrics span {
+  color: #777b83;
+  font-size: 8px;
+}
+
+.terrainMetrics strong {
+  font-size: 24px;
+  letter-spacing: -0.05em;
+}
+
+.terrainMetrics small {
+  color: #878b93;
+  font-size: 7px;
+}
+
+.terrainMetrics .riskCluster,
+.terrainMetrics .noRiskCluster {
+  position: relative;
+  min-height: 206px;
+  align-content: start;
+  overflow: hidden;
+  grid-column: 1 / -1;
+}
+
+.riskCluster {
+  background: linear-gradient(145deg, #ffc99f, #ff918b) !important;
+}
+
+.noRiskCluster {
+  color: white;
+  background:
+    radial-gradient(
+      circle at 100% 0,
+      rgba(106, 85, 223, 0.38),
+      transparent 47%
+    ),
+    #1b1e25 !important;
+}
+
+.riskCluster > span,
+.noRiskCluster > span {
+  margin-top: 8px;
+  color: rgba(17, 19, 23, 0.55);
+  letter-spacing: 0.1em;
+}
+
+.noRiskCluster > span {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.riskCluster h3,
+.noRiskCluster h3 {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.riskCluster p,
+.noRiskCluster p {
+  margin: 6px 0 0;
+  font-size: 8px;
+  line-height: 1.45;
+  opacity: 0.65;
+}
+
+.riskCluster > a {
   display: flex;
+  width: fit-content;
+  min-height: 31px;
+  margin-top: 10px;
+  padding: 0 10px;
   align-items: center;
   gap: 6px;
-  color: var(--atlas-color-ink-600);
-  font-size: 7px;
+  color: white;
+  background: var(--insight-ink);
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 750;
 }
 
-.compare > header strong {
-  display: block;
-  margin-top: 12px;
-  font-size: 9px;
-  line-height: 1.5;
-}
-
-.compare > article,
-.compare > aside {
-  display: grid;
-  padding: 14px;
-  align-content: center;
-  background: var(--atlas-color-surface-muted);
-  border-radius: 15px;
-}
-
-.compare article > span,
-.compare article > small,
-.compare aside > span,
-.compare aside > small {
-  color: var(--atlas-color-ink-600);
-  font-size: 7px;
-}
-
-.compare article > div {
-  position: relative;
-  height: 28px;
-  margin: 10px 0;
-  background: rgba(21, 35, 31, 0.07);
-  border-radius: 6px;
-}
-
-.compare article > div i,
-.compare article > div b {
+.riskCluster footer,
+.noRiskCluster footer {
   position: absolute;
-  bottom: 5px;
-  left: 0;
-  height: 6px;
-  background: var(--atlas-color-ink-400);
-  border-radius: 99px;
-}
-
-.compare article > div b {
-  bottom: 16px;
-  background: var(--atlas-color-accent);
-}
-
-.compare article > strong,
-.compare aside > strong {
-  font-size: 18px;
-}
-
-.snapshotRail {
+  right: 13px;
+  bottom: 12px;
+  left: 13px;
   display: grid;
-  min-height: 80px;
-  margin-top: 10px;
-  padding: 9px;
-  gap: 7px;
-  border-radius: 18px;
-  grid-template-columns: 1.4fr repeat(3, 1fr) 180px;
+  padding-top: 8px;
+  align-items: end;
+  border-top: 1px solid rgba(17, 19, 23, 0.12);
+  grid-template-columns: 1fr auto;
 }
 
-.snapshotRail > div {
+.noRiskCluster footer {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.riskCluster footer span,
+.noRiskCluster footer span {
+  align-self: center;
+  color: rgba(17, 19, 23, 0.53);
+  font-size: 6px;
+  letter-spacing: 0.08em;
+}
+
+.noRiskCluster footer span {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.riskCluster footer strong,
+.noRiskCluster footer strong {
+  font-size: 14px;
+}
+
+.riskCluster footer small,
+.noRiskCluster footer small {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  color: inherit;
+  font-size: 6px;
+  opacity: 0.5;
+}
+
+.traceCard {
+  position: absolute;
+  z-index: 6;
+  right: 310px;
+  bottom: 20px;
+  left: 25px;
+  display: grid;
+  min-height: 101px;
+  padding: 13px;
+  align-items: center;
+  gap: 15px;
+  color: white;
+  background: rgba(15, 17, 23, 0.93);
+  border-radius: 24px;
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.22);
+  grid-template-columns: 190px 1fr 42px;
+}
+
+.traceCard > header {
   display: grid;
   min-width: 0;
-  padding: 10px 12px;
-  align-content: center;
-  background: var(--atlas-color-surface-muted);
-  border-radius: 11px;
-}
-
-.snapshotRail > div:not(:first-child) {
-  grid-template-columns: 17px 1fr;
-}
-
-.snapshotRail span {
-  color: var(--atlas-color-ink-600);
-  font-size: 6px;
-}
-
-.snapshotRail strong {
-  margin-top: 4px;
-  overflow: hidden;
-  font-size: 7px;
-  text-overflow: ellipsis;
-}
-
-.snapshotRail > div:not(:first-child) strong {
-  grid-column: 2;
-}
-
-.snapshotRail > a,
-.snapshotRail > em {
-  display: flex;
-  padding: 0 12px;
-  align-items: center;
-  justify-content: center;
   gap: 5px;
-  background: var(--atlas-color-surface-muted);
-  border-radius: 11px;
+}
+
+.traceCard > header span {
+  color: #8f95a0;
   font-size: 7px;
-  font-style: normal;
+  letter-spacing: 0.12em;
+}
+
+.traceCard > header h3 {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.traceCard > header small {
+  overflow: hidden;
+  color: #737a86;
+  font-size: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracePath {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.tracePath::before {
+  position: absolute;
+  top: 13px;
+  right: 5%;
+  left: 5%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.13);
+  content: "";
+}
+
+.traceStep {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  color: #969ca7;
+  font-size: 7px;
+  justify-items: center;
   text-align: center;
 }
 
-@media (max-width: 1050px) {
-  .terrainStage {
-    grid-template-columns: 1fr;
-  }
+.traceStep i {
+  width: 10px;
+  height: 10px;
+  margin: 8px 0 4px;
+  background: var(--insight-mint);
+  border: 3px solid #1b1e25;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--insight-mint);
+}
 
-  .metrics {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.traceStep span,
+.traceStep small {
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  .compare,
-  .snapshotRail {
-    grid-template-columns: repeat(2, 1fr);
+.traceStep small {
+  color: #6f7580;
+  font-size: 6px;
+}
+
+.pinButton {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  color: var(--insight-ink);
+  background: #f4f4ef;
+  border: 0;
+  border-radius: 50%;
+  place-items: center;
+}
+
+.pinButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.terrainStage[data-mode="PINNED"] .pinButton {
+  color: white;
+  background: var(--insight-violet);
+  opacity: 1;
+}
+
+.pinError {
+  position: absolute;
+  right: 13px;
+  bottom: -17px;
+  max-width: 360px;
+  margin: 0;
+  overflow: hidden;
+  color: #ffad9f;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes ringTurn {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-@media (max-width: 720px) {
+@media (prefers-reduced-motion: reduce) {
+  .ringB {
+    animation: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .qualitySphere {
+    left: 6%;
+  }
+}
+
+@media (max-width: 920px) {
   .page {
-    padding: 26px 14px;
+    padding: 18px 16px 24px;
   }
 
   .hero {
+    min-height: 126px;
     align-items: flex-start;
     flex-direction: column;
   }
 
   .hero h1 {
-    font-size: 43px;
+    font-size: 38px;
   }
 
-  .terrainNode {
-    width: 155px;
+  .heroActions {
+    padding-bottom: 0;
   }
 
-  .terrainNode[data-position="3"] {
-    right: 8%;
+  .terrainStage {
+    min-height: 1120px;
   }
 
-  .metrics,
-  .compare,
-  .snapshotRail {
-    grid-template-columns: 1fr;
+  .windowNav {
+    top: 22px;
+    right: 18px;
   }
 
-  .datasetBanner {
-    align-items: flex-start;
-    flex-direction: column;
+  .qualitySphere {
+    top: 110px;
+    left: 50%;
+    transform: translateX(-50%) scale(0.9);
   }
 
-  .datasetBanner em {
-    margin-left: 0;
+  .terrainMetrics {
+    top: 660px;
+    right: 18px;
+    left: 18px;
+    width: auto;
+  }
+
+  .traceCard {
+    right: 18px;
+    bottom: 18px;
+    left: 18px;
+  }
+}
+
+@media (max-width: 620px) {
+  .hero h1 {
+    font-size: 32px;
+  }
+
+  .heroActions,
+  .heroActions a,
+  .heroActions button {
+    width: 100%;
+  }
+
+  .heroActions a,
+  .heroActions button {
+    justify-content: center;
+  }
+
+  .terrainTitle strong {
+    font-size: 40px;
+  }
+
+  .terrainStage {
+    min-height: 1175px;
+  }
+
+  .windowNav {
+    top: 102px;
+    right: auto;
+    left: 18px;
+  }
+
+  .qualitySphere {
+    top: 115px;
+    transform: translateX(-50%) scale(0.62);
+  }
+
+  .terrainMetrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .traceCard {
+    grid-template-columns: 1fr 42px;
+  }
+
+  .tracePath {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+
+  .pinButton {
+    grid-row: 1;
+    grid-column: 2;
   }
 }

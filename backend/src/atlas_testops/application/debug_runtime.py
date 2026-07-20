@@ -28,6 +28,8 @@ from atlas_testops.domain.runtime import (
     BrowserExecutionBundle,
     BrowserRuntimeReport,
     BrowserRuntimeReportKind,
+    DebugLiveFrame,
+    DebugLiveFrameUpdate,
     EvidenceManifest,
     ExecutionActorBinding,
     ExecutionContract,
@@ -43,6 +45,9 @@ from atlas_testops.infrastructure.outbox import OutboxRepository
 from atlas_testops.infrastructure.repositories.browser_runtime import (
     BrowserRuntimeReportRepository,
 )
+from atlas_testops.infrastructure.repositories.debug_live_frames import (
+    DebugLiveFrameRepository,
+)
 from atlas_testops.infrastructure.repositories.debug_runs import DebugRunRepository
 from atlas_testops.infrastructure.repositories.runtime import RuntimeRepository
 
@@ -55,6 +60,20 @@ _BROWSER_LIVE_PAYLOAD_KEYS: dict[BrowserRuntimeReportKind, tuple[str, ...]] = {
         "pageRevision",
         "routeKey",
         "targetCount",
+    ),
+    BrowserRuntimeReportKind.PLANNER_COMPLETED: (
+        "planningMode",
+        "provider",
+        "model",
+        "externalCall",
+        "status",
+        "latencyMs",
+        "inputUnits",
+        "outputUnits",
+        "modelProfileRef",
+        "promptBundleRef",
+        "reasoningPolicyRef",
+        "selectedTargetRole",
     ),
     BrowserRuntimeReportKind.ACTION_PROPOSED: (
         "action",
@@ -125,6 +144,7 @@ class DebugRuntimeService:
         *,
         runtime_repository: RuntimeRepository | None = None,
         browser_report_repository: BrowserRuntimeReportRepository | None = None,
+        debug_live_frame_repository: DebugLiveFrameRepository | None = None,
         browser_context_envelope_codec: BrowserContextEnvelopeCodec | None = None,
         debug_run_repository: DebugRunRepository | None = None,
         audit_repository: AuditRepository | None = None,
@@ -133,6 +153,7 @@ class DebugRuntimeService:
         self._database = database
         self._runtime = runtime_repository or RuntimeRepository()
         self._browser_reports = browser_report_repository or BrowserRuntimeReportRepository()
+        self._live_frames = debug_live_frame_repository or DebugLiveFrameRepository()
         self._browser_context_envelope_codec = browser_context_envelope_codec
         self._runs = debug_run_repository or DebugRunRepository()
         self._audit = audit_repository or AuditRepository()
@@ -286,6 +307,50 @@ class DebugRuntimeService:
                 request_id=context.request_id or "runtime-bind",
             )
             return contract
+
+    async def fail_preparation(
+        self,
+        tenant_id: UUID,
+        run_id: UUID,
+        *,
+        outcome: DebugRunOutcome,
+        failure_code: str,
+        failure_detail: str,
+    ) -> DebugRun:
+        """Terminate a run without evidence when trusted preparation fails."""
+
+        now = utc_now()
+        context = DatabaseContext(
+            tenant_id=tenant_id,
+            request_id=f"runtime-preparation-failed:{run_id}",
+        )
+        async with self._database.transaction(context) as connection:
+            run = await self._require_run(connection, run_id, for_update=True)
+            if run.lifecycle is DebugRunLifecycle.TERMINATED:
+                return run
+            terminated = await self._runs.terminate_preparation_failure(
+                connection,
+                run=run,
+                outcome=outcome,
+                failure_code=failure_code,
+                failure_detail=failure_detail,
+                completed_at=now,
+            )
+            if terminated is None:
+                raise self._conflict("DebugRun 已进入 Browser 执行，不能覆盖其终态。")
+            await self._append_runtime_event(
+                connection,
+                run=terminated,
+                event_type="debug_run.preparation_failed",
+                payload={
+                    "outcome": terminated.outcome.value,
+                    "failureCode": failure_code,
+                    "safeSummary": failure_detail,
+                },
+                occurred_at=now,
+                request_id=context.request_id or "runtime-preparation-failed",
+            )
+            return terminated
 
     async def mark_ready(
         self,
@@ -553,6 +618,48 @@ class DebugRuntimeService:
                 request_id=context.request_id or "runtime-report",
             )
             return persisted
+
+    async def publish_live_frame(
+        self,
+        tenant_id: UUID,
+        run_id: UUID,
+        *,
+        worker_identity: str,
+        command: DebugLiveFrameUpdate,
+    ) -> DebugLiveFrame:
+        """Replace only the private latest-frame projection for a running DebugRun."""
+
+        now = utc_now()
+        context = DatabaseContext(
+            tenant_id=tenant_id,
+            request_id=f"runtime-live-frame:{worker_identity}:{run_id}",
+        )
+        async with self._database.transaction(context) as connection:
+            run = await self._require_run(connection, run_id, for_update=True)
+            contract = await self._runtime.get_contract_for_run(connection, run.id)
+            if contract is None:
+                raise self._binding_invalid("DebugRun 缺少 ExecutionContract。")
+            self._require_worker(contract, worker_identity)
+            self._require_exact_contract(
+                contract,
+                command.execution_contract_id,
+                command.execution_contract_digest,
+            )
+            if run.lifecycle is not DebugRunLifecycle.RUNNING:
+                raise self._conflict("只有 RUNNING DebugRun 可以发布实时浏览器画面。")
+            if not contract.created_at <= command.captured_at <= now:
+                raise self._binding_invalid("实时浏览器画面时间不在可信执行窗口内。")
+            if now > contract.execution_deadline:
+                raise self._binding_invalid("实时浏览器画面超过 executionDeadline。")
+            return await self._live_frames.upsert(
+                connection,
+                tenant_id=run.tenant_id,
+                project_id=run.project_id,
+                environment_id=run.environment_id,
+                debug_run_id=run.id,
+                command=command,
+                recorded_at=now,
+            )
 
     async def finalize_evidence(
         self,

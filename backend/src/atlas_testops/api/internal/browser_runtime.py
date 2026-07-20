@@ -20,6 +20,8 @@ from atlas_testops.domain.runtime import (
     BrowserFinalizeCommand,
     BrowserRuntimeReport,
     BrowserRuntimeTransition,
+    DebugLiveFrame,
+    DebugLiveFrameUpdate,
 )
 from atlas_testops.infrastructure.browser_auth import (
     AUTHORIZATION_HEADER,
@@ -227,6 +229,27 @@ async def append_browser_runtime_report(
         run_id,
         worker_identity=actor.worker_identity,
         report=command,
+    )
+
+
+@router.post(
+    "/debug-runs/{runId}/live-frame",
+    response_model=DebugLiveFrame,
+    summary="替换 DebugRun 最新的受限实时浏览器画面",
+)
+async def publish_debug_live_frame(
+    run_id: RunIdPath,
+    command: DebugLiveFrameUpdate,
+    response: Response,
+    actor: BrowserRuntimeActorDependency,
+    service: DebugRuntimeServiceDependency,
+) -> DebugLiveFrame:
+    _prevent_storage(response)
+    return await service.publish_live_frame(
+        actor.tenant_id,
+        run_id,
+        worker_identity=actor.worker_identity,
+        command=command,
     )
 
 

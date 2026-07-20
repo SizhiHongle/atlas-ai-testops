@@ -1852,6 +1852,7 @@
           "execution.started",
           "node.started",
           "observation.captured",
+          "planner.completed",
           "action.proposed",
           "policy.decided",
           "action.executed",
@@ -5193,6 +5194,157 @@
           "cursor"
         ],
         "title": "DebugLiveEvent",
+        "type": "object"
+      },
+      "DebugLiveFrame": {
+        "additionalProperties": false,
+        "description": "Public metadata for the latest private browser frame.",
+        "properties": {
+          "capturedAt": {
+            "format": "date-time",
+            "title": "Capturedat",
+            "type": "string"
+          },
+          "contentDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Contentdigest",
+            "type": "string"
+          },
+          "debugRunId": {
+            "format": "uuid",
+            "title": "Debugrunid",
+            "type": "string"
+          },
+          "environmentId": {
+            "format": "uuid",
+            "title": "Environmentid",
+            "type": "string"
+          },
+          "executionContractId": {
+            "format": "uuid",
+            "title": "Executioncontractid",
+            "type": "string"
+          },
+          "frameRevision": {
+            "minimum": 1.0,
+            "title": "Framerevision",
+            "type": "integer"
+          },
+          "mimeType": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Mimetype",
+            "type": "string"
+          },
+          "pageRevision": {
+            "minimum": 1.0,
+            "title": "Pagerevision",
+            "type": "integer"
+          },
+          "projectId": {
+            "format": "uuid",
+            "title": "Projectid",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": "atlas.debug-live-frame/0.1",
+            "default": "atlas.debug-live-frame/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "sizeBytes": {
+            "maximum": 716800.0,
+            "minimum": 1.0,
+            "title": "Sizebytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "debugRunId",
+          "projectId",
+          "environmentId",
+          "executionContractId",
+          "frameRevision",
+          "pageRevision",
+          "mimeType",
+          "contentDigest",
+          "sizeBytes",
+          "capturedAt"
+        ],
+        "title": "DebugLiveFrame",
+        "type": "object"
+      },
+      "DebugLiveFrameUpdate": {
+        "additionalProperties": false,
+        "description": "One masked, bounded, non-authoritative browser frame from the trusted Worker.",
+        "properties": {
+          "capturedAt": {
+            "format": "date-time",
+            "title": "Capturedat",
+            "type": "string"
+          },
+          "contentDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Contentdigest",
+            "type": "string"
+          },
+          "executionContractDigest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Executioncontractdigest",
+            "type": "string"
+          },
+          "executionContractId": {
+            "format": "uuid",
+            "title": "Executioncontractid",
+            "type": "string"
+          },
+          "frameRevision": {
+            "minimum": 1.0,
+            "title": "Framerevision",
+            "type": "integer"
+          },
+          "mimeType": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Mimetype",
+            "type": "string"
+          },
+          "pageRevision": {
+            "minimum": 1.0,
+            "title": "Pagerevision",
+            "type": "integer"
+          },
+          "payload": {
+            "contentMediaType": "application/octet-stream",
+            "format": "base64",
+            "maxLength": 716800,
+            "title": "Payload",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": "atlas.debug-live-frame-update/0.1",
+            "default": "atlas.debug-live-frame-update/0.1",
+            "title": "Schemaversion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "executionContractId",
+          "executionContractDigest",
+          "frameRevision",
+          "pageRevision",
+          "mimeType",
+          "contentDigest",
+          "payload",
+          "capturedAt"
+        ],
+        "title": "DebugLiveFrameUpdate",
         "type": "object"
       },
       "DebugLiveRunProjection": {
@@ -18777,6 +18929,99 @@
         ]
       }
     },
+    "/internal/v1/debug-runs/{runId}/live-frame": {
+      "post": {
+        "operationId": "publish_debug_live_frame_internal_v1_debug_runs__runId__live_frame_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DebugLiveFrameUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugLiveFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Worker request 或 execution permit 无效"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Runtime lifecycle 或 report chain 冲突"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合内部接口契约"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Browser Runtime 安全依赖未配置"
+          }
+        },
+        "summary": "替换 DebugRun 最新的受限实时浏览器画面",
+        "tags": [
+          "browser-runtime"
+        ]
+      }
+    },
     "/internal/v1/fixture-cleanup:sweep": {
       "post": {
         "operationId": "sweep_fixture_cleanup_internal_v1_fixture_cleanup_sweep_post",
@@ -25067,6 +25312,144 @@
           }
         ],
         "summary": "读取 DebugRun Live 安全快照",
+        "tags": [
+          "debug-live"
+        ]
+      }
+    },
+    "/v1/debug-runs/{runId}/live-frame/content": {
+      "get": {
+        "operationId": "get_debug_live_frame_content_v1_debug_runs__runId__live_frame_content_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Runid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Atlas-Actor-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Atlas-Actor-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "最新的受限实时浏览器画面"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Live Cursor 无效"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "缺少有效身份"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "DebugRun 不存在或不可见"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "请求不符合接口契约"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Live Observer 容量已满"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          }
+        },
+        "summary": "读取 DebugRun 最新实时浏览器画面",
         "tags": [
           "debug-live"
         ]

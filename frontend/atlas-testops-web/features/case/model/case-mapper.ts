@@ -38,6 +38,7 @@ export function mapTestCase(
     semanticRevision: dto.semanticRevision,
     layoutRevision: dto.layoutRevision,
     actorCount: dto.intent.actors.length,
+    primaryRoleKey: dto.intent.actors[0]?.roleKey ?? null,
     updatedBy: dto.updatedBy,
     updatedAt: new Date(dto.updatedAt)
   };
@@ -46,6 +47,7 @@ export function mapTestCase(
 function mapDebugRun(dto: DebugRunDto): DebugRunViewModel {
   return {
     id: dto.id,
+    semanticRevision: dto.semanticRevision,
     lifecycle: dto.lifecycle,
     outcome: dto.outcome,
     snapshotStatus: dto.snapshotStatus,
@@ -97,6 +99,8 @@ export function mapCaseWorkspace(
       layoutRevision: draft.layoutRevision,
       semanticDigest: draft.semanticDigest,
       valid: draft.validation.valid,
+      matchedRequiredInputs: draft.validation.matchedRequiredInputs,
+      totalRequiredInputs: draft.validation.totalRequiredInputs,
       issues: draft.validation.issues.map((issue) => ({
         code: issue.code,
         message: issue.message,

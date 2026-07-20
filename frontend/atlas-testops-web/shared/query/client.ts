@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 
 import { ApiProblemError } from "@/shared/api/problem";
-import { reportClientError } from "@/shared/observability/client";
+import { observeClientError } from "@/shared/observability/client";
 
 function shouldRetry(failureCount: number, error: Error): boolean {
   if (error instanceof ApiProblemError && error.status < 500) return false;
@@ -16,7 +16,7 @@ export function createAtlasQueryClient(): QueryClient {
   return new QueryClient({
     queryCache: new QueryCache({
       onError: (error, query) => {
-        reportClientError(error, {
+        observeClientError(error, {
           source: "query",
           operation: String(query.queryKey[0] ?? "unknown")
         });
@@ -24,7 +24,7 @@ export function createAtlasQueryClient(): QueryClient {
     }),
     mutationCache: new MutationCache({
       onError: (error, _variables, _context, mutation) => {
-        reportClientError(error, {
+        observeClientError(error, {
           source: "mutation",
           operation: String(mutation.options.mutationKey?.[0] ?? "unknown")
         });

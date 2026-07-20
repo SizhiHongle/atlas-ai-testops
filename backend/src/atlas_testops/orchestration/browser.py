@@ -234,3 +234,11 @@ class TemporalBrowserExecutionDispatcher:
                 detail="Browser execution workflow 未能提交，请稍后重试。",
                 status_code=503,
             ) from error
+
+    async def wait_for_completion(self, run: DebugRun) -> BrowserExecutionPayload:
+        """Wait for the exact Browser workflow after it has been dispatched."""
+
+        result = await self._client.get_workflow_handle(
+            run.temporal_workflow_id
+        ).result()
+        return cast(BrowserExecutionPayload, result)

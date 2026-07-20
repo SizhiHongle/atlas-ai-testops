@@ -1,7 +1,10 @@
 import { apiClient } from "@/shared/api/client";
 import { toApiError } from "@/shared/api/problem";
 
-import { mapInsightBrief } from "../model/insight-mapper";
+import {
+  mapInsightBrief,
+  mapInsightSnapshot
+} from "../model/insight-mapper";
 import type {
   InsightBriefViewModel,
   InsightSnapshotDto,
@@ -52,4 +55,23 @@ export async function pinInsightSnapshot(
     throw toApiError(response.error, "无法固定 InsightSnapshot。");
   }
   return requireData(response.data, "Atlas API 未返回 InsightSnapshot。");
+}
+
+export async function readInsightSnapshot(
+  snapshotId: string
+): Promise<InsightBriefViewModel> {
+  const response = await apiClient.GET(
+    "/v1/insight-snapshots/{snapshotId}",
+    {
+      params: {
+        path: { snapshotId }
+      }
+    }
+  );
+  if (response.error) {
+    throw toApiError(response.error, "无法读取固定的 InsightSnapshot。");
+  }
+  return mapInsightSnapshot(
+    requireData(response.data, "Atlas API 未返回 InsightSnapshot。")
+  );
 }

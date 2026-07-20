@@ -8,6 +8,34 @@ from atlas_testops.application.ports.secrets import (
     SecretProviderError,
 )
 
+LOCAL_PUBLIC_WEB_SECRET_REF = "sec_atlas_local_public_web"
+LOCAL_PUBLIC_WEB_SECRET_VERSION = "local-v1"
+LOCAL_PUBLIC_WEB_USERNAME = "atlas-public-web@example.test"
+LOCAL_PUBLIC_WEB_PASSWORD = "atlas-local-public-web-password"
+
+
+class LocalDevelopmentSecretProvider:
+    """Expose one synthetic credential only for the reviewed local web demo."""
+
+    async def with_password_secret[T](
+        self,
+        *,
+        secret_ref: str,
+        secret_version: str,
+        operation: PasswordSecretOperation[T],
+    ) -> T:
+        if (
+            secret_ref != LOCAL_PUBLIC_WEB_SECRET_REF
+            or secret_version != LOCAL_PUBLIC_WEB_SECRET_VERSION
+        ):
+            raise SecretProviderError("password material is unavailable")
+        return await operation(
+            PasswordSecret(
+                username=LOCAL_PUBLIC_WEB_USERNAME,
+                password=LOCAL_PUBLIC_WEB_PASSWORD,
+            )
+        )
+
 
 class InMemorySecretProvider:
     """只在进程内保存测试秘密，并通过闭包完成受控消费。"""

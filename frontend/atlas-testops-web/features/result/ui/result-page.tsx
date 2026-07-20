@@ -2,13 +2,11 @@
 
 import {
   ArrowRight,
-  BrainCircuit,
   Check,
   CircleAlert,
   FileText,
   Filter,
   GitCompareArrows,
-  Radio,
   RefreshCw,
   ShieldCheck,
   Sparkles
@@ -16,15 +14,18 @@ import {
 import Link from "next/link";
 import {
   usePathname,
+  useRouter,
   useSearchParams
 } from "next/navigation";
-import { useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useState
+} from "react";
 
 import { useSessionQuery } from "@/features/auth/api/auth-queries";
 import { useTaskRunsQuery } from "@/features/task/api/task-queries";
 import { ApiProblemError } from "@/shared/api/problem";
 import { createRequestId } from "@/shared/api/request-id";
-import { EmptyState } from "@/shared/ui/feedback/empty-state";
 import { ErrorState } from "@/shared/ui/feedback/error-state";
 import { LoadingState } from "@/shared/ui/feedback/loading-state";
 
@@ -33,7 +34,10 @@ import {
   useFailureClustersQuery,
   useTaskResultQuery
 } from "../api/result-queries";
-import type { FailureClusterViewModel } from "../model/result";
+import type {
+  FailureClusterViewModel,
+  TaskResultViewModel
+} from "../model/result";
 import { ReviewClassificationDialog } from "./review-classification-dialog";
 import styles from "./result-page.module.css";
 
@@ -42,8 +46,6 @@ const RESULT_REVIEWERS = new Set([
   "PROJECT_ADMIN",
   "CASE_REVIEWER"
 ]);
-
-type GateProgressStyle = CSSProperties & { "--gate-progress": string };
 
 const DATE_FORMAT = new Intl.DateTimeFormat("zh-CN", {
   month: "2-digit",
@@ -56,6 +58,10 @@ function shortId(value: string): string {
   return value.slice(0, 8).toUpperCase();
 }
 
+function shortRef(value: string): string {
+  return value.slice(-6).toUpperCase();
+}
+
 function pageHref(
   pathname: string,
   searchParams: URLSearchParams,
@@ -66,35 +72,49 @@ function pageHref(
     if (value) next.set(key, value);
     else next.delete(key);
   });
-  return `${pathname}?${next.toString()}`;
+  const query = next.toString();
+  return query ? `${pathname}?${query}` : pathname;
 }
 
 function percentage(value: number | null): string {
   return value === null ? "—" : `${value}%`;
 }
 
-function AxisCard({
-  label,
-  values
-}: Readonly<{ label: string; values: Record<string, number> }>) {
-  const entries = Object.entries(values);
-  const total = entries.reduce((sum, [, value]) => sum + value, 0);
-  return (
-    <article className={styles.axisCard}>
-      <span>{label}</span>
-      <strong>{total}</strong>
-      <div>
-        {entries.map(([key, value]) => (
-          <i key={key} title={`${key}: ${value}`}>
-            <b style={{ width: total ? `${(value / total) * 100}%` : "0%" }} />
-            <small>
-              {key} <em>{value}</em>
-            </small>
-          </i>
-        ))}
-      </div>
-    </article>
-  );
+function clusterTone(domain: string): "coral" | "violet" | "sand" | "neutral" {
+  if (domain === "PRODUCT") return "coral";
+  if (["TEST_SPEC", "TEST_DATA", "AGENT_AUTOMATION"].includes(domain)) {
+    return "violet";
+  }
+  if (
+    [
+      "IDENTITY",
+      "ENVIRONMENT",
+      "INFRASTRUCTURE",
+      "EXTERNAL_DEPENDENCY"
+    ].includes(domain)
+  ) {
+    return "sand";
+  }
+  return "neutral";
+}
+
+function gateRecommendation(
+  gate: TaskResultViewModel["gate"]
+): string {
+  if (!gate) return "等待显式质量门禁评估";
+  if (gate.decision === "ACCEPTED") return "建议进入下一道发布门";
+  if (gate.decision === "REJECTED") return "阻止本次发布";
+  return "等待证据与归因闭环";
+}
+
+function evidenceLabel(
+  evidence: FailureClusterViewModel["classification"] extends infer T
+    ? T extends { supportingEvidenceRefs: Array<infer R> }
+      ? R
+      : never
+    : never
+): string {
+  return `${evidence.kind} · ${shortRef(evidence.refId)}`;
 }
 
 function ClusterCard({
@@ -109,7 +129,9 @@ function ClusterCard({
   return (
     <Link
       className={`${styles.clusterCard} ${selected ? styles.selectedCluster : ""}`}
+      data-tone={clusterTone(cluster.signal.domain)}
       href={href}
+      aria-current={selected ? "true" : undefined}
     >
       <span>{cluster.signal.domain}</span>
       <strong>{cluster.signal.code}</strong>
@@ -118,46 +140,118 @@ function ClusterCard({
           `${cluster.signal.outcomeClass} · ${cluster.signal.stability}`}
       </small>
       <b>{cluster.affectedCount}</b>
-      <i>
+      <i aria-hidden="true">
         <em
           style={{ width: `${cluster.classification?.confidence ?? 0}%` }}
         />
       </i>
       <footer>
         {cluster.classification
-          ? `${cluster.classification.authorKind} ${cluster.classification.confidence}%`
-          : "UNCLASSIFIED"}
+          ? `${cluster.classification.authorKind} · ${cluster.classification.confidence}%`
+          : "等待归因投影"}
       </footer>
     </Link>
   );
 }
 
+function ResultEmptyState({
+  projectId,
+  title,
+  detail
+}: Readonly<{
+  projectId: string;
+  title: string;
+  detail: string;
+}>) {
+  return (
+    <section className={styles.resultEmpty}>
+      <div aria-hidden="true">
+        <i />
+        <i />
+        <ShieldCheck size={28} />
+        <span>RESULT</span>
+      </div>
+      <section>
+        <span>IMMUTABLE RESULT CENTER</span>
+        <h2>{title}</h2>
+        <p>{detail}</p>
+        <Link href={`/projects/${projectId}/tasks`}>
+          查看任务中心 <ArrowRight size={13} />
+        </Link>
+      </section>
+    </section>
+  );
+}
+
 export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsText = searchParams.toString();
   const session = useSessionQuery();
   const runs = useTaskRunsQuery(projectId);
-  const selectedRunId =
-    searchParams.get("runId") ??
-    runs.data?.find((run) => run.lifecycle === "CLOSED")?.id ??
-    runs.data?.[0]?.id ??
-    null;
+  const requestedRunId = searchParams.get("runId");
+  const requestedRun =
+    runs.data?.find((run) => run.id === requestedRunId) ?? null;
   const selectedRun =
-    runs.data?.find((run) => run.id === selectedRunId) ?? runs.data?.[0] ?? null;
+    requestedRun ??
+    runs.data?.find((run) => run.lifecycle === "CLOSED") ??
+    runs.data?.[0] ??
+    null;
   const result = useTaskResultQuery(selectedRun?.id ?? null);
   const snapshotId = result.data?.snapshot.id ?? null;
   const cursor = searchParams.get("cursor");
   const clusters = useFailureClustersQuery(snapshotId, cursor);
-  const selectedClusterId =
-    searchParams.get("clusterId") ?? clusters.data?.items[0]?.id ?? null;
+  const requestedClusterId = searchParams.get("clusterId");
+  const requestedCluster =
+    clusters.data?.items.find(
+      (cluster) => cluster.id === requestedClusterId
+    ) ?? null;
   const selectedCluster =
-    clusters.data?.items.find((cluster) => cluster.id === selectedClusterId) ??
-    clusters.data?.items[0] ??
-    null;
+    requestedCluster ?? clusters.data?.items[0] ?? null;
   const gateMutation = useEvaluateTaskGateMutation(selectedRun?.id ?? null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const canReview =
     session.data?.roles.some((role) => RESULT_REVIEWERS.has(role)) ?? false;
+
+  useEffect(() => {
+    if (!selectedRun || requestedRunId === selectedRun.id) return;
+    router.replace(
+      pageHref(pathname, new URLSearchParams(searchParamsText), {
+        runId: selectedRun.id,
+        clusterId: null,
+        cursor: null
+      })
+    );
+  }, [
+    pathname,
+    requestedRunId,
+    router,
+    searchParamsText,
+    selectedRun
+  ]);
+
+  useEffect(() => {
+    if (
+      !selectedCluster ||
+      requestedClusterId === selectedCluster.id ||
+      result.isPending
+    ) {
+      return;
+    }
+    router.replace(
+      pageHref(pathname, new URLSearchParams(searchParamsText), {
+        clusterId: selectedCluster.id
+      })
+    );
+  }, [
+    pathname,
+    requestedClusterId,
+    result.isPending,
+    router,
+    searchParamsText,
+    selectedCluster
+  ]);
 
   if (runs.isPending) return <LoadingState label="正在读取结果任务" />;
   if (runs.isError) {
@@ -178,11 +272,15 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
               <ShieldCheck size={13} /> TASK RESULT
             </p>
             <h1>结果等待第一条正式 TaskRun。</h1>
+            <span>
+              区分产品问题、测试方法、环境失败与 Flaky，并把每个判断连接回真实证据。
+            </span>
           </div>
         </header>
-        <EmptyState
+        <ResultEmptyState
+          projectId={projectId}
           title="还没有可查看的结果"
-          detail="TaskRun 完成 Oracle 聚合后会形成不可变 ResultSnapshot。"
+          detail="TaskRun 完成 Oracle 聚合后会形成不可变 ResultSnapshot；结果中心不会根据运行中状态推测正式结论。"
         />
       </div>
     );
@@ -205,23 +303,34 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
 
   async function evaluateGate() {
     if (!snapshotId) return;
-    await gateMutation.mutateAsync({
-      resultSnapshotId: snapshotId,
-      gatePolicyVersion: "0.1.0",
-      clientMutationId: `evaluate-gate-${createRequestId()}`
-    });
+    try {
+      await gateMutation.mutateAsync({
+        resultSnapshotId: snapshotId,
+        gatePolicyVersion: "0.1.0",
+        clientMutationId: `evaluate-gate-${createRequestId()}`
+      });
+    } catch {
+      // Mutation state renders the backend problem without escalating it.
+    }
   }
+
+  const accepted = result.data?.gate?.decision === "ACCEPTED";
 
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
           <p>
-            <ShieldCheck size={13} /> TASK RESULT · RUN-{shortId(selectedRun.id)}
+            <ShieldCheck size={13} /> TASK RESULT · RUN-
+            {shortId(selectedRun.id)}
           </p>
-          <h1>结果不是一张报表，而是一次发布决定。</h1>
+          <h1>
+            {accepted
+              ? "这次回归，可以进入下一道发布门。"
+              : "结果不是一张报表，而是一次发布决定。"}
+          </h1>
           <span>
-            区分产品、测试方法、环境与 Flaky，并把每个判断连接回不可变证据。
+            区分产品问题、测试方法、环境失败与 Flaky，并把每个判断连接回真实证据。
           </span>
         </div>
         <div className={styles.heroActions}>
@@ -232,36 +341,22 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
           >
             <FileText size={15} /> 导出证据
           </button>
-          <Link href={`/projects/${projectId}/live?runId=${selectedRun.id}`}>
-            <Radio size={15} /> 回到现场
-          </Link>
+          <button
+            type="button"
+            disabled
+            title="当前后端只支持基础设施失败的受控重跑，不能在结果页伪装成通用失败重跑"
+          >
+            <RefreshCw size={15} />{" "}
+            {accepted ? "相同配置再跑" : "重跑失败单元"}
+          </button>
         </div>
       </header>
 
-      <nav className={styles.runStrip} aria-label="TaskRun Results">
-        <span>RESULT RUNS</span>
-        {runs.data.slice(0, 6).map((run) => (
-          <Link
-            href={pageHref(
-              pathname,
-              new URLSearchParams(searchParams.toString()),
-              { runId: run.id, clusterId: null, cursor: null }
-            )}
-            aria-current={run.id === selectedRun.id ? "page" : undefined}
-            key={run.id}
-          >
-            <strong>RUN-{shortId(run.id)}</strong>
-            <small>
-              {run.lifecycle} · {run.quality}
-            </small>
-          </Link>
-        ))}
-      </nav>
-
       {!result.data ? (
-        <EmptyState
+        <ResultEmptyState
+          projectId={projectId}
           title="这条 TaskRun 尚无 ResultSnapshot"
-          detail="结果聚合只在 UnitResolution 事实满足门禁后产生；页面不会根据运行中 Unit 推测正式结果。"
+          detail="结果聚合只在 UnitResolution 事实满足门禁后产生；当前 TaskRun 仍可从下方切换，页面不会用临时执行状态冒充正式结果。"
         />
       ) : (
         <>
@@ -269,13 +364,6 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
             <div
               className={styles.gateCore}
               data-decision={result.data.gate?.decision ?? "NOT_EVALUATED"}
-              style={
-                {
-                  "--gate-progress": `${
-                    result.data.snapshot.trustedPassRate.percentage ?? 0
-                  }%`
-                } as GateProgressStyle
-              }
             >
               <span>QUALITY GATE</span>
               <div>
@@ -283,7 +371,10 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
                 <i />
                 <strong>{result.data.gate?.decision ?? "PENDING"}</strong>
                 <small>
-                  Trusted {percentage(result.data.snapshot.trustedPassRate.percentage)}
+                  可信通过{" "}
+                  {percentage(
+                    result.data.snapshot.trustedPassRate.percentage
+                  )}
                 </small>
               </div>
               <p>
@@ -296,13 +387,18 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
               <div>
                 <span>执行单元</span>
                 <strong>{result.data.snapshot.manifestCount}</strong>
-                <small>Manifest conserving</small>
+                <small>Manifest 守恒</small>
               </div>
               <div>
-                <span>通过</span>
-                <strong>{result.data.snapshot.verdicts.passed}</strong>
+                <span>可信通过</span>
+                <strong>
+                  {result.data.snapshot.trustedPassRate.numerator}
+                </strong>
                 <small>
-                  Raw {percentage(result.data.snapshot.rawPassRate.percentage)}
+                  {percentage(
+                    result.data.snapshot.trustedPassRate.percentage
+                  )}{" "}
+                  / {result.data.snapshot.trustedPassRate.denominator}
                 </small>
               </div>
               <div data-risk>
@@ -313,75 +409,55 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
               <div>
                 <span>不确定 / 未评估</span>
                 <strong>
+                  {result.data.snapshot.verdicts.inconclusive +
+                    result.data.snapshot.verdicts.notEvaluated}
+                </strong>
+                <small>
                   {result.data.snapshot.verdicts.inconclusive} /{" "}
                   {result.data.snapshot.verdicts.notEvaluated}
-                </strong>
-                <small>Explicit result states</small>
+                </small>
               </div>
             </div>
 
             <aside className={styles.verdict}>
               <header>
-                <BrainCircuit size={20} />
-                <em>GATE FACT</em>
+                <ShieldCheck size={20} />
+                <em>GATE VERDICT</em>
               </header>
-              <span>发布判断</span>
-              <h3>{result.data.gate?.decision ?? "尚未评估"}</h3>
+              <span>发布建议</span>
+              <h2>{gateRecommendation(result.data.gate)}</h2>
               <p>
                 {result.data.gate?.reasons.length
                   ? result.data.gate.reasons
                       .map((reason) => `${reason.code} × ${reason.count}`)
                       .join("；")
-                  : "使用后端固定 Gate Policy 对当前 exact ResultSnapshot 进行评估。"}
+                  : "由后端固定 Gate Policy 对当前 exact ResultSnapshot 显式评估，不由前端推测。"}
               </p>
+              <small>
+                Snapshot r{result.data.snapshot.revision}
+                {result.data.gate
+                  ? ` · Policy ${result.data.gate.policyVersion}`
+                  : ` · ${result.data.snapshot.finality}`}
+              </small>
               <button
                 type="button"
                 onClick={() => void evaluateGate()}
                 disabled={!canReview || gateMutation.isPending}
+                title={
+                  canReview
+                    ? "对当前 exact ResultSnapshot 追加 Gate Decision"
+                    : "需要 CASE_REVIEWER 或 Project Admin 权限"
+                }
               >
                 <RefreshCw size={14} />{" "}
-                {result.data.gate ? "重新评估门禁" : "评估质量门禁"}
+                {gateMutation.isPending
+                  ? "正在评估…"
+                  : result.data.gate
+                    ? "重新评估门禁"
+                    : "评估质量门禁"}
               </button>
-              {gateError ? <small role="alert">{gateError}</small> : null}
+              {gateError ? <b role="alert">{gateError}</b> : null}
             </aside>
-          </section>
-
-          <section className={styles.axisTerrain}>
-            <header>
-              <div>
-                <span>RESULT AXES</span>
-                <strong>结果六轴地形</strong>
-              </div>
-              <small>
-                Projection {DATE_FORMAT.format(result.data.projectionWatermark)}
-              </small>
-            </header>
-            <div>
-              <AxisCard
-                label="OUTCOME CLASS"
-                values={result.data.snapshot.axes.outcomeClass}
-              />
-              <AxisCard
-                label="EXECUTION INFLUENCE"
-                values={result.data.snapshot.axes.executionInfluence}
-              />
-              <AxisCard
-                label="STABILITY"
-                values={result.data.snapshot.axes.stability}
-              />
-              <AxisCard
-                label="EVIDENCE COMPLETENESS"
-                values={result.data.snapshot.axes.evidenceCompleteness}
-              />
-              <AxisCard
-                label="EVIDENCE INTEGRITY"
-                values={result.data.snapshot.axes.evidenceIntegrity}
-              />
-              <AxisCard
-                label="DATA HYGIENE"
-                values={result.data.snapshot.axes.dataHygiene}
-              />
-            </div>
           </section>
 
           {clusters.isPending ? (
@@ -396,9 +472,11 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
               <div>
                 <i />
                 <i />
-                <ShieldCheck size={34} />
+                <ShieldCheck size={30} />
                 <strong>
-                  {percentage(result.data.snapshot.trustedPassRate.percentage)}
+                  {percentage(
+                    result.data.snapshot.trustedPassRate.percentage
+                  )}
                 </strong>
                 <span>TRUSTED</span>
               </div>
@@ -406,8 +484,8 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
                 <span>NO FAILURE CLUSTERS</span>
                 <h2>当前 ResultSnapshot 没有失败聚类。</h2>
                 <p>
-                  这表示聚类投影未发现当前失败信号；发布结论仍以 TaskGateDecision
-                  为准。
+                  聚类投影没有发现当前失败信号；发布结论仍以绑定 exact
+                  Snapshot 与 Classification 集合的 TaskGateDecision 为准。
                 </p>
               </section>
             </section>
@@ -419,28 +497,34 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
                     <span>FAILURE CLUSTERS</span>
                     <strong>失败聚类</strong>
                   </div>
-                  <button type="button" disabled>
-                    <Filter size={14} /> 当前页
+                  <button
+                    type="button"
+                    disabled
+                    title="服务端当前未开放按类型筛选参数"
+                  >
+                    <Filter size={14} /> 全部类型
                   </button>
                 </header>
-                {clusters.data.items.map((cluster) => (
-                  <ClusterCard
-                    cluster={cluster}
-                    selected={cluster.id === selectedCluster?.id}
-                    href={pageHref(
-                      pathname,
-                      new URLSearchParams(searchParams.toString()),
-                      { clusterId: cluster.id }
-                    )}
-                    key={cluster.id}
-                  />
-                ))}
+                <div className={styles.clusterList}>
+                  {clusters.data.items.map((cluster) => (
+                    <ClusterCard
+                      cluster={cluster}
+                      selected={cluster.id === selectedCluster?.id}
+                      href={pageHref(
+                        pathname,
+                        new URLSearchParams(searchParamsText),
+                        { clusterId: cluster.id }
+                      )}
+                      key={cluster.id}
+                    />
+                  ))}
+                </div>
                 <footer>
                   {cursor ? (
                     <Link
                       href={pageHref(
                         pathname,
-                        new URLSearchParams(searchParams.toString()),
+                        new URLSearchParams(searchParamsText),
                         { cursor: null, clusterId: null }
                       )}
                     >
@@ -451,7 +535,7 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
                     <Link
                       href={pageHref(
                         pathname,
-                        new URLSearchParams(searchParams.toString()),
+                        new URLSearchParams(searchParamsText),
                         {
                           cursor: clusters.data.nextCursor,
                           clusterId: null
@@ -467,7 +551,7 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
               <div className={styles.constellation}>
                 <header>
                   <div>
-                    <span>IMPACT MAP</span>
+                    <span>OUTCOME CONSTELLATION</span>
                     <strong>{selectedCluster?.signal.code}</strong>
                   </div>
                   <em>{selectedCluster?.signal.domain}</em>
@@ -476,68 +560,108 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
                   <i />
                   <i />
                   <div>
-                    <CircleAlert size={23} />
+                    <CircleAlert size={22} />
                     <strong>{selectedCluster?.affectedCount}</strong>
-                    <span>AFFECTED</span>
+                    <span>AFFECTED UNITS</span>
                   </div>
-                  {[
-                    selectedCluster?.signal.outcomeClass,
-                    selectedCluster?.signal.stability,
-                    selectedCluster?.signal.verdict,
-                    selectedCluster?.signal.closureReason
-                  ].map((label, index) => (
-                    <span data-position={index + 1} key={`${label}-${index}`}>
-                      <i /> {label}
-                    </span>
-                  ))}
+                  {selectedCluster?.affectedUnitResolutionRevisionIds
+                    .slice(0, 5)
+                    .map((resolutionId, index) => (
+                      <span
+                        data-position={index + 1}
+                        data-representative={
+                          resolutionId ===
+                          selectedCluster.representativeUnitResolutionRevisionId
+                            ? "true"
+                            : undefined
+                        }
+                        key={resolutionId}
+                        title={resolutionId}
+                      >
+                        <i /> UNIT {shortRef(resolutionId)}
+                      </span>
+                    ))}
                 </div>
                 <section>
-                  <span>ROOT CAUSE SIGNAL</span>
+                  <span>ROOT CAUSE SIGNAL · IMMUTABLE REVISION</span>
                   <code>{selectedCluster?.fingerprint}</code>
                   <p>
                     {selectedCluster?.classification?.hypothesis ??
                       "当前 Cluster 尚无可复核 Classification。"}
                   </p>
+                  <small>
+                    {selectedCluster?.signal.closureReason} ·{" "}
+                    {selectedCluster?.signal.stability}
+                  </small>
                 </section>
               </div>
 
               <aside className={styles.triage}>
                 <header>
-                  <span>TRIAGE FACTS</span>
+                  <span>TRIAGE &amp; EVIDENCE</span>
                   <GitCompareArrows size={15} />
                 </header>
                 <div className={styles.confidence}>
                   <span>归因置信度</span>
                   <strong>
-                    {selectedCluster?.classification?.confidence ?? "—"}%
+                    {selectedCluster?.classification
+                      ? `${selectedCluster.classification.confidence}%`
+                      : "—"}
                   </strong>
-                  <i>
+                  <i aria-hidden="true">
                     <b
                       style={{
                         width: `${selectedCluster?.classification?.confidence ?? 0}%`
                       }}
                     />
                   </i>
+                  <small>
+                    {selectedCluster?.classification
+                      ? `${selectedCluster.classification.judgmentState} · r${selectedCluster.classification.revision}`
+                      : "等待 Classification"}
+                  </small>
                 </div>
                 <div className={styles.evidence}>
-                  <span>不可变事实</span>
+                  <span>证据与影响</span>
+                  {selectedCluster?.classification?.supportingEvidenceRefs
+                    .slice(0, 3)
+                    .map((evidence) => (
+                      <small key={`${evidence.kind}-${evidence.refId}`}>
+                        <Check size={11} /> {evidenceLabel(evidence)}
+                      </small>
+                    ))}
+                  {selectedCluster?.classification?.contradictingEvidenceRefs
+                    .slice(0, 1)
+                    .map((evidence) => (
+                      <small
+                        data-contradicting
+                        key={`${evidence.kind}-${evidence.refId}`}
+                      >
+                        <CircleAlert size={11} /> 反证{" "}
+                        {evidenceLabel(evidence)}
+                      </small>
+                    ))}
+                  {!selectedCluster?.classification
+                    ?.supportingEvidenceRefs.length ? (
+                    <>
+                      <small>
+                        <Check size={11} /> Evidence{" "}
+                        {selectedCluster?.signal.evidenceCompleteness}
+                      </small>
+                      <small>
+                        <Check size={11} /> Integrity{" "}
+                        {selectedCluster?.signal.evidenceIntegrity}
+                      </small>
+                    </>
+                  ) : null}
                   <small>
-                    <Check size={11} /> Cluster revision{" "}
-                    {selectedCluster?.revision}
+                    <Check size={11} /> Hygiene{" "}
+                    {selectedCluster?.signal.dataHygiene}
                   </small>
                   <small>
-                    <Check size={11} /> Affected{" "}
+                    <Check size={11} /> Cluster r
+                    {selectedCluster?.revision} · Affected{" "}
                     {selectedCluster?.affectedCount}
-                  </small>
-                  <small>
-                    <Check size={11} /> Supporting evidence{" "}
-                    {selectedCluster?.classification?.supportingEvidenceRefs
-                      .length ?? 0}
-                  </small>
-                  <small>
-                    <Check size={11} /> Judgment{" "}
-                    {selectedCluster?.classification?.judgmentState ??
-                      "UNCLASSIFIED"}
                   </small>
                 </div>
                 <button
@@ -546,31 +670,65 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
                   onClick={() => setReviewOpen(true)}
                   disabled={!canReview || !selectedCluster?.classification}
                   title={
-                    selectedCluster?.classification
-                      ? "追加人工 Classification Revision"
-                      : "后端没有为未分类 Cluster 暴露 Classification root 创建接口"
+                    !canReview
+                      ? "需要 CASE_REVIEWER 或 Project Admin 权限"
+                      : selectedCluster?.classification
+                        ? "追加人工 Classification Revision"
+                        : "后端没有为未分类 Cluster 暴露 Classification root 创建接口"
                   }
                 >
-                  <Sparkles size={15} /> 复核归因
+                  <Sparkles size={15} /> 复核失败归因
                 </button>
                 <button
                   type="button"
                   disabled
-                  title="当前后端没有缺陷系统写入接口"
+                  title="当前后端没有 Known Issue 写入接口"
                 >
-                  <CircleAlert size={15} /> 创建产品缺陷
+                  <CircleAlert size={15} /> 标记已知问题
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  title="当前后端没有测试方法候选写入接口"
+                >
+                  <GitCompareArrows size={15} /> 提交方法候选
                 </button>
               </aside>
             </section>
           )}
 
           <footer className={styles.snapshotRail}>
+            <label>
+              <span>RESULT SNAPSHOT</span>
+              <select
+                aria-label="切换结果任务"
+                value={selectedRun.id}
+                onChange={(event) =>
+                  router.push(
+                    pageHref(
+                      pathname,
+                      new URLSearchParams(searchParamsText),
+                      {
+                        runId: event.target.value,
+                        clusterId: null,
+                        cursor: null
+                      }
+                    )
+                  )
+                }
+              >
+                {runs.data.map((run) => (
+                  <option value={run.id} key={run.id}>
+                    RUN-{shortId(run.id)} · {run.lifecycle} · {run.quality}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div>
-              <span>IMMUTABLE SNAPSHOT</span>
-              <strong>r{result.data.snapshot.revision}</strong>
-            </div>
-            <div>
-              <small>Finality</small>
+              <small>
+                Finality · Policy v
+                {result.data.snapshot.aggregationPolicyVersion}
+              </small>
               <strong>{result.data.snapshot.finality}</strong>
             </div>
             <div>
@@ -582,25 +740,29 @@ export function ResultPage({ projectId }: Readonly<{ projectId: string }>) {
               </strong>
             </div>
             <div>
-              <small>Decisive</small>
+              <small>Evidence verified</small>
               <strong>
-                {percentage(result.data.snapshot.decisivePassRate.percentage)}
+                {result.data.snapshot.axes.evidenceIntegrity.verified ?? 0} /{" "}
+                {result.data.snapshot.manifestCount}
               </strong>
             </div>
             <div>
               <small>Created</small>
-              <strong>{DATE_FORMAT.format(result.data.snapshot.createdAt)}</strong>
+              <strong>
+                {DATE_FORMAT.format(result.data.snapshot.createdAt)}
+              </strong>
             </div>
             <button
               type="button"
               disabled
-              title="后端仅开放基础设施失败重跑，需在任务控制中显式触发"
+              title="当前后端未开放通用失败单元重跑"
             >
               <RefreshCw size={14} /> 重跑失败单元
             </button>
           </footer>
 
           <ReviewClassificationDialog
+            key={selectedCluster?.classification?.id ?? "no-classification"}
             snapshotId={snapshotId}
             cluster={selectedCluster}
             open={reviewOpen}

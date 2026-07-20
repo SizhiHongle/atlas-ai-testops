@@ -649,7 +649,10 @@ class CaseService:
 
     @staticmethod
     def _json_object(model: WireModel) -> dict[str, JsonValue]:
-        return cast(dict[str, JsonValue], model.model_dump(mode="json", by_alias=True))
+        return cast(
+            dict[str, JsonValue],
+            model.model_dump(mode="json", by_alias=True, exclude_none=True),
+        )
 
     @staticmethod
     def _not_found(detail: str) -> ApplicationError:

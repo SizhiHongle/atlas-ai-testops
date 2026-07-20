@@ -27,7 +27,9 @@ export type TaskResultViewModel = {
     id: string;
     revision: number;
     finality: string;
+    aggregationPolicyVersion: string;
     manifestCount: number;
+    unitResolutionRevisionIds: string[];
     verdicts: {
       passed: number;
       failed: number;
@@ -53,6 +55,7 @@ export type TaskResultViewModel = {
     id: string;
     decision: string;
     revision: number;
+    policyVersion: string;
     reasons: Array<{ code: string; count: number }>;
     evaluatedAt: Date;
   } | null;
@@ -65,6 +68,8 @@ export type FailureClusterViewModel = {
   revision: number;
   fingerprint: string;
   affectedCount: number;
+  affectedUnitResolutionRevisionIds: string[];
+  representativeUnitResolutionRevisionId: string;
   signal: {
     code: string;
     domain: string;
@@ -72,6 +77,9 @@ export type FailureClusterViewModel = {
     outcomeClass: string;
     stability: string;
     closureReason: string;
+    evidenceCompleteness: string;
+    evidenceIntegrity: string;
+    dataHygiene: string;
   };
   classification: {
     id: string;
@@ -82,15 +90,19 @@ export type FailureClusterViewModel = {
     confidence: number;
     judgmentState: string;
     authorKind: string;
+    modelVersionRef: string | null;
     supportingEvidenceRefs: FailureEvidenceRefDto[];
     contradictingEvidenceRefs: FailureEvidenceRefDto[];
     evidenceGapCodes: string[];
   } | null;
   createdAt: Date;
+  projectionWatermark: Date;
 };
 
 export type FailureClusterPageViewModel = {
   items: FailureClusterViewModel[];
   nextCursor: string | null;
   asOf: Date;
+  projectionWatermark: Date;
+  resultSnapshotId: string;
 };

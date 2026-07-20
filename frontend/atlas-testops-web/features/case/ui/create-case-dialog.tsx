@@ -8,6 +8,11 @@ import { ApiProblemError } from "@/shared/api/problem";
 import { Dialog } from "@/shared/ui/dialog/dialog";
 
 import { useCreateCaseMutation } from "../api/case-queries";
+import {
+  CASE_KEY_INPUT_PATTERN,
+  finalizeCaseKeyInput,
+  normalizeCaseKeyInput
+} from "../model/case-key";
 
 type CreateCaseDialogProps = {
   projectId: string;
@@ -36,7 +41,9 @@ export function CreateCaseDialog({
 
     try {
       const caseId = await mutation.mutateAsync({
-        caseKey: String(form.get("caseKey") ?? "").trim(),
+        caseKey: finalizeCaseKeyInput(
+          String(form.get("caseKey") ?? "")
+        ),
         name: String(form.get("name") ?? "").trim(),
         intentVersion: "0.1.0",
         intent: {
@@ -87,10 +94,16 @@ export function CreateCaseDialog({
     }
   }
 
-  const errorMessage =
+  const problem =
     mutation.error instanceof ApiProblemError
-      ? mutation.error.problem.detail
-      : mutation.error?.message;
+      ? mutation.error.problem
+      : null;
+  const firstViolation = problem?.violations?.[0];
+  const errorMessage = firstViolation?.field === "body.caseKey"
+    ? "稳定 Case Key 仅支持大写字母、数字和连字符，例如 CRM-CUSTOMER-FILTER。"
+    : firstViolation
+      ? `${problem.detail} ${firstViolation.message}`
+      : problem?.detail ?? mutation.error?.message;
 
   return (
     <Dialog
@@ -114,10 +127,16 @@ export function CreateCaseDialog({
           稳定 Case Key
           <input
             name="caseKey"
-            minLength={1}
-            maxLength={160}
-            pattern="[A-Za-z0-9][A-Za-z0-9._-]*"
-            placeholder="crm.customer.filter"
+            minLength={3}
+            maxLength={80}
+            pattern={CASE_KEY_INPUT_PATTERN}
+            placeholder="CRM-CUSTOMER-FILTER"
+            title="使用大写字母、数字和连字符，至少包含一个连字符。"
+            onInput={(event) => {
+              event.currentTarget.value = normalizeCaseKeyInput(
+                event.currentTarget.value
+              );
+            }}
             required
           />
         </label>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
@@ -68,6 +69,8 @@ from atlas_testops.domain.runtime import (
 )
 from atlas_testops.domain.workflow import WorkflowNode
 from atlas_testops.infrastructure.session_vault import SessionArtifactIntegrityError
+
+LOGGER = logging.getLogger(__name__)
 
 _OBSERVED_ROLES = (
     "button",
@@ -678,10 +681,48 @@ class BrowserToolSession:
             BrowserActionKind.CAPTURE_VIEW,
         }:
             next_observation = await self.observe()
+        if receipt.status == "SUCCEEDED":
+            # The transient operator projection must never alter test truth.
+            try:
+                await self._publish_live_frame()
+            except Exception as exc:
+                LOGGER.warning(
+                    "Live browser frame publication failed (%s)",
+                    type(exc).__name__,
+                )
         return BrowserActionOutcome(
             receipt=receipt,
             observation=next_observation,
             artifact=artifact,
+        )
+
+    async def _publish_live_frame(self) -> None:
+        """Publish a masked, compressed viewport without making it Evidence."""
+
+        if self._artifact_writer is None:
+            return
+        frames = self._page.frames
+        if len(frames) > _MAX_SCREENSHOT_FRAMES:
+            return
+        redaction_policy = self._artifact_writer.screenshot_redaction_policy
+        masks = [
+            frame.locator(selector)
+            for frame in frames
+            for selector in redaction_policy.selectors
+        ]
+        payload = await self._page.screenshot(
+            animations="disabled",
+            caret="hide",
+            full_page=False,
+            mask=masks,
+            mask_color=redaction_policy.mask_color,
+            type="jpeg",
+            quality=58,
+        )
+        await self._reporter.publish_live_frame(
+            payload=payload,
+            mime_type="image/jpeg",
+            page_revision=self._page_revision,
         )
 
     async def _capture_screenshot(self, *, required: bool) -> EvidenceArtifactInput:
@@ -750,6 +791,25 @@ class BrowserToolSession:
         if value is not None and value.kind is ValueSourceKind.LITERAL:
             return value.value
         raise BrowserPolicyDeniedError("valueRef is not available in the execution view")
+
+    async def target_value_matches(self, target_ref: str, value_ref: str) -> bool:
+        """Compare a public text target with a frozen value without exposing either."""
+
+        target = self._targets.get(target_ref)
+        expected = self.value_for(value_ref)
+        if (
+            target is None
+            or target.role != "textbox"
+            or not isinstance(expected, str)
+            or (await target.element.get_attribute("type") or "").casefold()
+            == "password"
+        ):
+            return False
+        try:
+            actual = await target.element.input_value(timeout=self._action_timeout_ms)
+        except PlaywrightError:
+            return False
+        return actual.casefold() == expected.casefold()
 
     def _decide(self, proposal: BrowserActionProposal) -> BrowserPolicyDecision:
         now = utc_now()

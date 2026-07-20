@@ -93,6 +93,93 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  temporal-worker:
+    build:
+      context: ./backend
+      target: temporal-worker
+    environment:
+      ATLAS_ENVIRONMENT: local
+      ATLAS_DATABASE_URL: postgresql://atlas_app:atlas_app@postgres:5432/atlas
+      ATLAS_TEMPORAL_ADDRESS: temporal:7233
+      ATLAS_TEMPORAL_NAMESPACE: default
+      ATLAS_TEMPORAL_TASK_QUEUE: atlas-control
+      ATLAS_AUTH_SESSION_DISPATCH_ENABLED: "true"
+      ATLAS_AUTH_SESSION_TASK_QUEUE: atlas-auth-session
+      ATLAS_FIXTURE_DISPATCH_ENABLED: "true"
+      ATLAS_FIXTURE_TASK_QUEUE: atlas-fixture
+      ATLAS_FIXTURE_ACTIVITY_TIMEOUT_SECONDS: 60
+      ATLAS_FIXTURE_CLEANUP_GRACE_SECONDS: 900
+      ATLAS_BROWSER_RUNTIME_ENABLED: "true"
+      ATLAS_DEBUG_RUN_PREPARATION_ENABLED: "true"
+      ATLAS_DEBUG_RUN_PREPARATION_ACTIVITY_TIMEOUT_SECONDS: 360
+      ATLAS_BROWSER_RUNTIME_TASK_QUEUE: atlas-browser
+      ATLAS_BROWSER_RUNTIME_WORKER_IDENTITY: browser-worker-local
+      ATLAS_BROWSER_RUNTIME_ACTIVITY_TIMEOUT_SECONDS: 300
+      ATLAS_BROWSER_RUNTIME_HEARTBEAT_TIMEOUT_SECONDS: 20
+      ATLAS_BROWSER_RUNTIME_PERMIT_TTL_SECONDS: 420
+      ATLAS_BROWSER_RUNTIME_PERMIT_KEY_BASE64: YXRsYXMtbG9jYWwtYnJvd3Nlci1wZXJtaXQta2V5ISE=
+      ATLAS_BROWSER_RUNTIME_REQUEST_HMAC_KEY_BASE64: YXRsYXMtbG9jYWwtYnJvd3Nlci1yZXF1ZXN0LWtleSE=
+      ATLAS_BROWSER_CONTEXT_ENVELOPE_KEY_BASE64: YXRsYXMtbG9jYWwtY29udGV4dC1rZXktMzJieXRlcyE=
+      ATLAS_BROWSER_CONTEXT_ENVELOPE_KEY_VERSION: local-v1
+      ATLAS_BROWSER_REVISION: playwright@1.61.0/chromium@149.0.7827.0
+      ATLAS_BROWSER_TOOL_CATALOG_REF: tools.local-public-web@1.0.0
+      ATLAS_BROWSER_POLICY_BUNDLE_REF: policy.local-public-web@1.0.0
+      ATLAS_BROWSER_ALLOWED_ACTIONS: '["open_route","activate","enter_text","keypress","capture_view"]'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+      auth-session-worker:
+        condition: service_started
+      fixture-worker:
+        condition: service_started
+    restart: unless-stopped
+
+  browser-worker:
+    build:
+      context: ./backend
+      target: browser-worker
+    environment:
+      ATLAS_ENVIRONMENT: local
+      ATLAS_TEMPORAL_ADDRESS: temporal:7233
+      ATLAS_TEMPORAL_NAMESPACE: default
+      ATLAS_BROWSER_RUNTIME_TASK_QUEUE: atlas-browser
+      ATLAS_BROWSER_RUNTIME_API_BASE_URL: http://host.docker.internal:${ATLAS_DEV_API_PORT:-8001}
+      ATLAS_BROWSER_RUNTIME_WORKER_IDENTITY: browser-worker-local
+      ATLAS_BROWSER_RUNTIME_REQUEST_HMAC_KEY_BASE64: YXRsYXMtbG9jYWwtYnJvd3Nlci1yZXF1ZXN0LWtleSE=
+      ATLAS_BROWSER_CONTEXT_ENVELOPE_KEY_BASE64: YXRsYXMtbG9jYWwtY29udGV4dC1rZXktMzJieXRlcyE=
+      ATLAS_BROWSER_CONTEXT_ENVELOPE_KEY_VERSION: local-v1
+      ATLAS_BROWSER_REVISION: playwright@1.61.0/chromium@149.0.7827.0
+      ATLAS_BROWSER_TOOL_CATALOG_REF: tools.local-public-web@1.0.0
+      ATLAS_BROWSER_POLICY_BUNDLE_REF: policy.local-public-web@1.0.0
+      ATLAS_BROWSER_ALLOWED_ACTIONS: '["open_route","activate","enter_text","keypress","capture_view"]'
+      ATLAS_BROWSER_AI_MODE: ${ATLAS_BROWSER_AI_MODE:-deterministic}
+      ATLAS_BROWSER_AI_API_KEY: ${ATLAS_BROWSER_AI_API_KEY:-}
+      ATLAS_BROWSER_AI_MODEL: ${ATLAS_BROWSER_AI_MODEL:-gpt-5.6-sol}
+      ATLAS_BROWSER_AI_API_BASE_URL: ${ATLAS_BROWSER_AI_API_BASE_URL:-https://api.openai.com}
+      ATLAS_BROWSER_AI_TIMEOUT_SECONDS: ${ATLAS_BROWSER_AI_TIMEOUT_SECONDS:-20}
+      ATLAS_SESSION_OBJECT_STORE_ENDPOINT: minio:9000
+      ATLAS_SESSION_OBJECT_STORE_ACCESS_KEY: atlas_minio
+      ATLAS_SESSION_OBJECT_STORE_SECRET_KEY: atlas_minio_password
+      ATLAS_SESSION_OBJECT_STORE_BUCKET: atlas-session-artifacts
+      ATLAS_SESSION_OBJECT_STORE_SECURE: "false"
+      ATLAS_SESSION_OBJECT_STORE_CREATE_BUCKET: "true"
+      ATLAS_SESSION_ARTIFACT_AES_KEY_BASE64: YXRsYXMtbG9jYWwtc2Vzc2lvbi1rZXktMzItYnl0ZSE=
+      ATLAS_SESSION_ARTIFACT_KEY_VERSION: local-v1
+      ATLAS_EVIDENCE_OBJECT_STORE_ENDPOINT: minio:9000
+      ATLAS_EVIDENCE_OBJECT_STORE_ACCESS_KEY: atlas_minio
+      ATLAS_EVIDENCE_OBJECT_STORE_SECRET_KEY: atlas_minio_password
+      ATLAS_EVIDENCE_OBJECT_STORE_BUCKET: atlas-evidence-artifacts
+      ATLAS_EVIDENCE_OBJECT_STORE_SECURE: "false"
+      ATLAS_EVIDENCE_OBJECT_STORE_CREATE_BUCKET: "true"
+    depends_on:
+      temporal:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
   task-intent-consumer:
     profiles: ["task-intent-consumer"]
     build:

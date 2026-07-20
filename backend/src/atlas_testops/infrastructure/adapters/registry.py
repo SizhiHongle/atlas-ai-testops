@@ -30,7 +30,11 @@ class AdapterRegistry:
             registry.register(
                 "generic-password",
                 lambda connector: GenericPasswordAdapter(
-                    MockIdentityProvider(allowed_origins=connector.allowed_origins)
+                    MockIdentityProvider(
+                        allowed_origins=connector.allowed_origins,
+                        allow_local_public_web_credential=settings.environment
+                        in {"local", "development"},
+                    )
                 ),
             )
         return registry

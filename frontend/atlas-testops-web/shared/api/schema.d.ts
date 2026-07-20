@@ -229,6 +229,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/internal/v1/debug-runs/{runId}/live-frame": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 替换 DebugRun 最新的受限实时浏览器画面 */
+        post: operations["publish_debug_live_frame_internal_v1_debug_runs__runId__live_frame_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/internal/v1/fixture-cleanup:sweep": {
         parameters: {
             query?: never;
@@ -849,6 +866,23 @@ export interface paths {
         };
         /** 读取 DebugRun Live 安全快照 */
         get: operations["get_debug_live_snapshot_v1_debug_runs__runId__live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/debug-runs/{runId}/live-frame/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取 DebugRun 最新实时浏览器画面 */
+        get: operations["get_debug_live_frame_content_v1_debug_runs__runId__live_frame_content_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3057,7 +3091,7 @@ export interface components {
          * @description Append-only execution-plane facts reported by the Browser Worker.
          * @enum {string}
          */
-        BrowserRuntimeReportKind: "execution.started" | "node.started" | "observation.captured" | "action.proposed" | "policy.decided" | "action.executed" | "artifact.captured" | "assertion.evaluated" | "node.completed" | "execution.blocked" | "execution.completed";
+        BrowserRuntimeReportKind: "execution.started" | "node.started" | "observation.captured" | "planner.completed" | "action.proposed" | "policy.decided" | "action.executed" | "artifact.captured" | "assertion.evaluated" | "node.completed" | "execution.blocked" | "execution.completed";
         /**
          * BrowserRuntimeTransition
          * @description Exact contract reference required for READY and RUNNING transitions.
@@ -4500,6 +4534,96 @@ export interface components {
             /** Seq */
             seq: number;
             snapshotStatus: components["schemas"]["DebugRunSnapshotStatus"];
+        };
+        /**
+         * DebugLiveFrame
+         * @description Public metadata for the latest private browser frame.
+         */
+        DebugLiveFrame: {
+            /**
+             * Capturedat
+             * Format: date-time
+             */
+            capturedAt: string;
+            /** Contentdigest */
+            contentDigest: string;
+            /**
+             * Debugrunid
+             * Format: uuid
+             */
+            debugRunId: string;
+            /**
+             * Environmentid
+             * Format: uuid
+             */
+            environmentId: string;
+            /**
+             * Executioncontractid
+             * Format: uuid
+             */
+            executionContractId: string;
+            /** Framerevision */
+            frameRevision: number;
+            /**
+             * Mimetype
+             * @enum {string}
+             */
+            mimeType: "image/jpeg" | "image/png" | "image/webp";
+            /** Pagerevision */
+            pageRevision: number;
+            /**
+             * Projectid
+             * Format: uuid
+             */
+            projectId: string;
+            /**
+             * Schemaversion
+             * @default atlas.debug-live-frame/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.debug-live-frame/0.1";
+            /** Sizebytes */
+            sizeBytes: number;
+        };
+        /**
+         * DebugLiveFrameUpdate
+         * @description One masked, bounded, non-authoritative browser frame from the trusted Worker.
+         */
+        DebugLiveFrameUpdate: {
+            /**
+             * Capturedat
+             * Format: date-time
+             */
+            capturedAt: string;
+            /** Contentdigest */
+            contentDigest: string;
+            /** Executioncontractdigest */
+            executionContractDigest: string;
+            /**
+             * Executioncontractid
+             * Format: uuid
+             */
+            executionContractId: string;
+            /** Framerevision */
+            frameRevision: number;
+            /**
+             * Mimetype
+             * @enum {string}
+             */
+            mimeType: "image/jpeg" | "image/png" | "image/webp";
+            /** Pagerevision */
+            pageRevision: number;
+            /**
+             * Payload
+             * Format: base64
+             */
+            payload: string;
+            /**
+             * Schemaversion
+             * @default atlas.debug-live-frame-update/0.1
+             * @constant
+             */
+            schemaVersion: "atlas.debug-live-frame-update/0.1";
         };
         /**
          * DebugLiveRunProjection
@@ -10871,6 +10995,77 @@ export interface operations {
             };
         };
     };
+    publish_debug_live_frame_internal_v1_debug_runs__runId__live_frame_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DebugLiveFrameUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugLiveFrame"];
+                };
+            };
+            /** @description Worker request 或 execution permit 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Runtime lifecycle 或 report chain 冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合内部接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Browser Runtime 安全依赖未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     sweep_fixture_cleanup_internal_v1_fixture_cleanup_sweep_post: {
         parameters: {
             query?: {
@@ -14925,6 +15120,87 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DebugLiveSnapshot"];
+                };
+            };
+            /** @description Live Cursor 无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 缺少有效身份 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description DebugRun 不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 请求不符合接口契约 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Live Observer 容量已满 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description 服务内部错误 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_debug_live_frame_content_v1_debug_runs__runId__live_frame_content_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Atlas-Tenant-ID"?: string | null;
+                "X-Atlas-Actor-ID"?: string | null;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 最新的受限实时浏览器画面 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
                 };
             };
             /** @description Live Cursor 无效 */

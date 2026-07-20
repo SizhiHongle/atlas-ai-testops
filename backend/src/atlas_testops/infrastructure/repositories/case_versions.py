@@ -92,10 +92,28 @@ class CaseVersionRepository:
                 draft.semantic_digest,
                 case.intent_version_ref,
                 case.intent_digest,
-                Jsonb(case.intent.model_dump(mode="json", by_alias=True)),
-                Jsonb(test_ir.model_dump(mode="json", by_alias=True)),
+                Jsonb(
+                    case.intent.model_dump(
+                        mode="json",
+                        by_alias=True,
+                        exclude_none=True,
+                    )
+                ),
+                Jsonb(
+                    test_ir.model_dump(
+                        mode="json",
+                        by_alias=True,
+                        exclude_none=True,
+                    )
+                ),
                 test_ir.content_digest,
-                Jsonb(plan_template.model_dump(mode="json", by_alias=True)),
+                Jsonb(
+                    plan_template.model_dump(
+                        mode="json",
+                        by_alias=True,
+                        exclude_none=True,
+                    )
+                ),
                 plan_template.plan_digest,
                 compiled_digest,
                 content_digest,

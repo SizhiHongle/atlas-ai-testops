@@ -14,8 +14,8 @@
 ## 当前状态
 
 - 当前阶段：`P10 前端生产化`
-- 当前切片：`P10-01 独立生产前端、真实 API 闭环与发布门禁`
-- 总体状态：P5 已建立正式执行宿主、统一 Manual / Schedule / CI / Webhook Trigger、100,000-Unit 可恢复分区物化、有界 Temporal History、signed HTTPS production Port、数据库权威 Temporal Schedule Catalog / Sync / Fire，以及 signed Task Gate Callback 可靠投递；P6 已建立可信 Browser / Evidence / Attempt Result 事实链、DebugRun 只读 Live 和 UnitAttempt-scoped Live Control；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate 与公开查询 API。P8 V1 已实现 comparable Insight Snapshot。P9 本地参考验收全部通过。P10 已保留原型为设计权威，并在独立生产包中完成 Auth、Space、Identity、Fixture、Case、Task、Live、Result、Insight 的真实 API 接线、权限/错误边界、安全 BFF、Unit/Component/E2E/Visual Regression、生产构建与发布门禁
+- 当前切片：`P10-02 原型逐页功能与视觉生产落地`
+- 总体状态：P5 已建立正式执行宿主、统一 Manual / Schedule / CI / Webhook Trigger、100,000-Unit 可恢复分区物化、有界 Temporal History、signed HTTPS production Port、数据库权威 Temporal Schedule Catalog / Sync / Fire，以及 signed Task Gate Callback 可靠投递；P6 已建立可信 Browser / Evidence / Attempt Result 事实链、DebugRun 只读 Live 和 UnitAttempt-scoped Live Control；P7 已完成三阶段 Result Snapshot、Failure Classification、fail-closed Task Gate 与公开查询 API。P8 V1 已实现 comparable Insight Snapshot。P9 本地参考验收全部通过。P10 已建立独立生产前端、真实 API、安全 BFF 和发布门禁；Case Workbench、Task Center/Builder、Batch Live Cockpit、Debug Test Theatre、Result Center 与 Insight Terrain 已按原型完成真实功能、桌面/移动视觉及回归验证，P10-02 逐页生产落地计划已完成
 - 当前分支：`main`
 - P10 进入基线提交：`3b8bdc4`
 
@@ -33,7 +33,7 @@
 | P7 | Result Fact、Snapshot、Classification 与 Gate | 已完成 | P6-03A/P6-03B 与 P7-01A 至 P7-03 已实现三阶段 Snapshot、FailureCluster / Classification、`0039` TaskGateDecision、公开 Result API、ETag 与既有 Results 槽位真实数据映射 |
 | P8 | Insight Projector、Metric、Snapshot 与 Export | 基础中 | V1 fixed MetricDefinition、qualityFinalizedAt 归窗、ratio-of-sums、DatasetCut、`0040` immutable InsightSnapshot、preview/pin/exact API 与既有 Insights 槽位映射已实现；Projector generation、Signal/Review 与异步 Export 待扩展 |
 | P9 | 隔离、并发、故障注入、黄金链路与 SLO 验收 | 基础中 | 本地参考：12 项故障、10,000 Lease 冲突 0、100 Evidence、30 / 30 黄金链、Cleanup 100%、Schedule P95 4,787 ms、Live P95 4 ms 均通过。生产月度 SLO、人工分类、真实影子迭代与灾备演练 `NOT_EVALUATED` |
-| P10 | 原型权威下的生产前端工程与真实 API 闭环 | 已完成 | 独立 `atlas-testops-web`、Feature First、同源 BFF、Session/RBAC、九个真实业务域、WorkflowPatch/Layout、14 项 Unit/Component Test、8 项桌面/移动 E2E 与 Visual Baseline、生产构建和安全响应验收全部通过 |
+| P10 | 原型权威下的生产前端工程与真实 API 闭环 | 进行中 | 独立 `atlas-testops-web`、Feature First、同源 BFF、Session/RBAC 与九个真实业务域已建立；Case、Task、Batch Live 与 Debug Live 已逐页完成，当前 18 项 Unit/Component Test、40 项桌面/移动 E2E 与 10 张 Visual Baseline 全部通过 |
 
 ## P0-01 范围
 
@@ -1003,17 +1003,102 @@
 - Password Login、HttpOnly Session、Logout、Workspace Boundary 与角色级操作权限使用真实 Auth API；没有 Session 时跳转登录，Session/网络错误不会被误报成无权限。
 - Space、Identity、Fixture、Case、Task、Live、Result 与 Insight 全部读取真实投影；后端没有公开契约的能力明确禁用，不使用 Mock、手填无来源 UUID、假百分比或静默演示回退。
 - Case Workbench 完成 WorkflowPatch `validate → apply` 闭环，复用同一 Patch ID、Idempotency-Key 与 semantic Revision；节点拖拽使用独立 Layout Revision，不污染 Debug/发布语义证据。
-- Task Center 使用 exact TaskPlanVersion 启动 TaskRun，并按冻结 `infra-retry` digest 校验 canonical 请求；TaskRun 与 Live Control 均使用 If-Match、Idempotency 与 Control Epoch/Fencing。
+- Case Workbench 已按原型完成真实 Catalog、Draft Graph、Patch、Layout、Debug/Publish 门禁及桌面/移动视觉收敛。
+- Task Center 已按原型落地项目级 NOW/NEXT/RECENT、筛选与运行聚焦；Task Builder 使用 exact TaskPlanVersion 组装 Manual/Schedule Trigger，并按冻结 `infra-retry` digest 校验 canonical 请求。TaskRun 与 Live Control 均使用 If-Match、Idempotency 与 Control Epoch/Fencing。
 - Result Center 绑定 exact ResultSnapshot、FailureCluster 与 Classification Revision；Insight 明确区分 `NO_DATA` 与 0，并展示 DatasetCut 来源。
 - 建立 Design Tokens、CSS Modules、统一 Loading/Error/Empty/Dialog、Root/Global Error Boundary、Query/Mutation 错误事件和生产 CSP/HSTS/Cross-Origin/Permissions 安全头。
-- 测试覆盖 Mapper/Digest/WorkflowPatch Builder Unit Test、Permission Guard Component Test、桌面/移动 Login/Task/Live E2E，以及固定 Task Center 的双端 Visual Regression。
+- 测试覆盖 Mapper/Digest/WorkflowPatch Builder Unit Test、Permission Guard Component Test、桌面/移动 Login/Case/Task/Live E2E，以及 Case Workbench、Task Center、Task Builder 的双端 Visual Regression。
 
 ### 验证状态与下一步
 
-- TypeScript strict、ESLint 与 10 个测试文件 / 14 项 Unit+Component Test 已通过。
-- Playwright 桌面与移动端 8 项 E2E/Visual Regression 已通过，并在浏览器回归中修复无效 URL `planId` 会触发错误后端请求的问题。
+- TypeScript strict、ESLint 与 11 个测试文件 / 18 项 Unit+Component Test 已通过。
+- Playwright 桌面与移动端 26 项 E2E/Visual Regression 已通过；覆盖 Case Workbench、Task Center、Task Builder 的真实业务交互和视觉基线，并在浏览器回归中修复无效 URL `planId` 会触发错误后端请求的问题。
 - 最终生产构建、产物 Secret 清理、安全响应头、BFF Problem Details/Request ID 一致性与 API Contract 检查已通过；发布使用源码 commit 绑定 Sites Version 和 Deployment，部署事实以发布平台记录为准。
-- Identity 聚合创建、AI WorkflowPatch 生成、Execution/Profile Catalog、Evidence Listing/Streaming/Export、Defect Integration、Feishu OAuth、全局搜索和通知仍缺少公共后端契约；前端保持明确禁用，不能将其描述为已完成。
+- Identity 聚合创建、AI WorkflowPatch 生成、Execution/Profile Catalog、UnitAttempt Evidence Listing/Streaming/Export、Defect Integration、Feishu OAuth、全局搜索和通知仍缺少公共后端契约；前端保持明确禁用，不能将其描述为已完成。
+
+## P10-02 Live 逐页生产落地
+
+### 已实现
+
+- 冻结原型 Live 页作为视觉权威，在生产包中按同一 Hero、Context Banner、Progress Ribbon、Worker Lanes、Execution Matrix、Execution Focus 与底部控制条层级重建 Batch Live Cockpit；没有修改原型源码。
+- Batch Live 从 URL 恢复 exact `TaskRun → ExecutionUnit → UnitAttempt` 选择，按 Role / Browser 分组真实 Unit 矩阵，分别展示 Lifecycle、Quality 与 Hygiene；真实项目没有 TaskRun 时进入明确空态，不生成演示 Unit、百分比或浏览器画面。
+- TaskRun Pause / Resume / Cancel 使用 Revision `If-Match` 与 `Idempotency-Key`；取消要求二次确认。Attempt Takeover / Return / Pause / Resume 使用 `control-epoch` fencing，并展示 LiveSession、ControlLease、pending command、browser revision 与 human influence 的服务端事实。
+- Case Workbench 创建 DebugRun 后直接进入 `/live?debugRunId=...&caseId=...`。Debug Test Theatre 读取不可变 DebugRun、冻结 PlanTemplate、Live Snapshot、最多 500 条单调事件、终态 EvidenceManifest，并在活跃状态使用可恢复 SSE 更新 Query Cache。
+- Debug Evidence Artifact 必须先签发 exact artifact / purpose 的短期 Read Grant，再以 `Atlas-Evidence` 授权读取 bytes；截图只在真实读取成功后生成本地 Blob 预览。断言、Artifact 数量、完整性与事件摘要均来自 Evidence Service。
+- 公共契约没有 UnitAttempt/Debug screencast，且 UnitAttempt 没有 Evidence Listing/Network/Log API；生产 UI 因此只显示可验证投影并将 UnitAttempt 三类证据入口标为 `GATED`，不复刻原型中的静态 CRM 截图或虚构日志。
+- 桌面保留原型三栏 cockpit；移动端将 Worker、Matrix、Inspector 与 Debug Route 顺序折叠，并确保三个冻结节点和完整 Observe → Policy → Action → Oracle → Evidence 链默认可见。
+
+### 验证状态与下一步
+
+- `pnpm check` 通过：OpenAPI 漂移、TypeScript strict、ESLint、11 个测试文件 / 18 项 Unit+Component Test 全部通过；`pnpm build` 生产构建成功。
+- Playwright 全量 40 / 40 通过，覆盖 Desktop Chromium 与 Pixel 7；Live 定向验证覆盖矩阵分组、URL 恢复、Revision / Epoch fencing、Case → Debug 深链、冻结事件回放、Evidence Read Grant 与 Artifact 授权。
+- Visual Regression 已新增 Batch Live 与 Debug Live 的桌面/移动基线；当前 Case、Task Center、Task Builder、Batch Live、Debug Live 共 10 张基线。Batch Live 另以 36 Units / 3 Roles 的高密度 fixture 验证原型矩阵，不影响真实页面数据。
+- 应用内浏览器已对照 1440×900 原型检查 Hero、Context Banner、Ribbon、三栏 Cockpit、Inspector 与控制条；真实数据库无 TaskRun 空态重新加载后没有新增 console error。
+- 下一页按既定顺序进入 Results；Live 页后续只在后端新增 UnitAttempt screencast 或 Evidence API 时解除对应 `GATED` 能力。
+
+## P10-02 Results 逐页生产落地
+
+### 已实现
+
+- 冻结原型 Results 页作为视觉权威，在生产包中按同一 Hero、Quality Gate 三联画、Failure Cluster Deck、Outcome Constellation、Triage 与底部 Snapshot Rail 层级重建 Result Center；没有修改原型源码，也没有改动 Case、Task 或 Live 页面结构。
+- 默认选择真实可见的首个 `CLOSED` TaskRun，并把 `runId + clusterId + cursor` 固定在 URL。无效或缺失选择会规范到当前真实 Run / Cluster；底部 TaskRun 下拉切换时同步清理旧 Cluster / Cursor，不向错误 Run 发起悬空查询。
+- Quality Gate 展示 exact ResultSnapshot Revision、Finality、Manifest 守恒、四类 Verdict、精确通过率与固定 Aggregation Policy；Gate 评估使用服务端要求的 `resultSnapshotId + gatePolicyVersion=0.1.0 + Idempotency-Key`，失败留在组件内，不升级为未处理脚本错误。
+- Failure Cluster Deck 使用后端 bounded domain 区分 Product、Method/Automation 与 Environment/Infrastructure 色带。Outcome Constellation 的节点来自真实 `affectedUnitResolutionRevisionIds`，并标识 representative revision；不会再用 Outcome/Stability 等通用标签冒充受影响 Unit。
+- Triage 展示 Classification Revision、basis-point confidence、Judgment State、typed supporting/contradicting Evidence Ref、Evidence Completeness/Integrity 与 Data Hygiene。人工复核沿用 existing Classification root，以 `expectedRevision` 追加不可变 `HUMAN_*` Revision，并原样保留证据引用。
+- `ACCEPTED` Snapshot 进入明确 Clear State；没有 TaskRun 或没有 ResultSnapshot 时分别进入真实 Empty State，不从运行中 Unit 推测正式结果。完整证据包导出、通用失败单元重跑、Known Issue、Defect 与测试方法候选写入因没有公共契约而保持明确禁用。
+- Result ViewModel 新增 Aggregation Policy、UnitResolution Revision 引用、完整 Failure Signal 三轴、Gate Policy 与 Projection Watermark 映射；Mapper Test 固定精确 fraction、影响引用与 Evidence/Hygiene 事实。
+- 纠正 E2E Session 中不存在的 `RESULT_REVIEWER`，与后端 `PlatformRole` / `can_review_results` 对齐为 `CASE_REVIEWER`。生产权限仍允许组织管理员、项目管理员和 Case Reviewer 执行结果复核。
+
+### 原型对齐与有意差异账本
+
+1. Hero 标题、说明、双操作位、三联 Gate、三栏失败工作区和底部轨道均保持原型信息层级；`ACCEPTED` 使用原型的正向发布标题。
+2. Quality Gate 恢复深色轨道、虚线内环与 Coral 状态节点；中部保留 2×2 Score Grid；右侧恢复深色 Violet Verdict，桌面为三列、移动端按原型顺序单列展开。
+3. Failure Cluster 使用 Coral / Violet / Sand 卡片，Outcome Constellation 保留双轨道、中央影响核心与外围节点，Triage 保留置信度、证据和三个操作位。
+4. 原型 `AI VERDICT` 文案改为 `GATE VERDICT`：当前结论是后端固定 Policy 产生的可审计 Gate Fact，不能把它描述成 AI 自主发布决定。
+5. 原型中的静态 Outcome 节点改为真实 UnitResolution Revision 短引用；代表节点仅做视觉强调，不生成不存在的影响关系。
+6. 原型中的静态 Baseline/Delta 改为 immutable Snapshot Rail：当前公共 Result API 没有跨 Run Comparison 契约，不能展示伪造基线；Rail 保留同等位置和密度，并展示 Run、Finality、Autonomous、Evidence、Aggregation 与 Created 事实。
+7. 原型的导出、通用重跑、Known Issue 与方法候选操作保留原位置但禁用，并通过 title 说明契约边界；不跳转 Live、不伪造成功。
+8. 旧生产页额外增加的 Run Strip 与六轴地形已从 Results 主流程移除；Run 切换收到底部 Rail，六轴只在真实 Gate / Evidence 事实需要的位置使用，避免偏离已确认原型。
+
+### 验证状态与下一步
+
+- `pnpm check` 通过：OpenAPI 漂移、TypeScript strict、ESLint、12 个测试文件 / 21 项 Unit+Component Test 全部通过；`pnpm build` 生产构建成功。
+- Playwright 全量 52 / 52 通过，覆盖 Desktop Chromium 与 Pixel 7。Results 定向 8 项覆盖默认 CLOSED Run、URL 规范化、Cluster 切换、exact Gate Policy/Idempotency、人工 append-only Revision、Evidence Ref 保留、ACCEPTED Clear State 与 unsupported action gate。
+- Visual Regression 新增 Result Center 桌面/移动基线；当前 Case、Task Center、Task Builder、Batch Live、Debug Live、Results 共 12 张基线。
+- 应用内浏览器以真实数据库重新加载 Results 空态，确认不会回退演示数据；最新页面日志没有 console error。原型与生产全页截图已逐项核对 Hero、Gate、Workspace、Triage、Rail 与移动折叠顺序。
+- Results 页已完成并按既定顺序交接 Insights；Results 后续只有在后端新增通用 Rerun、Evidence Export、Defect/Known Issue 或 Comparable Result API 后才解除对应禁用能力。
+
+## P10-02 Insights 逐页生产落地
+
+### 已实现
+
+- 冻结原型 Insights 页作为视觉权威，在生产包中按同一 Hero、Quality Sphere、四个 TaskPlan Quality Slice、双指标、Active Risk Card 与底部 Trace Card 层级重建质量地形；没有修改原型源码，也没有改动 Case、Task、Live 或 Results 页面。
+- 7 / 30 / 90 天窗口继续使用 URL State，并读取真实 `InsightBrief`。窗口切换会删除旧 `snapshot` 参数，明确回到 Live Brief；固定 Snapshot 的窗口不能被静默改写。
+- `InsightBrief` / `InsightSnapshot` 共用 ViewModel，但显式区分 `LIVE / PINNED`。ViewModel 保留 `metricPolicyVersion`、MetricDefinition、TaskPlan 风险关联、DatasetCut ordered source / Gate IDs 与 hashes、query/auth hash、projection watermark 和 Snapshot identity。
+- `固定当前 DatasetCut` 使用 exact `windowDays + asOf + clientMutationId`，并保持 `Idempotency-Key == clientMutationId`。Pin 成功后进入 `?snapshot={id}`；Deep Link 只调用 `GET /v1/insight-snapshots/{snapshotId}`，不会再错误读取实时 Brief。
+- Quality Sphere 最多展示后端返回的四个 TaskPlan slice，并把每个节点连接到其 latest TaskRun Result；Active Risk 只展示 deterministic latest non-accepted Gate observation，不把它描述成根因、风险簇或 AI 判断。
+- 稳定可信通过、自主可信通过与方法健康度均来自 fixed MetricDefinition 和 ratio-of-sums；页面显示 exact numerator / denominator 导出的 basis-point projection、signed baseline delta 与 sample status。`NO_DATA` 保持 `—`，不会渲染成 `0%` 或“安全”。
+- 原型底部 `TRACE REPLAY · FROZEN` 改为真实 `DATASET TRACE`：显示 Source Snapshot、Gate Decision、ratio-of-sums、Current/Baseline Run 与 asOf。当前公共 API 没有 Workflow/Execution Replay，所以没有复刻静态步骤或伪造可回放行为。
+- Live Brief 可固定为不可变 Snapshot；Pinned 模式显示 Snapshot ID/hash 并禁用重复固定。错误留在页面 mutation state，后端 Problem Details 不会升级为未处理脚本错误。
+
+### 原型对齐与有意差异账本
+
+1. Hero 标题、说明、单一风险任务操作位、690px 主舞台、620px 球体、右侧 2+1 指标卡与底部深色轨迹均保持原型信息层级。
+2. 原型四个静态地形节点改为 API 返回的 TaskPlan slice；不足四个时不补演示节点，零节点时在球体内显示 `NO COMPARABLE SLICES`。
+3. 原型 `稳定通过` 改为契约名 `稳定可信通过`；方法健康度继续保留，自主可信通过收进风险卡底部，以容纳全部三项 V1 固定指标而不增加原型外的大区块。
+4. 原型 `ACTIVE RISK CLUSTER` 改为 `ACTIVE RISK SIGNAL`：现有 API 只证明 latest non-accepted Gate observation，不能自动聚类、归因或宣称因果。
+5. 原型 Workflow Replay 改为 DatasetCut Trace；当前后端没有 Signal Lab、Cause Confirmation、Validation Task Draft 或 Execution Replay 公共契约，对应能力不在前端模拟。
+6. 旧生产页额外的 Dataset Banner、Current vs Baseline 大区块和 Provenance 长条已移除；同一真实事实收敛到原型指标卡和底部 Trace，不重复占据页面。
+7. Window Selector 收进主舞台标题区；Pinned Snapshot 上点击窗口会明确离开 Snapshot 并读取 Live Brief，避免共享链接语义漂移。
+8. 移动端按原型依次折叠 Hero、Sphere、Metrics、Risk 与 Trace，并为新增的真实 Autonomous 指标扩展舞台高度，避免 Risk/Trace 覆盖。
+
+### 验证状态与下一步
+
+- `pnpm check` 通过：OpenAPI 漂移、TypeScript strict、ESLint、12 个测试文件 / 22 项 Unit+Component Test 全部通过；`pnpm build` 生产构建成功。
+- Playwright 全量 64 / 64 通过，覆盖 Desktop Chromium 与 Pixel 7。Insights 定向 10 项覆盖原型层级、真实 Terrain、7/30/90 窗口、exact Pin command/Idempotency、immutable Snapshot deep link、Live Brief 查询隔离、`NO_DATA` 与无风险非推断语义。
+- Visual Regression 新增 Insight Terrain 桌面/移动基线；当前 Case、Task Center、Task Builder、Batch Live、Debug Live、Results、Insights 共 14 张基线。
+- 应用内浏览器已对照冻结原型检查 Hero、Sphere、Metrics、Risk 与 Trace；真实数据库 `NO_DATA` 空态重新加载后无 console error，也没有回退到演示数据。
+- P10-02 逐页生产落地顺序已完成。后续只有在后端新增 Signal/Review、Validation Task Draft、Execution Replay 或 Insight Export API 后，才扩展对应洞察工作台能力；当前页面继续 fail-closed。
 
 ## 当前风险与外部输入
 

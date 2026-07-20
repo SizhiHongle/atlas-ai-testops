@@ -246,6 +246,11 @@
     min-height: 62px;
     padding: 10px 16px;
     gap: 12px;
+    border-bottom-color: transparent;
+  }
+
+  .brand div {
+    display: none;
   }
 
   .navigation {
@@ -288,6 +293,10 @@
   }
 
   .actions > button:not(.avatar, .menu) {
+    display: none;
+  }
+
+  .actions .avatar {
     display: none;
   }
 

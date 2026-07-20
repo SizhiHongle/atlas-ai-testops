@@ -299,7 +299,7 @@ class RuntimeRepository:
              and session.environment_id = binding.environment_id
             where binding.execution_contract_id = %s
             order by binding.actor_slot
-            for share of binding, session
+            for share of session
             """,
             (execution_contract_id,),
         )

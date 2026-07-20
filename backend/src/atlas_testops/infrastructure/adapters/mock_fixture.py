@@ -22,6 +22,8 @@ _OPERATION_KEYS = (
     "customer.delete",
     "customer.lookup",
     "customer.verify",
+    "demo.web.build-expectation",
+    "demo.web.resolve-keyword",
     "visit.create",
     "visit.delete",
     "visit.lookup",
@@ -33,7 +35,7 @@ class MockFixtureOperationProvider:
     """Return schema-shaped values derived from the logical idempotency key."""
 
     def operation_specs(self) -> tuple[FixtureOperationSpec, ...]:
-        capabilities = frozenset(_OPERATION_KEYS)
+        capabilities = frozenset((*_OPERATION_KEYS, "web.search.read"))
         return tuple(
             FixtureOperationSpec(
                 operation_key=operation_key,
@@ -52,10 +54,15 @@ class MockFixtureOperationProvider:
         seed = hashlib.sha256(
             f"{context.idempotency_key}:{invocation.operation.operation_key}".encode()
         ).hexdigest()
-        outputs = {
-            key: _value_for_schema(schema, seed=seed, key=key)
-            for key, schema in sorted(invocation.expected_outputs.items())
-        }
+        if invocation.operation.operation_key == "demo.web.resolve-keyword":
+            outputs = {"searchKeyword": invocation.inputs["keyword"]}
+        elif invocation.operation.operation_key == "demo.web.build-expectation":
+            outputs = {"expectedText": invocation.inputs["searchKeyword"]}
+        else:
+            outputs = {
+                key: _value_for_schema(schema, seed=seed, key=key)
+                for key, schema in sorted(invocation.expected_outputs.items())
+            }
         return FixtureOperationResult(
             outputs=outputs,
             provider_request_id=f"mock-{seed[:24]}",

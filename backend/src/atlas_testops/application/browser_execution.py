@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from base64 import b64encode
+from hashlib import sha256
+from typing import Literal
 from uuid import UUID
 
 from pydantic import JsonValue
@@ -23,6 +26,8 @@ from atlas_testops.domain.runtime import (
     BrowserExecutionBundle,
     BrowserRuntimeReport,
     BrowserRuntimeReportKind,
+    DebugLiveFrame,
+    DebugLiveFrameUpdate,
     EvidenceManifest,
     FinalizeDebugEvidence,
     build_browser_runtime_report,
@@ -49,6 +54,7 @@ class BrowserExecutionReporterService(BrowserExecutionReporter):
         self._bundle = bundle
         self._sequence = 0
         self._chain_head = CHAIN_START_DIGEST
+        self._frame_revision = 0
 
     @property
     def event_count(self) -> int:
@@ -87,6 +93,31 @@ class BrowserExecutionReporterService(BrowserExecutionReporter):
         self._sequence = report.sequence
         self._chain_head = report.chain_digest
         return persisted
+
+    async def publish_live_frame(
+        self,
+        *,
+        payload: bytes,
+        mime_type: Literal["image/jpeg", "image/png", "image/webp"],
+        page_revision: int,
+    ) -> DebugLiveFrame:
+        self._frame_revision += 1
+        command = DebugLiveFrameUpdate(
+            execution_contract_id=self._bundle.execution_contract.id,
+            execution_contract_digest=self._bundle.execution_contract.content_digest,
+            frame_revision=self._frame_revision,
+            page_revision=page_revision,
+            mime_type=mime_type,
+            content_digest=f"sha256:{sha256(payload).hexdigest()}",
+            payload=b64encode(payload),
+            captured_at=utc_now(),
+        )
+        return await self._gateway.publish_live_frame(
+            tenant_id=self._tenant_id,
+            run_id=self._run_id,
+            worker_identity=self._worker_identity,
+            command=command,
+        )
 
 
 class BrowserWorkerService:
@@ -289,6 +320,21 @@ class DirectDebugRuntimeGateway(BrowserRuntimeGateway):
             execution_contract_id=execution_contract_id,
             execution_contract_digest=execution_contract_digest,
             worker_identity=worker_identity,
+        )
+
+    async def publish_live_frame(
+        self,
+        *,
+        tenant_id: UUID,
+        run_id: UUID,
+        worker_identity: str,
+        command: DebugLiveFrameUpdate,
+    ) -> DebugLiveFrame:
+        return await self._service.publish_live_frame(
+            tenant_id,
+            run_id,
+            worker_identity=worker_identity,
+            command=command,
         )
 
     async def append_report(

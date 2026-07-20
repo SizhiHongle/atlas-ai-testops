@@ -14,6 +14,7 @@ from atlas_testops.application.sessions import AuthSessionService
 from atlas_testops.core.config import AuthSessionWorkerSettings, Settings, get_settings
 from atlas_testops.infrastructure.adapters.registry import AdapterRegistry
 from atlas_testops.infrastructure.database import Database
+from atlas_testops.infrastructure.secrets import LocalDevelopmentSecretProvider
 from atlas_testops.infrastructure.session_runtime import build_optional_session_artifact_vault
 from atlas_testops.orchestration.sessions import (
     AuthSessionActivities,
@@ -39,10 +40,16 @@ async def run_worker(
     if vault is None:
         vault = await build_optional_session_artifact_vault(worker_settings)
     registry = AdapterRegistry.from_settings(settings)
+    selected_secret_provider = secret_provider
+    if (
+        selected_secret_provider is None
+        and settings.environment in {"local", "development"}
+    ):
+        selected_secret_provider = LocalDevelopmentSecretProvider()
     session_service = AuthSessionService(
         database,
         adapter_registry=registry,
-        secret_provider=secret_provider,
+        secret_provider=selected_secret_provider,
         session_vault=vault,
         session_ttl=timedelta(seconds=settings.auth_session_ttl_seconds),
         creation_timeout=timedelta(
@@ -81,7 +88,7 @@ async def run_worker(
             extra={
                 "task_queue": settings.auth_session_task_queue,
                 "max_concurrent_activities": settings.auth_session_worker_max_concurrency,
-                "secret_provider_configured": secret_provider is not None,
+                "secret_provider_configured": selected_secret_provider is not None,
                 "session_vault_configured": vault is not None,
             },
         )

@@ -9,6 +9,7 @@ from tests.domain.case.test_runtime_evidence import _run
 from tests.domain.runtime.test_browser_protocol import _runtime
 
 from atlas_testops.application.browser_execution import (
+    BrowserExecutionReporterService,
     BrowserWorkerService,
     DirectDebugRuntimeGateway,
 )
@@ -27,6 +28,8 @@ from atlas_testops.domain.runtime import (
     BrowserExecutionBundle,
     BrowserRuntimeReport,
     BrowserRuntimeReportKind,
+    DebugLiveFrame,
+    DebugLiveFrameUpdate,
     EvidenceArtifactInput,
     EvidenceArtifactKind,
     EvidenceIntegrity,
@@ -45,6 +48,7 @@ class FakeGateway:
         self.reports: list[BrowserRuntimeReport] = []
         self.finalization: FinalizeDebugEvidence | None = None
         self.transitions: list[str] = []
+        self.live_frame_commands: list[DebugLiveFrameUpdate] = []
 
     async def get_execution_bundle(
         self,
@@ -85,6 +89,31 @@ class FakeGateway:
         )
         self.reports.append(persisted)
         return persisted
+
+    async def publish_live_frame(
+        self,
+        *,
+        tenant_id: UUID,
+        run_id: UUID,
+        worker_identity: str,
+        command: DebugLiveFrameUpdate,
+    ) -> DebugLiveFrame:
+        assert tenant_id == self.bundle.execution_contract.tenant_id
+        assert run_id == self.bundle.execution_contract.debug_run_id
+        assert worker_identity == self.bundle.execution_contract.worker_identity
+        self.live_frame_commands.append(command)
+        return DebugLiveFrame(
+            debug_run_id=run_id,
+            project_id=self.bundle.execution_contract.project_id,
+            environment_id=self.bundle.execution_contract.environment_id,
+            execution_contract_id=command.execution_contract_id,
+            frame_revision=command.frame_revision,
+            page_revision=command.page_revision,
+            mime_type=command.mime_type,
+            content_digest=command.content_digest,
+            size_bytes=len(command.payload),
+            captured_at=command.captured_at,
+        )
 
     async def finalize_evidence(
         self,
@@ -206,6 +235,35 @@ class RecordingRuntimeService:
     ) -> tuple[DebugRun, EvidenceManifest]:
         self.calls.append("finalize")
         return self.run, self.manifest
+
+
+@pytest.mark.anyio
+async def test_reporter_encodes_raw_live_frame_for_wire_contract(
+    valid_graph: WorkflowGraph,
+    intent_factory: Callable[..., CaseIntent],
+) -> None:
+    bundle, _codec = _runtime(valid_graph, intent_factory)
+    gateway = FakeGateway(bundle, _run(valid_graph, intent_factory))
+    reporter = BrowserExecutionReporterService(
+        gateway,
+        tenant_id=bundle.execution_contract.tenant_id,
+        run_id=bundle.execution_contract.debug_run_id,
+        worker_identity=bundle.execution_contract.worker_identity,
+        bundle=bundle,
+    )
+    payload = b"\xff\xd8\xff\xe0masked-jpeg-frame"
+
+    frame = await reporter.publish_live_frame(
+        payload=payload,
+        mime_type="image/jpeg",
+        page_revision=3,
+    )
+
+    assert frame.frame_revision == 1
+    assert gateway.live_frame_commands[0].payload == payload
+    assert "masked-jpeg-frame" not in gateway.live_frame_commands[
+        0
+    ].model_dump_json(by_alias=True)
 
 
 @pytest.mark.anyio

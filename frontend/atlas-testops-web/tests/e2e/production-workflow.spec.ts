@@ -51,7 +51,10 @@ test("loads an exact live snapshot and sends fenced takeover control", async ({
       request.method() === "POST" &&
       request.url().endsWith(`/v1/unit-attempts/${ATTEMPT_ID}/takeover`)
   );
-  await page.getByRole("button", { name: "接管" }).click();
+  await page
+    .getByRole("button", { name: "接管当前执行", exact: true })
+    .first()
+    .click();
   const request = await takeoverRequest;
 
   expect(request.headers()["if-match"]).toBe('"control-epoch-7"');

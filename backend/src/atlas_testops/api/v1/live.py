@@ -104,6 +104,41 @@ async def get_debug_live_snapshot(
 
 
 @router.get(
+    "/debug-runs/{runId}/live-frame/content",
+    response_class=Response,
+    responses={
+        200: {
+            "description": "最新的受限实时浏览器画面",
+            "content": {
+                "image/jpeg": {"schema": {"type": "string", "format": "binary"}},
+                "image/png": {"schema": {"type": "string", "format": "binary"}},
+                "image/webp": {"schema": {"type": "string", "format": "binary"}},
+            },
+        }
+    },
+    summary="读取 DebugRun 最新实时浏览器画面",
+)
+async def get_debug_live_frame_content(
+    run_id: RunIdPath,
+    actor: ActorDependency,
+    service: DebugLiveServiceDependency,
+) -> Response:
+    frame = await service.get_live_frame(actor, run_id)
+    return Response(
+        content=frame.payload,
+        media_type=frame.metadata.mime_type,
+        headers={
+            **_PRIVATE_NO_STORE_HEADERS,
+            "ETag": f'"{frame.metadata.content_digest}"',
+            "X-Atlas-Frame-Revision": str(frame.metadata.frame_revision),
+            "X-Atlas-Page-Revision": str(frame.metadata.page_revision),
+            "X-Atlas-Frame-Captured-At": frame.metadata.captured_at.isoformat(),
+            "Content-Digest": frame.metadata.content_digest,
+        },
+    )
+
+
+@router.get(
     "/debug-runs/{runId}/events/stream",
     response_class=Response,
     responses={

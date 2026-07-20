@@ -18,6 +18,12 @@ from atlas_testops.domain.identity import (
     ProviderHealthState,
 )
 from atlas_testops.domain.platform.models import normalize_origins
+from atlas_testops.infrastructure.secrets import (
+    LOCAL_PUBLIC_WEB_PASSWORD,
+    LOCAL_PUBLIC_WEB_USERNAME,
+)
+
+LOCAL_PUBLIC_WEB_ROLE_KEY = "public.web.visitor"
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,8 +37,14 @@ class _MockAccount:
 class MockIdentityProvider:
     """不执行网络调用的确定性 Provider，用于验证 Adapter 安全边界。"""
 
-    def __init__(self, *, allowed_origins: tuple[str, ...] = ()) -> None:
+    def __init__(
+        self,
+        *,
+        allowed_origins: tuple[str, ...] = (),
+        allow_local_public_web_credential: bool = False,
+    ) -> None:
         self._allowed_origins = frozenset(normalize_origins(allowed_origins))
+        self._allow_local_public_web_credential = allow_local_public_web_credential
         self._accounts: dict[str, _MockAccount] = {}
         self.authentication_attempts = 0
 
@@ -137,6 +149,19 @@ class MockIdentityProvider:
 
         self.authentication_attempts += 1
         account = self._accounts.get(account_handle)
+        if account is None and self._allow_local_public_web_credential:
+            username = secret.reveal_username()
+            password = secret.reveal_password()
+            if compare_digest(username, LOCAL_PUBLIC_WEB_USERNAME) and compare_digest(
+                password,
+                LOCAL_PUBLIC_WEB_PASSWORD,
+            ):
+                account = _MockAccount(
+                    provider_subject="local-public-web:public-web-01",
+                    role_keys=(LOCAL_PUBLIC_WEB_ROLE_KEY,),
+                    username=username,
+                    password=password,
+                )
         authorized_origin = context.origin in self._allowed_origins
         valid = (
             account is not None

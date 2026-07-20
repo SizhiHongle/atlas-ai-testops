@@ -22,6 +22,8 @@ from atlas_testops.domain.runtime import (
     BrowserFinalizeCommand,
     BrowserRuntimeReport,
     BrowserRuntimeTransition,
+    DebugLiveFrame,
+    DebugLiveFrameUpdate,
     EvidenceManifest,
     FinalizeDebugEvidence,
 )
@@ -33,6 +35,7 @@ ResponseModel = TypeVar(
     BrowserExecutionBundle,
     BrowserRuntimeReport,
     BrowserEvidenceFinalization,
+    DebugLiveFrame,
 )
 
 
@@ -164,6 +167,30 @@ class HttpBrowserRuntimeGateway(BrowserRuntimeGateway):
         if persisted.value != report:
             raise self._invalid_response()
         return persisted
+
+    async def publish_live_frame(
+        self,
+        *,
+        tenant_id: UUID,
+        run_id: UUID,
+        worker_identity: str,
+        command: DebugLiveFrameUpdate,
+    ) -> DebugLiveFrame:
+        self._require_scope(tenant_id, worker_identity)
+        response = await self._request(
+            "POST",
+            f"/internal/v1/debug-runs/{run_id}/live-frame",
+            command.model_dump_json(by_alias=True).encode(),
+        )
+        frame = self._parse(response, DebugLiveFrame)
+        if (
+            frame.debug_run_id != run_id
+            or frame.execution_contract_id != command.execution_contract_id
+            or frame.frame_revision != command.frame_revision
+            or frame.content_digest != command.content_digest
+        ):
+            raise self._invalid_response()
+        return frame
 
     async def finalize_evidence(
         self,

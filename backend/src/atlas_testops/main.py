@@ -36,7 +36,9 @@ from atlas_testops.infrastructure.browser_envelope import AesGcmBrowserContextEn
 from atlas_testops.infrastructure.database import Database
 from atlas_testops.infrastructure.evidence_runtime import build_evidence_object_reader
 from atlas_testops.infrastructure.passwords import PasswordService
+from atlas_testops.infrastructure.secrets import LocalDevelopmentSecretProvider
 from atlas_testops.orchestration.browser import TemporalBrowserExecutionDispatcher
+from atlas_testops.orchestration.debug_preparation import TemporalDebugRunDispatcher
 from atlas_testops.orchestration.fixtures import TemporalFixtureRunDispatcher
 from atlas_testops.orchestration.sessions import TemporalAuthSessionDispatcher
 
@@ -110,6 +112,21 @@ async def application_lifespan(application: FastAPI) -> AsyncIterator[None]:
                     ),
                 )
             )
+        if (
+            settings.debug_run_preparation_enabled
+            and application.state.debug_run_dispatcher is None
+        ):
+            temporal_client = await Client.connect(
+                settings.temporal_address,
+                namespace=settings.temporal_namespace,
+            )
+            application.state.debug_run_dispatcher = TemporalDebugRunDispatcher(
+                temporal_client,
+                task_queue=settings.temporal_task_queue,
+                activity_timeout=timedelta(
+                    seconds=settings.debug_run_preparation_activity_timeout_seconds
+                ),
+            )
         yield
     finally:
         if database is not None:
@@ -152,7 +169,11 @@ def create_app(
     application.state.adapter_registry = adapter_registry or AdapterRegistry.from_settings(
         app_settings
     )
-    application.state.secret_provider = secret_provider
+    application.state.secret_provider = secret_provider or (
+        LocalDevelopmentSecretProvider()
+        if app_settings.environment in {"local", "development"}
+        else None
+    )
     application.state.auth_session_dispatcher = auth_session_dispatcher
     application.state.fixture_operation_registry = (
         fixture_operation_registry or FixtureOperationRegistry.from_settings(app_settings)

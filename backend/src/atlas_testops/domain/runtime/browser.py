@@ -112,6 +112,7 @@ class BrowserRuntimeReportKind(StrEnum):
     EXECUTION_STARTED = "execution.started"
     NODE_STARTED = "node.started"
     OBSERVATION_CAPTURED = "observation.captured"
+    PLANNER_COMPLETED = "planner.completed"
     ACTION_PROPOSED = "action.proposed"
     POLICY_DECIDED = "policy.decided"
     ACTION_EXECUTED = "action.executed"
@@ -585,6 +586,23 @@ _REPORT_PAYLOAD_KEYS: dict[BrowserRuntimeReportKind, frozenset[str]] = {
             "targetCount",
         }
     ),
+    BrowserRuntimeReportKind.PLANNER_COMPLETED: frozenset(
+        {
+            "safeSummary",
+            "planningMode",
+            "provider",
+            "model",
+            "externalCall",
+            "status",
+            "latencyMs",
+            "inputUnits",
+            "outputUnits",
+            "modelProfileRef",
+            "promptBundleRef",
+            "reasoningPolicyRef",
+            "selectedTargetRole",
+        }
+    ),
     BrowserRuntimeReportKind.ACTION_PROPOSED: frozenset(
         {
             "safeSummary",
@@ -669,6 +687,12 @@ _REPORT_REFERENCE_FIELDS: dict[
         ("pageRef", PAGE_REF_PATTERN, False),
         ("routeKey", REFERENCE_PATTERN, True),
     ),
+    BrowserRuntimeReportKind.PLANNER_COMPLETED: (
+        ("modelProfileRef", REFERENCE_PATTERN, False),
+        ("promptBundleRef", REFERENCE_PATTERN, False),
+        ("reasoningPolicyRef", REFERENCE_PATTERN, False),
+        ("selectedTargetRole", REFERENCE_PATTERN, False),
+    ),
     BrowserRuntimeReportKind.ACTION_PROPOSED: (
         ("nodeId", REFERENCE_PATTERN, False),
         ("targetRef", TARGET_REF_PATTERN, True),
@@ -707,6 +731,11 @@ def _validate_report_semantics(report: AppendBrowserRuntimeReport) -> None:
         and report.actor_slot is None
     ):
         raise ValueError("observation reports require actorSlot")
+    if (
+        report.kind is BrowserRuntimeReportKind.PLANNER_COMPLETED
+        and report.actor_slot is None
+    ):
+        raise ValueError("planner reports require actorSlot")
     if report.kind in {
         BrowserRuntimeReportKind.EXECUTION_STARTED,
         BrowserRuntimeReportKind.EXECUTION_COMPLETED,
@@ -758,6 +787,11 @@ def _validate_report_semantics(report: AppendBrowserRuntimeReport) -> None:
         ),
         BrowserRuntimeReportKind.ACTION_EXECUTED: ("resultingPageRevision",),
         BrowserRuntimeReportKind.ARTIFACT_CAPTURED: ("sizeBytes",),
+        BrowserRuntimeReportKind.PLANNER_COMPLETED: (
+            "latencyMs",
+            "inputUnits",
+            "outputUnits",
+        ),
         BrowserRuntimeReportKind.NODE_COMPLETED: (
             "assertionResultCount",
             "artifactCount",
@@ -781,6 +815,25 @@ def _validate_report_semantics(report: AppendBrowserRuntimeReport) -> None:
         parsed_risk = BrowserActionRisk(risk)
         if parsed_risk not in _ACTION_RISK_RULES[parsed_action]:
             raise ValueError("browser report action risk is invalid")
+    elif report.kind is BrowserRuntimeReportKind.PLANNER_COMPLETED:
+        if report.payload["planningMode"] not in {
+            "DETERMINISTIC",
+            "OPENAI_RESPONSES",
+        }:
+            raise ValueError("browser planner mode is invalid")
+        if report.payload["status"] not in {"RESOLVED", "FALLBACK"}:
+            raise ValueError("browser planner status is invalid")
+        external_call = report.payload["externalCall"]
+        if not isinstance(external_call, bool):
+            raise ValueError("browser planner externalCall is invalid")
+        for key in ("provider", "model"):
+            value = report.payload[key]
+            if not isinstance(value, str) or not 1 <= len(value) <= 160:
+                raise ValueError(f"browser planner {key} is invalid")
+        if report.payload["planningMode"] == "DETERMINISTIC" and external_call:
+            raise ValueError("deterministic planner cannot claim an external call")
+        if report.payload["planningMode"] == "OPENAI_RESPONSES" and not external_call:
+            raise ValueError("OpenAI planner must record an external call")
     elif report.kind is BrowserRuntimeReportKind.POLICY_DECIDED:
         decision = report.payload["decision"]
         if not isinstance(decision, str):

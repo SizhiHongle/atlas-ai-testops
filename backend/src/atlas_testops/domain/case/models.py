@@ -185,9 +185,8 @@ class ValueSource(FrozenWireModel):
     @model_validator(mode="after")
     def require_exactly_one_payload(self) -> Self:
         value_supplied = "value" in self.model_fields_set
-        reference_supplied = "reference" in self.model_fields_set
         if self.kind is ValueSourceKind.LITERAL:
-            if reference_supplied or not value_supplied:
+            if self.reference is not None or not value_supplied:
                 raise ValueError("LITERAL value source requires value only")
         elif self.reference is None or value_supplied:
             raise ValueError("non-literal value source requires reference only")

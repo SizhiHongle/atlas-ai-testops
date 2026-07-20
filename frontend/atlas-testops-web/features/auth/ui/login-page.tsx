@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
 
 import { ApiProblemError } from "@/shared/api/problem";
 import { LOGIN_WORKSPACES } from "@/shared/config/client";
@@ -28,9 +28,26 @@ import { LOGIN_WORKSPACES } from "@/shared/config/client";
 import { useLoginMutation } from "../api/auth-queries";
 import styles from "./login-page.module.css";
 
+function subscribeToHydration(): () => void {
+  return () => undefined;
+}
+
+function getClientHydrationSnapshot(): boolean {
+  return true;
+}
+
+function getServerHydrationSnapshot(): boolean {
+  return false;
+}
+
 export function LoginPage() {
   const router = useRouter();
   const login = useLoginMutation();
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot
+  );
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [workspaceId, setWorkspaceId] = useState(LOGIN_WORKSPACES[0].id);
   const [configurationError, setConfigurationError] = useState<string | null>(
@@ -39,7 +56,7 @@ export function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (login.isPending) return;
+    if (!isHydrated || login.isPending) return;
 
     const form = new FormData(event.currentTarget);
     const selectedWorkspace = LOGIN_WORKSPACES.find(
@@ -184,7 +201,7 @@ export function LoginPage() {
             身份、数据、Agent 与证据链正在等待连接。
           </p>
 
-          <form onSubmit={handleSubmit}>
+          <form method="post" onSubmit={handleSubmit}>
             <label>
               <span>测试空间</span>
               <span className={styles.selectField}>
@@ -262,7 +279,7 @@ export function LoginPage() {
             <button
               className={styles.submit}
               type="submit"
-              disabled={login.isPending}
+              disabled={!isHydrated || login.isPending}
             >
               {login.isPending ? "正在验证身份…" : "登录测试空间"}
               <ArrowRight size={17} aria-hidden="true" />

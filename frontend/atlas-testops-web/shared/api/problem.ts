@@ -6,6 +6,11 @@ export type ApiProblem = {
   instance?: string;
   errorCode?: string;
   requestId?: string;
+  violations?: Array<{
+    field: string;
+    message: string;
+    code?: string;
+  }>;
 };
 
 export function isApiProblem(value: unknown): value is ApiProblem {

@@ -4,7 +4,22 @@ ATLAS_OWNER_DATABASE_URL ?= postgresql://atlas_owner:atlas_owner@127.0.0.1:5432/
 ATLAS_TEST_DATABASE_URL ?= postgresql://atlas_app:atlas_app@127.0.0.1:5432/atlas
 ATLAS_TEST_TEMPORAL_ADDRESS ?= 127.0.0.1:7233
 
-.PHONY: infra-up infra-down migrate contracts backend-check frontend-check p9-acceptance verify
+.PHONY: dev dev-stop dev-status dev-logs seed-examples infra-up infra-down migrate contracts backend-check frontend-check p9-acceptance verify
+
+dev:
+	./scripts/dev.sh
+
+dev-stop:
+	./scripts/dev.sh stop
+
+dev-status:
+	./scripts/dev.sh status
+
+dev-logs:
+	./scripts/dev.sh logs
+
+seed-examples:
+	./scripts/dev.sh seed
 
 infra-up:
 	docker compose up -d --wait

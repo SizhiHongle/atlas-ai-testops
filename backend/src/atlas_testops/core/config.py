@@ -98,6 +98,12 @@ class Settings(BaseSettings):
     fixture_retry_initial_seconds: int = Field(default=2, ge=1, le=300)
     fixture_retry_maximum_seconds: int = Field(default=300, ge=1, le=900)
     browser_runtime_enabled: bool = False
+    debug_run_preparation_enabled: bool = False
+    debug_run_preparation_activity_timeout_seconds: int = Field(
+        default=600,
+        ge=30,
+        le=1_800,
+    )
     browser_runtime_task_queue: str = Field(
         default="atlas-browser",
         min_length=1,
@@ -121,6 +127,35 @@ class Settings(BaseSettings):
         min_length=1,
         max_length=100,
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,99}$",
+    )
+    browser_revision: str | None = Field(default=None, min_length=1, max_length=160)
+    browser_tool_catalog_ref: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=160,
+    )
+    browser_policy_bundle_ref: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=160,
+    )
+    browser_allowed_actions: tuple[
+        Literal[
+            "open_route",
+            "activate",
+            "enter_text",
+            "choose_option",
+            "keypress",
+            "scroll",
+            "capture_view",
+        ],
+        ...,
+    ] = (
+        "open_route",
+        "activate",
+        "enter_text",
+        "keypress",
+        "capture_view",
     )
     evidence_object_store_endpoint: str | None = None
     evidence_object_store_access_key: SecretStr | None = None
@@ -265,6 +300,25 @@ class Settings(BaseSettings):
             raise ValueError("browser runtime security configuration must be complete")
         if self.browser_runtime_enabled and not all(configured_browser_runtime_secrets):
             raise ValueError("enabled browser runtime requires complete security configuration")
+        if self.debug_run_preparation_enabled:
+            if self.environment not in {"local", "development"}:
+                raise ValueError("local DebugRun preparation is forbidden outside development")
+            if not (
+                self.browser_runtime_enabled
+                and self.auth_session_dispatch_enabled
+                and self.fixture_dispatch_enabled
+                and self.browser_revision is not None
+                and self.browser_tool_catalog_ref is not None
+                and self.browser_policy_bundle_ref is not None
+            ):
+                raise ValueError(
+                    "local DebugRun preparation requires Browser, Auth Session, "
+                    "Fixture, and exact runtime profiles"
+                )
+        if not self.browser_allowed_actions or len(self.browser_allowed_actions) != len(
+            set(self.browser_allowed_actions)
+        ):
+            raise ValueError("browser allowed actions must be non-empty and unique")
         if (
             self.browser_runtime_heartbeat_timeout_seconds
             >= self.browser_runtime_activity_timeout_seconds
@@ -787,6 +841,20 @@ class BrowserWorkerSettings(AuthSessionWorkerSettings):
     browser_headless: bool = True
     browser_worker_max_concurrency: int = Field(default=2, ge=1, le=16)
     browser_action_timeout_seconds: int = Field(default=15, ge=1, le=300)
+    browser_ai_mode: Literal["deterministic", "openai"] = "deterministic"
+    browser_ai_api_key: SecretStr | None = None
+    browser_ai_model: str = Field(
+        default="gpt-5.6-sol",
+        min_length=1,
+        max_length=160,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$",
+    )
+    browser_ai_api_base_url: str = Field(
+        default="https://api.openai.com",
+        min_length=1,
+        max_length=2_048,
+    )
+    browser_ai_timeout_seconds: float = Field(default=20, ge=1, le=120)
     browser_tool_catalog_ref: str | None = Field(default=None, min_length=1, max_length=160)
     browser_policy_bundle_ref: str | None = Field(default=None, min_length=1, max_length=160)
     browser_mcp_server_manifest_digest: str | None = Field(
@@ -856,9 +924,6 @@ class BrowserWorkerSettings(AuthSessionWorkerSettings):
             self.browser_revision,
             self.browser_tool_catalog_ref,
             self.browser_policy_bundle_ref,
-            self.browser_mcp_server_manifest_digest,
-            self.browser_tool_schema_digest,
-            self.browser_policy_digest,
         )
         configured = [value is not None for value in configured_values]
         if any(configured) and not all(configured):
@@ -867,6 +932,29 @@ class BrowserWorkerSettings(AuthSessionWorkerSettings):
             set(self.browser_allowed_actions)
         ):
             raise ValueError("browser allowed actions must be non-empty and unique")
+        if self.browser_ai_mode == "openai" and (
+            self.browser_ai_api_key is None
+            or not self.browser_ai_api_key.get_secret_value().strip()
+        ):
+            raise ValueError("OpenAI browser planner requires ATLAS_BROWSER_AI_API_KEY")
+        normalized_ai_url = self.browser_ai_api_base_url.rstrip("/")
+        parsed_ai_url = urlsplit(normalized_ai_url)
+        if (
+            parsed_ai_url.scheme not in {"http", "https"}
+            or parsed_ai_url.hostname is None
+            or parsed_ai_url.username is not None
+            or parsed_ai_url.password is not None
+            or parsed_ai_url.path not in {"", "/"}
+            or parsed_ai_url.query
+            or parsed_ai_url.fragment
+        ):
+            raise ValueError("browser AI API base URL must be an HTTP(S) origin")
+        if (
+            parsed_ai_url.scheme == "http"
+            and self.environment not in {"local", "test", "development"}
+        ):
+            raise ValueError("browser AI API requires HTTPS outside local development")
+        object.__setattr__(self, "browser_ai_api_base_url", normalized_ai_url)
         if self.browser_runtime_api_base_url is not None:
             normalized_url = self.browser_runtime_api_base_url.rstrip("/")
             parsed = urlsplit(normalized_url)

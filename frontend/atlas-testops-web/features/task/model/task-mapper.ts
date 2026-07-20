@@ -1,12 +1,19 @@
 import type {
   ExecutionUnitDto,
   ExecutionUnitViewModel,
+  PublishedCaseVersionViewModel,
+  TaskEnvironmentViewModel,
   TaskPlanDto,
   TaskPlanVersionDto,
   TaskPlanVersionViewModel,
   TaskPlanViewModel,
   TaskRunDto,
   TaskRunViewModel,
+  TaskScheduleDto,
+  TaskScheduleViewModel,
+  TestCaseCatalogItemDto,
+  CaseVersionDto,
+  EnvironmentDto,
   TaskUnitSummary
 } from "./task";
 
@@ -36,11 +43,60 @@ export function mapTaskPlanVersion(
     taskPlanId: dto.taskPlanId,
     version: dto.version,
     versionRef: dto.versionRef,
+    pinnedCaseVersionIds: [...dto.pinnedCaseVersionIds],
+    environmentIds: [...dto.matrix.environmentIds],
+    browserProfileVersionIds: [...dto.matrix.browserProfileVersionIds],
+    identityProfileVersionIds: [...dto.matrix.identityProfileVersionIds],
+    dataProfileVersionIds: [...dto.matrix.dataProfileVersionIds],
     caseCount: dto.pinnedCaseVersionIds.length,
     matrixSize,
     contentDigest: dto.contentDigest,
     retryPolicyDigest: dto.policyDigests["infra-retry"] ?? null,
     publishedAt: new Date(dto.publishedAt)
+  };
+}
+
+export function mapTaskSchedule(
+  dto: TaskScheduleDto
+): TaskScheduleViewModel {
+  return {
+    id: dto.id,
+    taskPlanVersionId: dto.taskPlanVersionId,
+    name: dto.name,
+    key: dto.scheduleKey,
+    status: dto.status,
+    syncStatus: dto.syncStatus,
+    timeZoneName: dto.timeZoneName,
+    nextFireTimes: dto.nextFireTimesUtc.map((value) => new Date(value)),
+    retryPolicy: dto.retryPolicy,
+    revision: dto.revision
+  };
+}
+
+export function mapPublishedCaseVersion(
+  testCase: TestCaseCatalogItemDto,
+  version: CaseVersionDto
+): PublishedCaseVersionViewModel {
+  return {
+    id: version.id,
+    testCaseId: testCase.id,
+    caseKey: testCase.caseKey,
+    caseName: testCase.name,
+    roleKey: testCase.intent.actors[0]?.roleKey ?? null,
+    version: version.version,
+    semanticRevision: version.semanticRevision,
+    publishedAt: new Date(version.publishedAt)
+  };
+}
+
+export function mapTaskEnvironment(
+  environment: EnvironmentDto
+): TaskEnvironmentViewModel {
+  return {
+    id: environment.id,
+    key: environment.environmentKey,
+    name: environment.name,
+    kind: environment.kind
   };
 }
 

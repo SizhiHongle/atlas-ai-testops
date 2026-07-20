@@ -13,13 +13,69 @@
 - `backend/`
   - Python 3.14 模块化后端，包含 Platform RBAC、Identity Catalog、Connector/Capability、Account Health Verification、Account Lease/Fencing、Secret Grant/Adapter、独立 Auth Session Worker、加密 SessionArtifact、DataAtom / DataBlueprint 资产控制面、耐久 FixtureRun / 资源账本，以及不直连主数据库的独立 Browser Worker 执行平面。
 - `compose.yaml`
-  - 本地 PostgreSQL、Temporal Dev Server、MinIO、独立 Auth Session Worker 与 Fixture Worker。
+  - 本地 PostgreSQL、Temporal Dev Server、MinIO，以及 Debug Preparation、Auth Session、Fixture、Browser Worker。
 - `documents/IMPLEMENTATION_PROGRESS.md`
   - 持续更新的阶段进度、验证证据和下一步。
 
 ## 启动本地基础设施
 
 环境要求：Docker Desktop、`uv >= 0.11`、Node.js `>= 22.13.0`。
+
+推荐使用一键启动脚本。它会同步锁定依赖、初始化缺失的本地环境文件，并依次启动基础设施、执行 Migration、启动默认 Worker、FastAPI 和生产前端。当前 Tenant / Project 已配置时，还会幂等补齐公共网页搜索资产和图验证通过的百度搜索示例用例：
+
+```bash
+./scripts/dev.sh
+# 或
+make dev
+```
+
+启动完成后可通过以下命令管理整套本地环境：
+
+```bash
+./scripts/dev.sh status
+./scripts/dev.sh logs backend
+./scripts/dev.sh logs frontend
+./scripts/dev.sh logs infra
+./scripts/dev.sh seed
+./scripts/dev.sh restart
+./scripts/dev.sh stop
+```
+
+示例数据包括 `public.web.visitor` 测试角色、两个网页搜索 `DataAtom`、一个已静态编译的 `DataBlueprint`，以及搜索 `AAA`、`Codex`、`Atlas AI TestOps` 的三条用例。可单独重复执行 `make seed-examples`，不会创建重复数据。
+
+默认前端地址为 `http://127.0.0.1:5173`，后端地址为 `http://127.0.0.1:8001`。端口冲突时脚本不会终止未知进程，可以显式覆盖本地端口：
+
+```bash
+ATLAS_DEV_API_PORT=8010 ATLAS_DEV_WEB_PORT=5174 ./scripts/dev.sh
+```
+
+已确认依赖无变化时，可跳过依赖同步：
+
+```bash
+ATLAS_DEV_INSTALL_DEPENDENCIES=false ./scripts/dev.sh
+```
+
+不需要示例数据时可显式关闭；也可以覆盖初始化目标：
+
+```bash
+ATLAS_DEV_SEED_EXAMPLES=false ./scripts/dev.sh
+ATLAS_DEV_TENANT_ID=<tenant-uuid> ATLAS_DEV_PROJECT_ID=<project-uuid> ./scripts/dev.sh seed
+```
+
+一键启动会启用仅限 Local / Development 的受信 Browser Runtime，并注册固定的百度 Route / Operation，因此三条示例用例可以产生真实 DebugRun、截图与 Evidence Manifest。Task Worker、Intent Consumer、Schedule Worker 和 Gate Callback Consumer 仍保持默认关闭；它们需要各自的外部执行器或生产级密钥。
+
+实时调试页会展示经过遮罩的最新浏览器帧、冻结步骤、`Observe → Decide → Act → Verify → Evidence` 时间线、断言、Evidence、资源收尾和可展开的完整技术事件。`AI Runtime` 只展示真实调用事实：默认 `deterministic` 模式不会调用外部模型；如需让 OpenAI Responses API 在候选控件中选择目标，可显式配置：
+
+```bash
+ATLAS_BROWSER_AI_MODE=openai \
+ATLAS_BROWSER_AI_API_KEY=<openai-api-key> \
+ATLAS_BROWSER_AI_MODEL=gpt-5.6-sol \
+./scripts/dev.sh restart
+```
+
+外部模型只返回受约束的候选目标索引，浏览器动作仍必须经过 `Policy Gate`；调用失败会回退到确定性选择，并在页面记录 `FALLBACK`，不会创建或伪造模型结果。页面不展示模型思维链，只展示 Provider、Model、状态、耗时、用量与版本化契约引用。
+
+也可以继续手动启动基础设施和 Migration：
 
 ```bash
 make infra-up

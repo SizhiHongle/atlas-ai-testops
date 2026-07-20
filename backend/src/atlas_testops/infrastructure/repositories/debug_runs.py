@@ -14,6 +14,7 @@ from atlas_testops.core.pagination import TimeCursor
 from atlas_testops.domain.case import (
     DebugRun,
     DebugRunEvent,
+    DebugRunOutcome,
     PlanTemplate,
     StartDebugRun,
     TestIR,
@@ -88,9 +89,21 @@ class DebugRunRepository:
                 draft.semantic_revision,
                 draft.semantic_digest,
                 compiled_digest,
-                Jsonb(test_ir.model_dump(mode="json", by_alias=True)),
+                Jsonb(
+                    test_ir.model_dump(
+                        mode="json",
+                        by_alias=True,
+                        exclude_none=True,
+                    )
+                ),
                 test_ir.content_digest,
-                Jsonb(plan_template.model_dump(mode="json", by_alias=True)),
+                Jsonb(
+                    plan_template.model_dump(
+                        mode="json",
+                        by_alias=True,
+                        exclude_none=True,
+                    )
+                ),
                 plan_template.plan_digest,
                 temporal_workflow_id,
                 requested_by,
@@ -177,6 +190,65 @@ class DebugRunRepository:
             returning {DEBUG_RUN_COLUMNS}
             """,
             (requested_at, requested_by, run_id, expected_revision),
+        )
+        row = await cursor.fetchone()
+        return DebugRun.model_validate(row) if row is not None else None
+
+    async def terminate_preparation_failure(
+        self,
+        connection: AsyncConnection[DictRow],
+        *,
+        run: DebugRun,
+        outcome: DebugRunOutcome,
+        failure_code: str,
+        failure_detail: str,
+        completed_at: datetime,
+    ) -> DebugRun | None:
+        """Persist a truthful terminal state when trusted preparation cannot finish."""
+
+        finalizing_cursor = await connection.execute(
+            f"""
+            update atlas.debug_run
+            set lifecycle = 'FINALIZING',
+                started_at = coalesce(started_at, %s),
+                revision = revision + 1
+            where id = %s
+              and revision = %s
+              and lifecycle in ('CREATED', 'BINDING')
+            returning {DEBUG_RUN_COLUMNS}
+            """,
+            (
+                completed_at,
+                run.id,
+                run.revision,
+            ),
+        )
+        finalizing_row = await finalizing_cursor.fetchone()
+        if finalizing_row is None:
+            return None
+        finalizing = DebugRun.model_validate(finalizing_row)
+        cursor = await connection.execute(
+            f"""
+            update atlas.debug_run
+            set lifecycle = 'TERMINATED',
+                outcome = %s,
+                failure_code = %s,
+                failure_detail = %s,
+                completed_at = %s,
+                revision = revision + 1
+            where id = %s
+              and revision = %s
+              and lifecycle = 'FINALIZING'
+            returning {DEBUG_RUN_COLUMNS}
+            """,
+            (
+                outcome,
+                failure_code,
+                failure_detail,
+                completed_at,
+                run.id,
+                finalizing.revision,
+            ),
         )
         row = await cursor.fetchone()
         return DebugRun.model_validate(row) if row is not None else None

@@ -1,7 +1,7 @@
 """Process boundaries for Browser Worker execution and protected session restore."""
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Literal, Protocol
 from uuid import UUID
 
 from pydantic import JsonValue
@@ -15,6 +15,8 @@ from atlas_testops.domain.runtime import (
     BrowserExecutionBundle,
     BrowserRuntimeReport,
     BrowserRuntimeReportKind,
+    DebugLiveFrame,
+    DebugLiveFrameUpdate,
     EvidenceArtifactInput,
     EvidenceManifest,
     ExecutionContract,
@@ -80,6 +82,15 @@ class BrowserRuntimeGateway(Protocol):
         report: AppendBrowserRuntimeReport,
     ) -> BrowserRuntimeReport: ...
 
+    async def publish_live_frame(
+        self,
+        *,
+        tenant_id: UUID,
+        run_id: UUID,
+        worker_identity: str,
+        command: DebugLiveFrameUpdate,
+    ) -> DebugLiveFrame: ...
+
     async def finalize_evidence(
         self,
         *,
@@ -101,6 +112,14 @@ class BrowserExecutionReporter(Protocol):
         actor_slot: str | None = None,
         action_id: UUID | None = None,
     ) -> BrowserRuntimeReport: ...
+
+    async def publish_live_frame(
+        self,
+        *,
+        payload: bytes,
+        mime_type: Literal["image/jpeg", "image/png", "image/webp"],
+        page_revision: int,
+    ) -> DebugLiveFrame: ...
 
 
 @dataclass(frozen=True, slots=True)

@@ -3,6 +3,7 @@
 from asyncio import Lock, sleep
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
+from hashlib import sha256
 from time import monotonic
 from uuid import UUID
 
@@ -20,6 +21,10 @@ from atlas_testops.domain.runtime.live import (
     encode_debug_live_cursor,
 )
 from atlas_testops.infrastructure.database import Database
+from atlas_testops.infrastructure.repositories.debug_live_frames import (
+    DebugLiveFrameContent,
+    DebugLiveFrameRepository,
+)
 from atlas_testops.infrastructure.repositories.debug_runs import (
     DebugRunLiveSeed,
     DebugRunRepository,
@@ -76,6 +81,25 @@ _LIVE_EVENT_PAYLOAD_KEYS: dict[str, tuple[str, ...]] = {
         "pageRevision",
         "routeKey",
         "targetCount",
+    ),
+    "debug_run.browser.planner.completed": (
+        "reportId",
+        "reportSequence",
+        "reportKind",
+        "actorSlot",
+        "safeSummary",
+        "planningMode",
+        "provider",
+        "model",
+        "externalCall",
+        "status",
+        "latencyMs",
+        "inputUnits",
+        "outputUnits",
+        "modelProfileRef",
+        "promptBundleRef",
+        "reasoningPolicyRef",
+        "selectedTargetRole",
     ),
     "debug_run.browser.action.proposed": (
         "reportId",
@@ -213,6 +237,7 @@ class DebugLiveService:
         maximum_connection_seconds: float,
         batch_size: int,
         repository: DebugRunRepository | None = None,
+        frame_repository: DebugLiveFrameRepository | None = None,
     ) -> None:
         if poll_interval_seconds <= 0:
             raise ValueError("poll interval must be positive")
@@ -228,6 +253,7 @@ class DebugLiveService:
         self._maximum_connection_seconds = maximum_connection_seconds
         self._batch_size = batch_size
         self._runs = repository or DebugRunRepository()
+        self._frames = frame_repository or DebugLiveFrameRepository()
 
     @property
     def maximum_connection_seconds(self) -> float:
@@ -242,6 +268,38 @@ class DebugLiveService:
 
         seed = await self._get_visible_seed(actor, run_id)
         return self._snapshot(seed)
+
+    async def get_live_frame(
+        self,
+        actor: ActorContext,
+        run_id: UUID,
+    ) -> DebugLiveFrameContent:
+        """Read and independently verify the latest private operator frame."""
+
+        async with self._database.transaction(actor.database_context()) as connection:
+            seed = await self._runs.get_live_seed(connection, run_id)
+            if seed is None or not actor.can_read_project(seed.run.project_id):
+                raise self._not_found()
+            frame = await self._frames.get(connection, run_id)
+            if frame is None:
+                raise ApplicationError(
+                    error_code=ErrorCode.NOT_FOUND,
+                    title="实时浏览器画面尚未生成",
+                    detail="Browser Worker 尚未发布可展示的实时画面。",
+                    status_code=404,
+                )
+        digest = f"sha256:{sha256(frame.payload).hexdigest()}"
+        if (
+            len(frame.payload) != frame.metadata.size_bytes
+            or digest != frame.metadata.content_digest
+        ):
+            raise ApplicationError(
+                error_code=ErrorCode.DEPENDENCY_UNAVAILABLE,
+                title="实时浏览器画面校验失败",
+                detail="实时画面字节与受信元数据不一致，Atlas 已拒绝展示。",
+                status_code=503,
+            )
+        return frame
 
     async def prepare_stream(
         self,
@@ -315,13 +373,17 @@ class DebugLiveService:
         async with self._database.transaction(actor.database_context()) as connection:
             seed = await self._runs.get_live_seed(connection, run_id)
             if seed is None or not actor.can_read_project(seed.run.project_id):
-                raise ApplicationError(
-                    error_code=ErrorCode.NOT_FOUND,
-                    title="DebugRun 不存在",
-                    detail="DebugRun 不存在或不可见。",
-                    status_code=404,
-                )
+                raise self._not_found()
             return seed
+
+    @staticmethod
+    def _not_found() -> ApplicationError:
+        return ApplicationError(
+            error_code=ErrorCode.NOT_FOUND,
+            title="DebugRun 不存在",
+            detail="DebugRun 不存在或不可见。",
+            status_code=404,
+        )
 
     async def _read_events(
         self,

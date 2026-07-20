@@ -262,7 +262,12 @@ def case_payload(suffix: str) -> dict[str, object]:
                     "contentDigest": DIGEST_B,
                 }
             ],
-            "variables": {},
+            "variables": {
+                "customerFilter": {
+                    "kind": "LITERAL",
+                    "value": "ACTIVE",
+                }
+            },
             "evidencePolicy": {
                 "trace": True,
                 "screenshots": "critical-actions",

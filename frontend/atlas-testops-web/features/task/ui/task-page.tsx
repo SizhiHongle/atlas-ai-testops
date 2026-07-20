@@ -1,12 +1,15 @@
 "use client";
 
 import {
+  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   Bot,
   CircleAlert,
   CircleCheck,
   CircleStop,
+  Clock3,
+  Fingerprint,
   Globe2,
   ListChecks,
   Pause,
@@ -19,6 +22,7 @@ import {
 import Link from "next/link";
 import {
   usePathname,
+  useRouter,
   useSearchParams
 } from "next/navigation";
 import {
@@ -28,16 +32,16 @@ import {
 } from "react";
 
 import { useSessionQuery } from "@/features/auth/api/auth-queries";
+import { useIdentityWalletQuery } from "@/features/identity/api/identity-queries";
 import { ApiProblemError } from "@/shared/api/problem";
 import { createRequestId } from "@/shared/api/request-id";
-import { EmptyState } from "@/shared/ui/feedback/empty-state";
 import { ErrorState } from "@/shared/ui/feedback/error-state";
 import { LoadingState } from "@/shared/ui/feedback/loading-state";
 
 import {
   useExecutionUnitsQuery,
-  useTaskPlansQuery,
-  useTaskPlanVersionsQuery,
+  useTaskAssemblyCatalogQuery,
+  useTaskControlCatalogQuery,
   useTaskRunCommandMutation,
   useTaskRunsQuery
 } from "../api/task-queries";
@@ -47,7 +51,7 @@ import type {
   TaskRunViewModel
 } from "../model/task";
 import { CreateTaskPlanDialog } from "./create-task-plan-dialog";
-import { StartTaskRunDialog } from "./start-task-run-dialog";
+import { TaskBuilder } from "./task-builder";
 import styles from "./task-page.module.css";
 
 const RUN_OPERATORS = new Set([
@@ -57,6 +61,7 @@ const RUN_OPERATORS = new Set([
 ]);
 
 type ProgressStyle = CSSProperties & { "--progress": string };
+type RunFilter = "all" | "active" | "attention" | "waiting";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("zh-CN", {
   month: "2-digit",
@@ -65,11 +70,20 @@ const DATE_FORMAT = new Intl.DateTimeFormat("zh-CN", {
   minute: "2-digit"
 });
 
+const FIRE_DATE_FORMAT = new Intl.DateTimeFormat("zh-CN", {
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZoneName: "short"
+});
+
 function shortId(value: string): string {
   return value.slice(0, 8).toUpperCase();
 }
 
 function statusTone(run: TaskRunViewModel): "good" | "risk" | "active" | "muted" {
+  if (["QUEUED", "MATERIALIZING"].includes(run.lifecycle)) return "muted";
   if (run.lifecycle !== "CLOSED") return "active";
   if (run.quality === "PASSED") return "good";
   if (["FAILED", "BLOCKED", "INFRA_ERROR"].includes(run.quality)) return "risk";
@@ -86,16 +100,33 @@ function searchHref(
     if (value) next.set(key, value);
     else next.delete(key);
   });
-  return `${pathname}?${next.toString()}`;
+  const query = next.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
+function matchesFilter(run: TaskRunViewModel, filter: RunFilter): boolean {
+  if (filter === "active") return run.lifecycle !== "CLOSED";
+  if (filter === "attention") {
+    return ["FAILED", "BLOCKED", "INFRA_ERROR"].includes(run.quality);
+  }
+  if (filter === "waiting") {
+    return (
+      run.lifecycle === "QUEUED" ||
+      run.materializationState === "MATERIALIZING"
+    );
+  }
+  return true;
 }
 
 function RunCard({
   run,
+  planName,
   version,
   href,
   selected
 }: Readonly<{
   run: TaskRunViewModel;
+  planName: string;
   version: TaskPlanVersionViewModel | null;
   href: string;
   selected: boolean;
@@ -111,11 +142,11 @@ function RunCard({
         <span>
           RUN-{shortId(run.id)} · {run.triggerSource}
         </span>
-        <strong>{version?.versionRef ?? `VERSION-${shortId(run.taskPlanVersionId)}`}</strong>
+        <strong>{planName}</strong>
       </div>
       <b>{run.lifecycle}</b>
       <small>{run.quality}</small>
-      <em>{DATE_FORMAT.format(run.requestedAt)}</em>
+      <em>{version?.version ?? DATE_FORMAT.format(run.requestedAt)}</em>
       <ArrowUpRight size={15} aria-hidden="true" />
     </Link>
   );
@@ -123,108 +154,128 @@ function RunCard({
 
 export function TaskPage({ projectId }: Readonly<{ projectId: string }>) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const session = useSessionQuery();
-  const plans = useTaskPlansQuery(projectId);
+  const identity = useIdentityWalletQuery(projectId);
+  const control = useTaskControlCatalogQuery(projectId);
   const runs = useTaskRunsQuery(projectId);
+  const builderOpen = searchParams.get("panel") === "create";
+  const assembly = useTaskAssemblyCatalogQuery(projectId, builderOpen);
   const [createPlanOpen, setCreatePlanOpen] = useState(false);
-  const [startRunOpen, setStartRunOpen] = useState(false);
-
-  const requestedPlanId = searchParams.get("planId");
-  const selectedPlanId =
-    plans.data?.find((plan) => plan.id === requestedPlanId)?.id ??
-    plans.data?.[0]?.id ??
-    null;
-  const versions = useTaskPlanVersionsQuery(selectedPlanId);
-  const requestedVersionId = searchParams.get("versionId");
-  const selectedVersionId =
-    versions.data?.find((version) => version.id === requestedVersionId)?.id ??
-    versions.data?.[0]?.id ??
-    null;
-  const selectedVersion =
-    versions.data?.find((version) => version.id === selectedVersionId) ??
-    versions.data?.[0] ??
-    null;
-  const versionIds = useMemo(
-    () => new Set(versions.data?.map((version) => version.id) ?? []),
-    [versions.data]
-  );
-  const planRuns = useMemo(
-    () => runs.data?.filter((run) => versionIds.has(run.taskPlanVersionId)) ?? [],
-    [runs.data, versionIds]
-  );
-  const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
-  const visibleRuns = query
-    ? planRuns.filter((run) =>
-        [
-          run.id,
-          run.lifecycle,
-          run.quality,
-          run.triggerSource,
-          versions.data?.find((version) => version.id === run.taskPlanVersionId)
-            ?.versionRef ?? ""
-        ].some((value) => value.toLowerCase().includes(query))
-      )
-    : planRuns;
-  const selectedRunId =
-    searchParams.get("runId") ?? visibleRuns[0]?.id ?? planRuns[0]?.id ?? null;
-  const selectedRun =
-    planRuns.find((run) => run.id === selectedRunId) ?? planRuns[0] ?? null;
-  const selectedRunVersion =
-    versions.data?.find(
-      (version) => version.id === selectedRun?.taskPlanVersionId
-    ) ??
-    selectedVersion ??
-    null;
-  const units = useExecutionUnitsQuery(selectedRun?.id ?? null);
-  const unitSummary = summarizeExecutionUnits(units.data?.items ?? []);
-  const command = useTaskRunCommandMutation(projectId);
   const canOperate =
     session.data?.roles.some((role) => RUN_OPERATORS.has(role)) ?? false;
-  const view = searchParams.get("view") === "list" ? "list" : "orbit";
 
-  if (plans.isPending || runs.isPending) {
-    return <LoadingState label="正在读取任务轨道" />;
+  const versionById = useMemo(
+    () =>
+      new Map(
+        (control.data?.versions ?? []).map((version) => [version.id, version])
+      ),
+    [control.data?.versions]
+  );
+  const planById = useMemo(
+    () =>
+      new Map((control.data?.plans ?? []).map((plan) => [plan.id, plan])),
+    [control.data?.plans]
+  );
+  const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
+  const requestedFilter = searchParams.get("filter");
+  const filter: RunFilter = ["active", "attention", "waiting"].includes(
+    requestedFilter ?? ""
+  )
+    ? (requestedFilter as RunFilter)
+    : "all";
+  const view = searchParams.get("view") === "list" ? "list" : "orbit";
+  const filteredRuns = useMemo(() => {
+    const candidates =
+      runs.data?.filter((run) => matchesFilter(run, filter)) ?? [];
+    if (!query) return candidates;
+    return candidates.filter((run) => {
+      const version = versionById.get(run.taskPlanVersionId);
+      const plan = version ? planById.get(version.taskPlanId) : null;
+      return [
+        run.id,
+        run.lifecycle,
+        run.quality,
+        run.triggerSource,
+        version?.versionRef ?? "",
+        plan?.name ?? "",
+        plan?.key ?? ""
+      ].some((value) => value.toLowerCase().includes(query));
+    });
+  }, [filter, planById, query, runs.data, versionById]);
+
+  const requestedRunId = searchParams.get("runId");
+  const selectedRun =
+    filteredRuns.find((run) => run.id === requestedRunId) ??
+    filteredRuns[0] ??
+    null;
+  const selectedVersion = selectedRun
+    ? versionById.get(selectedRun.taskPlanVersionId) ?? null
+    : null;
+  const selectedPlan = selectedVersion
+    ? planById.get(selectedVersion.taskPlanId) ?? null
+    : null;
+  const units = useExecutionUnitsQuery(selectedRun?.id ?? null);
+  const unitSummary = summarizeExecutionUnits(units.data?.items ?? []);
+  const denominator = selectedRun?.unitCount ?? unitSummary.total;
+  const progress =
+    denominator > 0
+      ? Math.min(100, Math.round((unitSummary.closed / denominator) * 100))
+      : 0;
+  const unitWindowIsComplete =
+    Boolean(selectedRun) &&
+    !units.data?.nextAfterOrdinal &&
+    denominator <= unitSummary.total;
+  const command = useTaskRunCommandMutation(projectId);
+
+  if (control.isPending || runs.isPending) {
+    return <LoadingState label="正在读取任务指挥舱" />;
   }
-  if (plans.isError || runs.isError) {
-    const failedQuery = plans.isError ? plans : runs;
+  if (control.isError || runs.isError) {
+    const failedQuery = control.isError ? control : runs;
     return (
       <ErrorState
-        detail={failedQuery.error?.message ?? "无法读取任务轨道。"}
+        detail={failedQuery.error?.message ?? "无法读取任务指挥舱。"}
         onRetry={() => void failedQuery.refetch()}
       />
     );
   }
-
-  const selectedPlan =
-    plans.data.find((plan) => plan.id === selectedPlanId) ??
-    plans.data[0] ??
-    null;
-
-  if (selectedPlan && versions.isPending) {
-    return <LoadingState label="正在读取 TaskPlanVersion" />;
+  if (builderOpen && assembly.isPending) {
+    return <LoadingState label="正在读取批量任务装配目录" />;
   }
-  if (versions.isError) {
+  if (builderOpen && assembly.isError) {
     return (
       <ErrorState
-        detail={versions.error.message}
-        onRetry={() => void versions.refetch()}
+        detail={assembly.error.message}
+        onRetry={() => void assembly.refetch()}
       />
     );
   }
 
-  const versionById = new Map(
-    (versions.data ?? []).map((version) => [version.id, version])
-  );
-  const activeCount = planRuns.filter((run) => run.lifecycle !== "CLOSED").length;
-  const attentionCount = planRuns.filter((run) =>
+  const allRuns = runs.data;
+  const activeCount = allRuns.filter((run) => run.lifecycle !== "CLOSED").length;
+  const attentionCount = allRuns.filter((run) =>
     ["FAILED", "BLOCKED", "INFRA_ERROR"].includes(run.quality)
   ).length;
-  const closedCount = planRuns.filter((run) => run.lifecycle === "CLOSED").length;
-  const unitWindowIsComplete =
-    Boolean(selectedRun) &&
-    !units.data?.nextAfterOrdinal &&
-    (selectedRun?.unitCount ?? unitSummary.total) <= unitSummary.total;
+  const waitingCount = allRuns.filter(
+    (run) =>
+      run.lifecycle === "QUEUED" ||
+      run.materializationState === "MATERIALIZING"
+  ).length;
+  const nextSchedule = control.data.schedules.find(
+    (schedule) =>
+      schedule.status === "ACTIVE" && schedule.nextFireTimes.length > 0
+  );
+  const nextFire = nextSchedule?.nextFireTimes[0] ?? null;
+  const schedulerHealthy = control.data.schedules.every(
+    (schedule) => schedule.syncStatus === "SYNCED"
+  );
+  const identityTotal = identity.data
+    ? identity.data.totals.available +
+      identity.data.totals.leased +
+      identity.data.totals.quarantined
+    : null;
   const commandError =
     command.error instanceof ApiProblemError
       ? command.error.problem.detail
@@ -232,14 +283,18 @@ export function TaskPage({ projectId }: Readonly<{ projectId: string }>) {
 
   async function submitCommand(kind: "cancel" | "pause" | "resume") {
     if (!selectedRun) return;
-    await command.mutateAsync({
-      runId: selectedRun.id,
-      revision: selectedRun.revision,
-      kind,
-      command: {
-        clientMutationId: `${kind}-run-${createRequestId()}`
-      }
-    });
+    try {
+      await command.mutateAsync({
+        runId: selectedRun.id,
+        revision: selectedRun.revision,
+        kind,
+        command: {
+          clientMutationId: `${kind}-run-${createRequestId()}`
+        }
+      });
+    } catch {
+      // Mutation state renders the backend problem.
+    }
   }
 
   return (
@@ -247,83 +302,102 @@ export function TaskPage({ projectId }: Readonly<{ projectId: string }>) {
       <header className={styles.hero}>
         <div>
           <p>
-            <Rocket size={13} /> MISSION CONTROL
+            <Rocket size={13} />{" "}
+            {builderOpen
+              ? "TASK ASSEMBLY · NEW MISSION"
+              : "MISSION CONTROL"}
           </p>
-          <h1>让每一次回归，都沿着自己的轨道运行。</h1>
+          <h1>
+            {builderOpen
+              ? "把测试范围，展开成一张真实执行矩阵。"
+              : "让每一次回归，都沿着自己的轨道运行。"}
+          </h1>
           <span>
-            TaskPlan 固定任务身份，TaskPlanVersion 冻结执行输入，TaskRun
-            记录每一次真实批量执行。
+            {builderOpen
+              ? "每一次选择都会立即反映为精确 CaseVersion、环境与执行单元；未开放的 Profile Catalog 不会被演示数据替代。"
+              : "任务记录一次真实批量执行；在这里观察进度、资源、失败聚集与下一次触发。"}
           </span>
         </div>
-        <div className={styles.heroActions}>
-          <button
-            type="button"
-            onClick={() => setCreatePlanOpen(true)}
-            disabled={!canOperate}
-            title={canOperate ? "创建真实 TaskPlan" : "需要运行操作权限"}
-          >
-            <Plus size={16} /> 创建 TaskPlan
-          </button>
-          <button
-            type="button"
-            onClick={() => setStartRunOpen(true)}
-            disabled={!canOperate || !selectedVersion}
-            title={
-              selectedVersion
-                ? "从不可变 TaskPlanVersion 启动"
-                : "当前 TaskPlan 尚无已发布版本"
-            }
-          >
-            <Play size={16} /> 创建批量任务
-          </button>
-        </div>
+        <Link
+          className={styles.heroAction}
+          href={searchHref(
+            pathname,
+            new URLSearchParams(searchParams.toString()),
+            builderOpen
+              ? { panel: null }
+              : { panel: "create", runId: null }
+          )}
+        >
+          {builderOpen ? (
+            <>
+              <ArrowLeft size={15} /> 返回任务中心
+            </>
+          ) : (
+            <>
+              <Plus size={15} /> 创建批量任务
+            </>
+          )}
+        </Link>
       </header>
 
-      {!selectedPlan ? (
-        <EmptyState
-          title="还没有 TaskPlan"
-          detail="由 RUN_OPERATOR 或项目管理员创建第一个稳定计划；后续版本发布与运行均保留完整审计链。"
+      {builderOpen && assembly.data ? (
+        <TaskBuilder
+          projectId={projectId}
+          control={control.data}
+          assembly={assembly.data}
+          identity={identity.data ?? null}
+          canOperate={canOperate}
+          onBack={() =>
+            router.push(
+              searchHref(
+                pathname,
+                new URLSearchParams(searchParams.toString()),
+                { panel: null }
+              )
+            )
+          }
+          onCreatePlan={() => setCreatePlanOpen(true)}
         />
       ) : (
         <>
-          <nav className={styles.planStrip} aria-label="TaskPlan">
-            <span>TEST PLANS</span>
-            {plans.data.map((plan) => (
-              <Link
-                href={searchHref(
-                  pathname,
-                  new URLSearchParams(searchParams.toString()),
-                  {
-                    planId: plan.id,
-                    versionId: null,
-                    runId: null
-                  }
-                )}
-                aria-current={plan.id === selectedPlan.id ? "page" : undefined}
-                key={plan.id}
-              >
-                <strong>{plan.name}</strong>
-                <small>{plan.key}</small>
-              </Link>
-            ))}
-          </nav>
-
           <section className={styles.commandBar}>
             <form>
               <Search size={15} aria-hidden="true" />
-              <input type="hidden" name="planId" value={selectedPlan.id} />
               <input
                 name="q"
                 defaultValue={searchParams.get("q") ?? ""}
                 aria-label="搜索任务"
-                placeholder="搜索任务、状态或触发来源"
+                placeholder="搜索任务、迭代或触发来源"
               />
+              {filter !== "all" ? (
+                <input type="hidden" name="filter" value={filter} />
+              ) : null}
+              {view !== "orbit" ? (
+                <input type="hidden" name="view" value={view} />
+              ) : null}
             </form>
             <div className={styles.filters}>
-              <span>全部 {planRuns.length}</span>
-              <span>运行中 {activeCount}</span>
-              <span>需关注 {attentionCount}</span>
-              <span>已关闭 {closedCount}</span>
+              {[
+                ["all", `全部 ${allRuns.length}`],
+                ["active", `运行中 ${activeCount}`],
+                ["attention", `需关注 ${attentionCount}`],
+                ["waiting", `等待资源 ${waitingCount}`]
+              ].map(([value, label]) => (
+                <Link
+                  className={filter === value ? styles.activeFilter : ""}
+                  href={searchHref(
+                    pathname,
+                    new URLSearchParams(searchParams.toString()),
+                    {
+                      filter: value === "all" ? null : value,
+                      runId: null
+                    }
+                  )}
+                  key={value}
+                >
+                  {label}
+                </Link>
+              ))}
             </div>
             <div className={styles.viewSwitch}>
               <Link
@@ -356,100 +430,129 @@ export function TaskPage({ projectId }: Readonly<{ projectId: string }>) {
                   <span>ACTIVE TASK ORBIT</span>
                   <strong>{view === "orbit" ? "任务运行轨道" : "任务运行磁带"}</strong>
                 </div>
-                <em>
-                  <Radio size={11} /> API FACTS
+                <em data-healthy={schedulerHealthy}>
+                  <Radio size={11} />{" "}
+                  {control.data.schedules.length
+                    ? schedulerHealthy
+                      ? "调度器在线"
+                      : "调度同步中"
+                    : "API FACTS"}
                 </em>
               </header>
 
-              {!visibleRuns.length ? (
-                <EmptyState
-                  title={query ? "没有匹配的 TaskRun" : "这个计划还没有运行记录"}
-                  detail={
-                    versions.data?.length
-                      ? "从已发布版本启动第一条真实 TaskRun。"
-                      : "后端尚未为此 TaskPlan 发布不可变版本。"
-                  }
-                />
-              ) : view === "orbit" && selectedRun ? (
+              {view === "orbit" ? (
                 <div className={styles.orbitMap}>
                   <i className={styles.ringOne} />
                   <i className={styles.ringTwo} />
                   <i className={styles.ringThree} />
-                  <Link
-                    className={styles.orbitCore}
-                    href={`/projects/${projectId}/live?runId=${selectedRun.id}`}
-                    style={
-                      {
-                        "--progress": unitWindowIsComplete
-                          ? `${unitSummary.progress}%`
-                          : "0%"
-                      } as ProgressStyle
-                    }
-                  >
-                    <span>
-                      {selectedRun.lifecycle} · RUN-{shortId(selectedRun.id)}
-                    </span>
-                    <strong>
-                      {units.isPending
-                        ? "…"
-                        : unitWindowIsComplete
-                          ? `${unitSummary.progress}%`
-                          : "LIVE"}
-                    </strong>
-                    <small>
-                      {units.isPending
-                        ? "READING EXECUTION UNITS"
-                        : unitWindowIsComplete
-                          ? `${unitSummary.closed} / ${unitSummary.total} EXECUTIONS`
-                          : `FIRST PAGE ${unitSummary.closed} / ${unitSummary.total} CLOSED`}
-                    </small>
-                    <i />
-                  </Link>
-                  {visibleRuns
-                    .filter((run) => run.id !== selectedRun.id)
+                  {selectedRun ? (
+                    <Link
+                      className={styles.orbitCore}
+                      href={`/projects/${projectId}/live?runId=${selectedRun.id}`}
+                      style={
+                        {
+                          "--progress": `${progress}%`
+                        } as ProgressStyle
+                      }
+                    >
+                      <span>
+                        {selectedRun.lifecycle} · RUN-{shortId(selectedRun.id)}
+                      </span>
+                      <strong>
+                        {units.isPending
+                          ? "…"
+                          : unitWindowIsComplete
+                            ? `${progress}%`
+                            : "LIVE"}
+                      </strong>
+                      <small>
+                        {units.isPending
+                          ? "READING EXECUTION UNITS"
+                          : `${unitSummary.closed} / ${denominator} EXECUTIONS`}
+                      </small>
+                      <i />
+                    </Link>
+                  ) : (
+                    <div
+                      className={`${styles.orbitCore} ${styles.emptyOrbitCore}`}
+                      style={{ "--progress": "0%" } as ProgressStyle}
+                    >
+                      <span>READY · TASK CONTROL</span>
+                      <strong>—</strong>
+                      <small>等待第一条 TaskRun</small>
+                      <i />
+                    </div>
+                  )}
+                  {filteredRuns
+                    .filter((run) => run.id !== selectedRun?.id)
                     .slice(0, 3)
-                    .map((run, index) => (
-                      <Link
-                        className={styles.satellite}
-                        data-position={index + 1}
-                        data-tone={statusTone(run)}
-                        href={searchHref(
-                          pathname,
-                          new URLSearchParams(searchParams.toString()),
-                          { runId: run.id }
-                        )}
-                        key={run.id}
-                      >
-                        <span>RUN-{shortId(run.id)}</span>
-                        <strong>
-                          {versionById.get(run.taskPlanVersionId)?.version ??
-                            shortId(run.taskPlanVersionId)}
-                        </strong>
-                        <small>
-                          {run.lifecycle} · {run.quality}
-                        </small>
-                        <i />
-                      </Link>
-                    ))}
+                    .map((run, index) => {
+                      const version = versionById.get(run.taskPlanVersionId);
+                      const plan = version
+                        ? planById.get(version.taskPlanId)
+                        : null;
+                      return (
+                        <Link
+                          className={styles.satellite}
+                          data-position={index + 1}
+                          data-tone={statusTone(run)}
+                          href={searchHref(
+                            pathname,
+                            new URLSearchParams(searchParams.toString()),
+                            { runId: run.id }
+                          )}
+                          key={run.id}
+                        >
+                          <span>RUN-{shortId(run.id)}</span>
+                          <strong>{plan?.name ?? "未解析 TaskPlan"}</strong>
+                          <small>
+                            {run.lifecycle} · {run.quality}
+                          </small>
+                          <i />
+                        </Link>
+                      );
+                    })}
                   <p className={styles.orbitCaption}>
-                    <Bot size={15} /> ExecutionUnit 生命周期每 5 秒与控制面同步
+                    <Bot size={15} />
+                    {selectedRun
+                      ? `ExecutionUnit 每 5 秒与控制面同步`
+                      : "创建或触发 TaskPlanVersion 后，运行会出现在这里"}
                   </p>
                 </div>
               ) : (
                 <div className={styles.runList}>
-                  {visibleRuns.map((run) => (
-                    <RunCard
-                      run={run}
-                      version={versionById.get(run.taskPlanVersionId) ?? null}
-                      selected={run.id === selectedRun?.id}
-                      href={searchHref(
-                        pathname,
-                        new URLSearchParams(searchParams.toString()),
-                        { runId: run.id }
-                      )}
-                      key={run.id}
-                    />
-                  ))}
+                  {filteredRuns.length ? (
+                    filteredRuns.map((run) => {
+                      const version =
+                        versionById.get(run.taskPlanVersionId) ?? null;
+                      const plan = version
+                        ? planById.get(version.taskPlanId)
+                        : null;
+                      return (
+                        <RunCard
+                          run={run}
+                          planName={plan?.name ?? "未解析 TaskPlan"}
+                          version={version}
+                          selected={run.id === selectedRun?.id}
+                          href={searchHref(
+                            pathname,
+                            new URLSearchParams(searchParams.toString()),
+                            { runId: run.id }
+                          )}
+                          key={run.id}
+                        />
+                      );
+                    })
+                  ) : (
+                    <div className={styles.emptyList}>
+                      <strong>
+                        {query || filter !== "all"
+                          ? "没有匹配的 TaskRun"
+                          : "还没有 TaskRun"}
+                      </strong>
+                      <span>可从已发布 TaskPlanVersion 手工或定时触发。</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -463,21 +566,19 @@ export function TaskPage({ projectId }: Readonly<{ projectId: string }>) {
                       {selectedRun.lifecycle}
                     </em>
                   </header>
-                  <h2>{selectedPlan.name}</h2>
+                  <h2>{selectedPlan?.name ?? "未解析 TaskPlan"}</h2>
                   <p>
-                    {selectedRunVersion?.versionRef ??
+                    {selectedVersion?.versionRef ??
                       `TaskPlanVersion ${shortId(selectedRun.taskPlanVersionId)}`}
                   </p>
                   <div className={styles.focusProgress}>
                     <div>
                       <strong>{units.isPending ? "…" : unitSummary.closed}</strong>
-                      <span>
-                        / {unitSummary.total} 当前页已关闭
-                      </span>
+                      <span>/ {denominator} 已完成</span>
                     </div>
                     <small>{selectedRun.materializationState}</small>
                     <i>
-                      <b style={{ width: `${unitSummary.progress}%` }} />
+                      <b style={{ width: `${progress}%` }} />
                     </i>
                   </div>
                   <div className={styles.metrics}>
@@ -504,11 +605,11 @@ export function TaskPage({ projectId }: Readonly<{ projectId: string }>) {
                     <span>冻结快照</span>
                     <small>
                       <CircleCheck size={11} />{" "}
-                      {selectedRunVersion?.caseCount ?? "—"} CaseVersion
+                      {selectedVersion?.caseCount ?? "—"} CaseVersion
                     </small>
                     <small>
                       <CircleCheck size={11} />{" "}
-                      {selectedRunVersion?.matrixSize ?? "—"} Matrix Units
+                      {selectedVersion?.matrixSize ?? "—"} Matrix Units
                     </small>
                     <small>
                       <CircleCheck size={11} /> Manifest{" "}
@@ -558,75 +659,106 @@ export function TaskPage({ projectId }: Readonly<{ projectId: string }>) {
                   </Link>
                 </>
               ) : (
-                <EmptyState
-                  title="等待 TaskRun"
-                  detail="选择已有运行，或从已发布版本创建新的批量任务。"
-                />
+                <div className={styles.emptyFocus}>
+                  <Radio size={22} />
+                  <span>TASK FOCUS</span>
+                  <h2>等待 TaskRun</h2>
+                  <p>
+                    创建或选择一个已发布 TaskPlanVersion，运行事实会在这里聚焦。
+                  </p>
+                  <Link
+                    href={searchHref(
+                      pathname,
+                      new URLSearchParams(searchParams.toString()),
+                      { panel: "create" }
+                    )}
+                  >
+                    打开批量任务装配器 <ArrowRight size={14} />
+                  </Link>
+                </div>
               )}
             </aside>
 
             <div className={styles.signalStrip}>
               <div>
-                <Rocket size={17} />
-                <span>计划版本</span>
-                <strong>{versions.data?.length ?? 0} 个不可变版本</strong>
-                <small>{selectedVersion?.versionRef ?? "等待首次发布"}</small>
+                <Clock3 size={17} />
+                <span>下一次计划</span>
+                <strong>
+                  {nextFire && nextSchedule
+                    ? `${FIRE_DATE_FORMAT.format(nextFire)} · ${nextSchedule.name}`
+                    : "暂无 ACTIVE Schedule"}
+                </strong>
+                <small>
+                  {nextSchedule
+                    ? `${nextSchedule.status} · ${nextSchedule.syncStatus}`
+                    : `${control.data.versions.length} 个不可变版本`}
+                </small>
               </div>
               <div>
-                <CircleCheck size={17} />
-                <span>运行事实</span>
-                <strong>{planRuns.length} 次真实运行</strong>
-                <small>{activeCount} 个仍未关闭</small>
+                <Fingerprint size={17} />
+                <span>身份容量</span>
+                <strong>
+                  {identity.data && identityTotal !== null
+                    ? `${identity.data.totals.available} / ${identityTotal} 可用`
+                    : identity.isError
+                      ? "容量读取失败"
+                      : "等待身份目录"}
+                </strong>
+                <small>
+                  {identity.data?.environment?.name ?? "尚无 ACTIVE Environment"}
+                </small>
               </div>
               <div>
                 <CircleAlert size={17} />
-                <span>质量脉冲</span>
-                <strong>{attentionCount} 个需关注结果</strong>
-                <small>仅统计后端 Quality Axis</small>
+                <span>风险脉冲</span>
+                <strong>{attentionCount} 个结果需关注</strong>
+                <small>
+                  {waitingCount
+                    ? `${waitingCount} 个运行等待资源或物化`
+                    : "当前没有资源排队"}
+                </small>
               </div>
             </div>
           </section>
 
-          <section className={styles.versionRail}>
+          <section className={styles.historyRail}>
             <header>
-              <span>VERSION VAULT</span>
-              <strong>{versions.data?.length ?? 0}</strong>
+              <span>最近任务</span>
+              <strong>{allRuns.length}</strong>
             </header>
-            {versions.data?.length ? (
-              versions.data.slice(0, 4).map((version) => (
-                <Link
-                  className={
-                    version.id === selectedVersion?.id
-                      ? styles.selectedVersion
-                      : ""
-                  }
-                  href={searchHref(
-                    pathname,
-                    new URLSearchParams(searchParams.toString()),
-                    { versionId: version.id }
-                  )}
-                  key={version.id}
-                >
-                  <span>{version.version}</span>
-                  <strong>{version.versionRef}</strong>
-                  <small>{version.caseCount} CASES</small>
-                  <b>{version.matrixSize} UNITS</b>
-                  <ArrowUpRight size={14} />
-                </Link>
-              ))
+            {allRuns.length ? (
+              allRuns.slice(0, 4).map((run) => {
+                const version = versionById.get(run.taskPlanVersionId);
+                const plan = version ? planById.get(version.taskPlanId) : null;
+                return (
+                  <Link
+                    className={styles.historyTask}
+                    data-tone={statusTone(run)}
+                    href={searchHref(
+                      pathname,
+                      new URLSearchParams(searchParams.toString()),
+                      { runId: run.id, filter: null }
+                    )}
+                    key={run.id}
+                  >
+                    <span>RUN-{shortId(run.id)}</span>
+                    <strong>{plan?.name ?? "未解析 TaskPlan"}</strong>
+                    <small>
+                      {run.triggerSource} · {DATE_FORMAT.format(run.requestedAt)}
+                    </small>
+                    <b>
+                      {run.lifecycle !== "CLOSED"
+                        ? run.lifecycle
+                        : run.quality}
+                    </b>
+                    <ArrowUpRight size={14} />
+                  </Link>
+                );
+              })
             ) : (
-              <div className={styles.versionGap}>
-                <strong>尚无已发布版本</strong>
-                <span>
-                  当前 API 未开放 Execution/Profile Catalog，前端不会要求操作者手填无来源 UUID。
-                </span>
-                <button
-                  type="button"
-                  disabled
-                  title="等待后端开放 Profile Catalog 后接入完整版本发布向导"
-                >
-                  发布 TaskPlanVersion
-                </button>
+              <div className={styles.historyGap}>
+                <strong>尚无最近任务</strong>
+                <span>第一次真实运行完成后会保留在 RECENT 轨道。</span>
               </div>
             )}
           </section>
@@ -637,12 +769,6 @@ export function TaskPage({ projectId }: Readonly<{ projectId: string }>) {
         projectId={projectId}
         open={createPlanOpen}
         onClose={() => setCreatePlanOpen(false)}
-      />
-      <StartTaskRunDialog
-        projectId={projectId}
-        version={selectedVersion}
-        open={startRunOpen}
-        onClose={() => setStartRunOpen(false)}
       />
     </div>
   );

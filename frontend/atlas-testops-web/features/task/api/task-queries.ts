@@ -7,8 +7,11 @@ import {
 } from "@tanstack/react-query";
 
 import {
+  createTaskSchedule,
   createTaskPlan,
   readExecutionUnits,
+  readTaskAssemblyCatalog,
+  readTaskControlCatalog,
   readTaskPlans,
   readTaskPlanVersions,
   readTaskRuns,
@@ -17,11 +20,14 @@ import {
 } from "./task-service";
 import type { CommandKind, TaskCommand } from "./task-service";
 import type {
+  CreateTaskScheduleCommand,
   CreateTaskPlanCommand,
   StartTaskPlanVersionRunCommand
 } from "../model/task";
 
 export const taskQueryKeys = {
+  control: (projectId: string) => ["task", "control", projectId] as const,
+  assembly: (projectId: string) => ["task", "assembly", projectId] as const,
   plans: (projectId: string) => ["task", "plans", projectId] as const,
   versions: (taskPlanId: string) =>
     ["task", "versions", taskPlanId] as const,
@@ -31,6 +37,24 @@ export const taskQueryKeys = {
       ? (["task", "units", runId] as const)
       : (["task", "units", runId, afterOrdinal] as const)
 };
+
+export function useTaskControlCatalogQuery(projectId: string) {
+  return useQuery({
+    queryKey: taskQueryKeys.control(projectId),
+    queryFn: () => readTaskControlCatalog(projectId)
+  });
+}
+
+export function useTaskAssemblyCatalogQuery(
+  projectId: string,
+  enabled: boolean
+) {
+  return useQuery({
+    queryKey: taskQueryKeys.assembly(projectId),
+    queryFn: () => readTaskAssemblyCatalog(projectId),
+    enabled
+  });
+}
 
 export function useTaskPlansQuery(projectId: string) {
   return useQuery({
@@ -85,8 +109,31 @@ export function useCreateTaskPlanMutation(projectId: string) {
     mutationFn: (command: CreateTaskPlanCommand) =>
       createTaskPlan(projectId, command),
     onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: taskQueryKeys.plans(projectId)
+        }),
+        queryClient.invalidateQueries({
+          queryKey: taskQueryKeys.control(projectId)
+        })
+      ]);
+    }
+  });
+}
+
+export function useCreateTaskScheduleMutation(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      taskPlanVersionId,
+      command
+    }: {
+      taskPlanVersionId: string;
+      command: CreateTaskScheduleCommand;
+    }) => createTaskSchedule(taskPlanVersionId, command),
+    onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: taskQueryKeys.plans(projectId)
+        queryKey: taskQueryKeys.control(projectId)
       });
     }
   });

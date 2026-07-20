@@ -39,6 +39,7 @@ export type TestCaseCardViewModel = {
   semanticRevision: number;
   layoutRevision: number;
   actorCount: number;
+  primaryRoleKey: string | null;
   updatedBy: string;
   updatedAt: Date;
 };
@@ -65,6 +66,7 @@ export type WorkflowEdgeViewModel = {
 
 export type DebugRunViewModel = {
   id: string;
+  semanticRevision: number;
   lifecycle: string;
   outcome: string;
   snapshotStatus: string;
@@ -90,6 +92,8 @@ export type CaseWorkspaceViewModel = {
     layoutRevision: number;
     semanticDigest: string;
     valid: boolean;
+    matchedRequiredInputs: number;
+    totalRequiredInputs: number;
     issues: Array<{
       code: string;
       message: string;
